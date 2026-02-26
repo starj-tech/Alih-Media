@@ -20,8 +20,7 @@ export default function PengajuanAlihmedia() {
     noHak: '',
     desa: '',
     kecamatan: '',
-    koordinatLat: '',
-    koordinatLng: '',
+    linkShareloc: '',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -41,7 +40,7 @@ export default function PengajuanAlihmedia() {
       userId: user?.id || '',
     });
     toast.success('Pengajuan berhasil dikirim!');
-    setForm({ namaPemegangHak: '', noTelepon: '', jenisHak: '', noHak: '', desa: '', kecamatan: '', koordinatLat: '', koordinatLng: '' });
+    setForm({ namaPemegangHak: '', noTelepon: '', jenisHak: '', noHak: '', desa: '', kecamatan: '', linkShareloc: '' });
   };
 
   return (
@@ -140,25 +139,14 @@ export default function PengajuanAlihmedia() {
             <Input type="file" accept=".pdf" className="mt-1" />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Titik Koordinat (Latitude)</Label>
-              <Input
-                value={form.koordinatLat || ''}
-                onChange={e => setForm(f => ({ ...f, koordinatLat: e.target.value }))}
-                placeholder="Contoh: -6.5876"
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label>Titik Koordinat (Longitude)</Label>
-              <Input
-                value={form.koordinatLng || ''}
-                onChange={e => setForm(f => ({ ...f, koordinatLng: e.target.value }))}
-                placeholder="Contoh: 106.8542"
-                className="mt-1"
-              />
-            </div>
+          <div>
+            <Label>Link Shareloct Bidang Tanah</Label>
+            <Input
+              value={form.linkShareloc || ''}
+              onChange={e => setForm(f => ({ ...f, linkShareloc: e.target.value }))}
+              placeholder="Masukkan link shareloc bidang tanah"
+              className="mt-1"
+            />
           </div>
 
           <Button type="submit" className="w-full gap-2">

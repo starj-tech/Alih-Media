@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Mail, Lock, LogIn, UserPlus, User } from 'lucide-react';
 import { toast } from 'sonner';
-import garudaImg from '@/assets/garuda-login.png';
+import logoBpn from '@/assets/logo-bpn.png';
 import loginBg from '@/assets/login-bg.jpeg';
 
 export default function LoginPage() {
@@ -56,7 +56,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md animate-fade-in relative z-10">
         <div className="text-center mb-8">
           <div className="w-24 h-24 mx-auto mb-4">
-            <img src={garudaImg} alt="Garuda Pancasila" className="w-full h-full object-contain" />
+            <img src={logoBpn} alt="Logo BPN" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-bold text-white">Login Aplikasi</h1>
           <p className="text-white/80 mt-1">Aplikasi Alih Media - Kantor Pertanahan Kab. Bogor II</p>
