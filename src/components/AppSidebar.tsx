@@ -47,7 +47,7 @@ export default function AppSidebar({ role, onLogout }: AppSidebarProps) {
               src={pancasilaImg}
               alt="Garuda Pancasila"
               className="w-full h-full object-contain drop-shadow-lg"
-              style={{ filter: 'brightness(2) contrast(1.1) saturate(1.2) drop-shadow(0 0 8px rgba(255,215,0,0.5))' }} />
+              style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.3))' }} />
 
           </div>
           <h2 className="text-lg font-light tracking-[0.25em] text-white/95 uppercase">Alih Media</h2>
