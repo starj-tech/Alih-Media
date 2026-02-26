@@ -20,6 +20,24 @@ const mockUsers: (User & { password: string })[] = [
   { id: '2', email: 'user@bpn.go.id', password: 'user123', name: 'Abdurrohman Muthi', role: 'user' },
 ];
 
+export function register(name: string, email: string, password: string): User | string {
+  const exists = mockUsers.find(u => u.email === email);
+  if (exists) return 'Email sudah terdaftar';
+  const newUser: User & { password: string } = {
+    id: String(mockUsers.length + 1),
+    email,
+    password,
+    name,
+    role: 'user',
+  };
+  mockUsers.push(newUser);
+  const { password: _, ...user } = newUser;
+  currentUser = user;
+  localStorage.setItem('alihmedia_user', JSON.stringify(user));
+  listeners.forEach(l => l());
+  return user;
+}
+
 // Using a simple module-level state since we don't have zustand installed
 let currentUser: User | null = null;
 let listeners: (() => void)[] = [];
