@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getUser, login as doLogin, logout as doLogout, initAuth, subscribe, User } from '@/lib/auth';
+import { getUser, login as doLogin, logout as doLogout, register as doRegister, initAuth, subscribe, User } from '@/lib/auth';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(() => initAuth());
@@ -14,10 +14,16 @@ export function useAuth() {
     return result;
   }, []);
 
+  const register = useCallback((name: string, email: string, password: string) => {
+    const result = doRegister(name, email, password);
+    if (typeof result !== 'string') setUser(result);
+    return result;
+  }, []);
+
   const logout = useCallback(() => {
     doLogout();
     setUser(null);
   }, []);
 
-  return { user, login, logout };
+  return { user, login, register, logout };
 }
