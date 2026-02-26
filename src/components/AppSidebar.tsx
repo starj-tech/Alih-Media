@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, CheckSquare, Info, Users, LogOut, Send, FileSearch } from 'lucide-react';
 import { UserRole } from '@/lib/auth';
 import pancasilaImg from '@/assets/pancasila.png';
+import sidebarBg from '@/assets/sidebar-bg.jpg';
 
 interface AppSidebarProps {
   role: UserRole;
@@ -27,43 +28,61 @@ export default function AppSidebar({ role, onLogout }: AppSidebarProps) {
   const menu = role === 'admin' ? adminMenu : userMenu;
 
   return (
-    <aside className="w-64 min-h-screen gradient-sidebar flex flex-col shadow-xl print:hidden">
-      <div className="p-6 text-center border-b border-sidebar-border">
-        <div className="w-28 h-28 mx-auto mb-3 flex items-center justify-center">
-          <img src={pancasilaImg} alt="Garuda Pancasila" className="w-full h-full object-contain brightness-150 contrast-125" style={{ mixBlendMode: 'multiply', filter: 'brightness(1.6) contrast(1.2) saturate(1.1)' }} />
+    <aside
+      className="w-64 min-h-screen flex flex-col shadow-xl print:hidden relative overflow-hidden"
+      style={{
+        backgroundImage: `url(${sidebarBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      {/* Dark overlay for readability */}
+      <div className="absolute inset-0 bg-black/40 z-0" />
+
+      {/* Content */}
+      <div className="relative z-10 flex flex-col h-full">
+        <div className="p-6 text-center border-b border-white/15">
+          <div className="w-20 h-20 mx-auto mb-3 flex items-center justify-center">
+            <img
+              src={pancasilaImg}
+              alt="Garuda Pancasila"
+              className="w-full h-full object-contain drop-shadow-lg"
+              style={{ filter: 'brightness(2) contrast(1.1) saturate(1.2) drop-shadow(0 0 8px rgba(255,215,0,0.5))' }}
+            />
+          </div>
+          <h2 className="text-lg font-light tracking-[0.25em] text-white/95 uppercase">Alih Media</h2>
+          <p className="text-sm font-semibold text-white/85 leading-tight mt-1.5 tracking-wide">Kantor Pertanahan<br />Kabupaten Bogor II</p>
         </div>
-        <h2 className="text-2xl font-light tracking-widest text-sidebar-foreground">Alih Media</h2>
-        <p className="text-base font-bold text-sidebar-foreground/90 leading-tight mt-2 tracking-wide">Kantor Pertanahan<br />Kabupaten Bogor II</p>
-      </div>
 
-      <nav className="flex-1 py-4">
-        {menu.map(item => {
-          const isActive = location.pathname === item.path;
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`flex items-center gap-3 px-6 py-3 mx-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                isActive
-                  ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md'
-                  : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-              }`}
-            >
-              <item.icon className="w-5 h-5" />
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
+        <nav className="flex-1 py-4">
+          {menu.map(item => {
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center gap-3 px-6 py-3 mx-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive
+                    ? 'bg-white/20 text-white shadow-md backdrop-blur-sm'
+                    : 'text-white/75 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <item.icon className="w-5 h-5" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
 
-      <div className="p-4 border-t border-sidebar-border">
-        <button
-          onClick={onLogout}
-          className="flex items-center gap-3 px-6 py-3 w-full rounded-lg text-sm font-medium text-sidebar-foreground/80 hover:bg-destructive hover:text-destructive-foreground transition-all duration-200"
-        >
-          <LogOut className="w-5 h-5" />
-          Logout
-        </button>
+        <div className="p-4 border-t border-white/15">
+          <button
+            onClick={onLogout}
+            className="flex items-center gap-3 px-6 py-3 w-full rounded-lg text-sm font-medium text-white/75 hover:bg-red-500/30 hover:text-white transition-all duration-200"
+          >
+            <LogOut className="w-5 h-5" />
+            Logout
+          </button>
+        </div>
       </div>
     </aside>
   );
