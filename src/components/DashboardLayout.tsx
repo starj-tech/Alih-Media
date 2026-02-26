@@ -26,7 +26,7 @@ export default function DashboardLayout({ role, children, onLogout }: DashboardL
         <div className="absolute inset-0 pointer-events-none" style={{
           background: 'linear-gradient(to right, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.1) 100%)',
         }} />
-        <div className="relative z-10">
+        <div className="relative z-10 max-w-7xl mx-auto">
           {children}
         </div>
       </main>
