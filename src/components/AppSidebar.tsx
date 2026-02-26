@@ -29,11 +29,11 @@ export default function AppSidebar({ role, onLogout }: AppSidebarProps) {
   return (
     <aside className="w-64 min-h-screen gradient-sidebar flex flex-col shadow-xl print:hidden">
       <div className="p-6 text-center border-b border-sidebar-border">
-        <div className="w-20 h-20 mx-auto mb-3 flex items-center justify-center">
-          <img src={pancasilaImg} alt="Garuda Pancasila" className="w-full h-full object-contain" style={{ mixBlendMode: 'multiply' }} />
+        <div className="w-28 h-28 mx-auto mb-3 flex items-center justify-center">
+          <img src={pancasilaImg} alt="Garuda Pancasila" className="w-full h-full object-contain brightness-150 contrast-125" style={{ mixBlendMode: 'multiply', filter: 'brightness(1.6) contrast(1.2) saturate(1.1)' }} />
         </div>
-        <h2 className="text-lg font-bold text-sidebar-foreground">Alih Media</h2>
-        <p className="text-sm font-semibold text-sidebar-foreground/90 leading-tight mt-1">Kantor Pertanahan<br />Kabupaten Bogor II</p>
+        <h2 className="text-2xl font-light tracking-widest text-sidebar-foreground">Alih Media</h2>
+        <p className="text-base font-bold text-sidebar-foreground/90 leading-tight mt-2 tracking-wide">Kantor Pertanahan<br />Kabupaten Bogor II</p>
       </div>
 
       <nav className="flex-1 py-4">
