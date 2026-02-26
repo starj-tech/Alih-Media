@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 
 interface Column<T> {
   header: string;
-  accessor: keyof T | ((row: T) => ReactNode);
+  accessor: keyof T | ((row: T, index?: number) => ReactNode);
   className?: string;
 }
 
@@ -56,7 +56,7 @@ export default function DataTable<T extends Record<string, any>>({
           <thead>
             <tr className="bg-muted/50">
               {columns.map((col, i) => (
-                <th key={i} className={`px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider ${col.className || ''}`}>
+                <th key={i} className={`px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider ${col.className || ''}`}>
                   {col.header}
                 </th>
               ))}
@@ -66,9 +66,9 @@ export default function DataTable<T extends Record<string, any>>({
             {filteredData.map((row, i) => (
               <tr key={i} className="hover:bg-muted/30 transition-colors">
                 {columns.map((col, j) => (
-                  <td key={j} className={`px-4 py-3 text-sm text-foreground ${col.className || ''}`}>
+                  <td key={j} className={`px-4 py-3 text-sm text-foreground text-center ${col.className || ''}`}>
                     {typeof col.accessor === 'function'
-                      ? col.accessor(row)
+                      ? col.accessor(row, i)
                       : row[col.accessor]}
                   </td>
                 ))}
