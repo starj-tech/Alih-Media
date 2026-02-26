@@ -38,10 +38,6 @@ export default function AppSidebar({ role, onLogout }: AppSidebarProps) {
 
       {/* Dark overlay for readability */}
       <div className="absolute inset-0 bg-black/40 z-0" />
-      {/* Right edge gradient border */}
-      <div className="absolute top-0 right-0 w-8 h-full z-[1] pointer-events-none" style={{
-        background: 'linear-gradient(to right, transparent, rgba(0,0,0,0.7))'
-      }} />
 
       {/* Content */}
       <div className="relative z-10 flex flex-col h-full">
