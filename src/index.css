@@ -86,29 +86,29 @@
 
   .gradient-card {
     background: linear-gradient(135deg, 
-      hsl(200, 60%, 65%), 
-      hsl(220, 50%, 68%)
+      hsl(200, 50%, 42%), 
+      hsl(220, 45%, 45%)
     );
   }
 
   .gradient-card-success {
     background: linear-gradient(135deg, 
-      hsl(150, 50%, 55%), 
-      hsl(170, 45%, 55%)
+      hsl(150, 40%, 38%), 
+      hsl(170, 38%, 40%)
     );
   }
 
   .gradient-card-danger {
     background: linear-gradient(135deg, 
-      hsl(0, 55%, 60%), 
-      hsl(15, 55%, 58%)
+      hsl(0, 45%, 45%), 
+      hsl(15, 45%, 43%)
     );
   }
 
   .gradient-card-warning {
     background: linear-gradient(135deg, 
-      hsl(35, 70%, 55%), 
-      hsl(45, 65%, 58%)
+      hsl(35, 55%, 42%), 
+      hsl(45, 50%, 44%)
     );
   }
 

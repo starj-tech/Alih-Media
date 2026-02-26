@@ -20,6 +20,8 @@ export default function PengajuanAlihmedia() {
     noHak: '',
     desa: '',
     kecamatan: '',
+    koordinatLat: '',
+    koordinatLng: '',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -39,14 +41,14 @@ export default function PengajuanAlihmedia() {
       userId: user?.id || '',
     });
     toast.success('Pengajuan berhasil dikirim!');
-    setForm({ namaPemegangHak: '', noTelepon: '', jenisHak: '', noHak: '', desa: '', kecamatan: '' });
+    setForm({ namaPemegangHak: '', noTelepon: '', jenisHak: '', noHak: '', desa: '', kecamatan: '', koordinatLat: '', koordinatLng: '' });
   };
 
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Pengajuan Alihmedia</h1>
-        <p className="text-muted-foreground">Input pengajuan berkas alihmedia baru</p>
+        <h1 className="text-2xl font-bold text-gray-800">Pengajuan Alihmedia</h1>
+        <p className="text-gray-600">Input pengajuan berkas alihmedia baru</p>
       </div>
 
       <div className="glass-card rounded-xl p-8 shadow-lg animate-fade-in">
@@ -134,8 +136,29 @@ export default function PengajuanAlihmedia() {
           </div>
 
           <div>
-            <Label>Upload KTP (PDF, maks 50kb)</Label>
+            <Label>Upload KTP & Sertifikat (PDF, maks 50kb)</Label>
             <Input type="file" accept=".pdf" className="mt-1" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Titik Koordinat (Latitude)</Label>
+              <Input
+                value={form.koordinatLat || ''}
+                onChange={e => setForm(f => ({ ...f, koordinatLat: e.target.value }))}
+                placeholder="Contoh: -6.5876"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>Titik Koordinat (Longitude)</Label>
+              <Input
+                value={form.koordinatLng || ''}
+                onChange={e => setForm(f => ({ ...f, koordinatLng: e.target.value }))}
+                placeholder="Contoh: 106.8542"
+                className="mt-1"
+              />
+            </div>
           </div>
 
           <Button type="submit" className="w-full gap-2">

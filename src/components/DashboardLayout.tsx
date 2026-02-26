@@ -14,7 +14,7 @@ export default function DashboardLayout({ role, children, onLogout }: DashboardL
     <div className="flex min-h-screen">
       <AppSidebar role={role} onLogout={onLogout} />
       <main
-        className="flex-1 p-8 animate-fade-in"
+        className="flex-1 p-8 animate-fade-in relative"
         style={{
           backgroundImage: `url(${bgFlag})`,
           backgroundSize: 'cover',
@@ -22,7 +22,13 @@ export default function DashboardLayout({ role, children, onLogout }: DashboardL
           backgroundAttachment: 'fixed',
         }}
       >
-        {children}
+        {/* Horizontal dark gradient overlay */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: 'linear-gradient(to right, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.1) 100%)',
+        }} />
+        <div className="relative z-10">
+          {children}
+        </div>
       </main>
     </div>
   );
