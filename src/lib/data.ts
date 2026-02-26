@@ -6,6 +6,7 @@ export interface Berkas {
   noBerkas: string;
   tanggalPengajuan: string;
   namaPemegangHak: string;
+  noTelepon: string;
   jenisHak: JenisHak;
   noHak: string;
   desa: string;
@@ -13,6 +14,7 @@ export interface Berkas {
   status: BerkasStatus;
   userId: string;
   fileKtp?: string;
+  catatanPenolakan?: string;
 }
 
 export interface ManagedUser {
@@ -24,11 +26,11 @@ export interface ManagedUser {
 
 // Mock data store
 let berkasList: Berkas[] = [
-  { id: '1', noBerkas: '03360/2026', tanggalPengajuan: '24/02/2026', namaPemegangHak: 'Abdurrohman Muthi', jenisHak: 'SHM', noHak: '4640', desa: 'Cikeasudik', kecamatan: 'Gunung Putri', status: 'Proses', userId: '2' },
-  { id: '2', noBerkas: '1/2026', tanggalPengajuan: '20/02/2026', namaPemegangHak: 'Ahmad Fauzi', jenisHak: 'SHGB', noHak: '3101', desa: 'Cileungsi', kecamatan: 'Cileungsi', status: 'Validasi BT', userId: '2' },
-  { id: '3', noBerkas: '38/2026', tanggalPengajuan: '24/02/2026', namaPemegangHak: 'Siti Nurhaliza', jenisHak: 'HP', noHak: '3654', desa: 'Cileungsi', kecamatan: 'Cileungsi', status: 'Validasi SU & Bidang', userId: '2' },
-  { id: '4', noBerkas: '9/2026', tanggalPengajuan: '22/02/2026', namaPemegangHak: 'Budi Santoso', jenisHak: 'HGU', noHak: '3657', desa: 'Cileungsi', kecamatan: 'Cileungsi', status: 'Ditolak', userId: '2' },
-  { id: '5', noBerkas: '12/2026', tanggalPengajuan: '23/02/2026', namaPemegangHak: 'Dewi Lestari', jenisHak: 'HGB', noHak: '3221', desa: 'Cileungsi', kecamatan: 'Cileungsi', status: 'Selesai', userId: '2' },
+  { id: '1', noBerkas: '03360/2026', tanggalPengajuan: '24/02/2026', namaPemegangHak: 'Abdurrohman Muthi', noTelepon: '081234567890', jenisHak: 'SHM', noHak: '4640', desa: 'Cikeasudik', kecamatan: 'Gunung Putri', status: 'Proses', userId: '2' },
+  { id: '2', noBerkas: '1/2026', tanggalPengajuan: '20/02/2026', namaPemegangHak: 'Ahmad Fauzi', noTelepon: '081298765432', jenisHak: 'SHGB', noHak: '3101', desa: 'Cileungsi', kecamatan: 'Cileungsi', status: 'Validasi BT', userId: '2' },
+  { id: '3', noBerkas: '38/2026', tanggalPengajuan: '24/02/2026', namaPemegangHak: 'Siti Nurhaliza', noTelepon: '081355566677', jenisHak: 'HP', noHak: '3654', desa: 'Cileungsi', kecamatan: 'Cileungsi', status: 'Validasi SU & Bidang', userId: '2' },
+  { id: '4', noBerkas: '9/2026', tanggalPengajuan: '22/02/2026', namaPemegangHak: 'Budi Santoso', noTelepon: '081244455566', jenisHak: 'HGU', noHak: '3657', desa: 'Cileungsi', kecamatan: 'Cileungsi', status: 'Ditolak', userId: '2' },
+  { id: '5', noBerkas: '12/2026', tanggalPengajuan: '23/02/2026', namaPemegangHak: 'Dewi Lestari', noTelepon: '081377788899', jenisHak: 'HGB', noHak: '3221', desa: 'Cileungsi', kecamatan: 'Cileungsi', status: 'Selesai', userId: '2' },
 ];
 
 let managedUsers: ManagedUser[] = [
@@ -52,8 +54,12 @@ export function addBerkas(berkas: Omit<Berkas, 'id' | 'noBerkas' | 'status'>): B
   return newBerkas;
 }
 
-export function updateBerkasStatus(id: string, status: BerkasStatus) {
-  berkasList = berkasList.map(b => b.id === id ? { ...b, status } : b);
+export function updateBerkasStatus(id: string, status: BerkasStatus, catatan?: string) {
+  berkasList = berkasList.map(b => b.id === id ? { ...b, status, ...(catatan ? { catatanPenolakan: catatan } : {}) } : b);
+}
+
+export function deleteBerkas(id: string) {
+  berkasList = berkasList.filter(b => b.id !== id);
 }
 
 export function getStats() {

@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, CheckSquare, Info, Users, LogOut, Send, FileSearch } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Info, Users, LogOut, Send, FileSearch } from 'lucide-react';
 import { UserRole } from '@/lib/auth';
+import pancasilaImg from '@/assets/pancasila.png';
 
 interface AppSidebarProps {
   role: UserRole;
@@ -28,11 +29,11 @@ export default function AppSidebar({ role, onLogout }: AppSidebarProps) {
   return (
     <aside className="w-64 min-h-screen gradient-sidebar flex flex-col shadow-xl print:hidden">
       <div className="p-6 text-center border-b border-sidebar-border">
-        <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-sidebar-primary/20 flex items-center justify-center">
-          <FileText className="w-8 h-8 text-sidebar-foreground" />
+        <div className="w-20 h-20 mx-auto mb-3 flex items-center justify-center">
+          <img src={pancasilaImg} alt="Garuda Pancasila" className="w-full h-full object-contain" style={{ mixBlendMode: 'multiply' }} />
         </div>
         <h2 className="text-lg font-bold text-sidebar-foreground">Alih Media</h2>
-        <p className="text-xs text-sidebar-foreground/70">Kantor Pertanahan<br />Kabupaten Bogor II</p>
+        <p className="text-sm font-semibold text-sidebar-foreground/90 leading-tight mt-1">Kantor Pertanahan<br />Kabupaten Bogor II</p>
       </div>
 
       <nav className="flex-1 py-4">
