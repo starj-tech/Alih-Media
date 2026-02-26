@@ -42,7 +42,7 @@ export default function AppSidebar({ role, onLogout }: AppSidebarProps) {
       {/* Content */}
       <div className="relative z-10 flex flex-col h-full">
         <div className="p-6 text-center border-b border-white/15">
-          <div className="w-20 h-20 mx-auto mb-3 flex items-center justify-center">
+          <div className="w-60 h-60 mx-auto mb-3 flex items-center justify-center">
             <img
               src={logoBpn}
               alt="Logo BPN"
