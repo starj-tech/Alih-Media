@@ -42,89 +42,91 @@ export default function CetakSurat() {
         </Button>
       </div>
 
-      <div className="print-area max-w-[210mm] mx-auto bg-white text-black shadow-xl print:shadow-none relative overflow-hidden flex flex-col" style={{ fontFamily: 'Times New Roman, serif', minHeight: '297mm', padding: '15mm 20mm' }}>
-        {/* Watermark BPN */}
+      <div className="print-area max-w-[210mm] mx-auto bg-white text-black px-16 py-12 shadow-xl print:shadow-none print:p-16 relative overflow-hidden" style={{ fontFamily: 'Times New Roman, serif', minHeight: '297mm' }}>
+        {/* Watermark Garuda */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 0 }}>
-          <img src={watermarkImg} alt="" className="w-[380px] h-auto" style={{ opacity: 0.12 }} />
+          <img src={watermarkImg} alt="" className="w-[340px] h-auto" style={{ opacity: 0.55 }} />
         </div>
-        <div className="relative flex flex-col flex-1" style={{ zIndex: 1 }}>
+        <div className="relative" style={{ zIndex: 1 }}>
         {/* Logo Garuda */}
-        <div className="text-center" style={{ marginBottom: '14px' }}>
-          <img src={pancasilaImg} alt="Garuda Pancasila" className="mx-auto" style={{ width: '70px', mixBlendMode: 'multiply', marginBottom: '10px' }} />
-          <p className="font-bold italic" style={{ fontSize: '12pt', lineHeight: '1.4' }}>LAMPIRAN PENDUKUNG</p>
-          <p className="font-bold italic" style={{ fontSize: '12pt', lineHeight: '1.4' }}>VALIDASI ALIH MEDIA</p>
-          <p className="font-bold italic" style={{ fontSize: '12pt', lineHeight: '1.4' }}>KANTOR PERTANAHAN KABUPATEN BOGOR II</p>
+        <div className="text-center mb-6">
+          <img src={pancasilaImg} alt="Garuda Pancasila" className="w-20 h-auto mx-auto mb-4" style={{ mixBlendMode: 'multiply' }} />
+          <p className="text-sm font-bold italic tracking-wide" style={{ fontSize: '13px' }}>LAMPIRAN PENDUKUNG</p>
+          <p className="text-sm font-bold italic tracking-wide" style={{ fontSize: '13px' }}>VALIDASI ALIH MEDIA</p>
+          <p className="text-sm font-bold italic tracking-wide" style={{ fontSize: '13px' }}>KANTOR PERTANAHAN KABUPATEN BOGOR II</p>
         </div>
 
-        <hr className="border-black" style={{ marginBottom: '6px' }} />
+        <hr className="border-black mb-4" />
 
         {/* Validasi info - right aligned */}
-        <div className="text-right" style={{ fontSize: '11pt', marginBottom: '16px' }}>
+        <div className="text-right text-sm mb-6">
           <p>Validasi</p>
           <p>Tanggal Pengajuan <span className="font-bold underline">{berkas.tanggalPengajuan}</span></p>
         </div>
 
         {/* Title */}
-        <div className="text-center" style={{ marginBottom: '24px' }}>
-          <h1 className="font-bold italic" style={{ fontSize: '22pt', lineHeight: '1.3' }}>SERTIPIKAT HAK ATAS TANAH</h1>
-          <p style={{ fontSize: '11pt', marginTop: '4px' }}>Nomor Berkas :</p>
-          <p style={{ fontSize: '11pt' }}>{berkas.noBerkas}</p>
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold italic" style={{ fontFamily: 'Times New Roman, serif', fontSize: '24px' }}>SERTIPIKAT HAK ATAS TANAH</h1>
+          <p className="text-sm mt-1" style={{ fontSize: '13px' }}>Nomor Berkas :</p>
+          <p className="text-sm" style={{ fontSize: '13px' }}>{berkas.noBerkas}</p>
         </div>
 
         {/* Pemegang Hak */}
-        <div className="text-center" style={{ marginBottom: '16px', marginTop: '20px' }}>
-          <p className="font-bold" style={{ fontSize: '11pt' }}>Pemegang Hak Sertipikat</p>
-          <p className="font-bold" style={{ fontSize: '16pt', letterSpacing: '2px', marginTop: '10px' }}>{berkas.namaPemegangHak.toUpperCase()}</p>
-          <p style={{ fontSize: '10pt', marginTop: '4px', color: '#666' }}>27/11/1995</p>
+        <div className="text-center mb-8 mt-10">
+          <p className="text-sm font-bold" style={{ fontSize: '13px' }}>Pemegang Hak Sertipikat</p>
+          <p className="text-xl font-bold mt-3" style={{ fontSize: '20px', letterSpacing: '1px' }}>{berkas.namaPemegangHak.toUpperCase()}</p>
+          <p className="text-sm mt-1 text-gray-500" style={{ fontSize: '12px' }}>27/11/1995</p>
         </div>
 
         {/* Jenis dan Nomor Hak */}
-        <div className="text-center" style={{ marginBottom: '20px' }}>
-          <p className="font-bold" style={{ fontSize: '11pt' }}>Jenis dan Nomor Hak</p>
+        <div className="text-center mb-6">
+          <p className="text-sm font-bold" style={{ fontSize: '13px' }}>Jenis dan Nomor Hak</p>
         </div>
 
-        <hr className="border-black" style={{ marginBottom: '0' }} />
+        <hr className="border-black mb-1" />
 
-        <table className="w-full" style={{ fontSize: '10pt', borderCollapse: 'collapse' }}>
+        <table className="w-full text-sm mb-1" style={{ fontSize: '12px' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid black' }}>
-              <th className="text-center font-semibold" style={{ width: '10%', padding: '6px 4px' }}>No. Urut</th>
-              <th className="text-center font-semibold" style={{ width: '18%', padding: '6px 4px' }}>Jenis Hak</th>
-              <th className="text-center font-semibold" style={{ width: '14%', padding: '6px 4px' }}>Nomor Hak</th>
-              <th className="text-center font-semibold" style={{ width: '38%', padding: '6px 4px' }}>Wilayah</th>
-              <th className="text-center font-semibold" style={{ width: '20%', padding: '6px 4px' }}>Keterangan</th>
+            <tr className="border-b border-black">
+              <th className="py-2 text-left font-semibold" style={{ width: '12%' }}>No. Urut</th>
+              <th className="py-2 text-left font-semibold" style={{ width: '18%' }}>Jenis Hak</th>
+              <th className="py-2 text-left font-semibold" style={{ width: '15%' }}>Nomor Hak</th>
+              <th className="py-2 text-left font-semibold" style={{ width: '35%' }}>Wilayah</th>
+              <th className="py-2 text-left font-semibold" style={{ width: '20%' }}>Keterangan</th>
             </tr>
           </thead>
           <tbody>
-            <tr style={{ borderBottom: '1px solid black' }}>
-              <td className="text-center" style={{ padding: '6px 4px' }}>1</td>
-              <td className="text-center" style={{ padding: '6px 4px' }}>{jenisHakFull[berkas.jenisHak] || berkas.jenisHak}</td>
-              <td className="text-center" style={{ padding: '6px 4px' }}>{berkas.noHak}</td>
-              <td className="text-center" style={{ padding: '6px 4px' }}>Desa. {berkas.desa}, Kec. {berkas.kecamatan}</td>
-              <td className="text-center" style={{ padding: '6px 4px' }}>Selesai</td>
+            <tr className="border-b border-black">
+              <td className="py-2">1</td>
+              <td className="py-2">{jenisHakFull[berkas.jenisHak] || berkas.jenisHak}</td>
+              <td className="py-2">{berkas.noHak}</td>
+              <td className="py-2">Desa. {berkas.desa}, Kec. {berkas.kecamatan}</td>
+              <td className="py-2">Selesai</td>
             </tr>
           </tbody>
         </table>
 
+        <hr className="border-black mb-10" />
+
         {/* Informasi Validasi */}
-        <div className="text-center" style={{ marginTop: '36px', marginBottom: '24px' }}>
-          <h3 className="font-bold" style={{ fontSize: '12pt', marginBottom: '12px' }}>INFORMASI VALIDASI</h3>
-          <div className="mx-auto" style={{ fontSize: '11pt', lineHeight: '1.6', maxWidth: '480px' }}>
+        <div className="text-center mb-16 mt-10">
+          <h3 className="text-sm font-bold mb-4" style={{ fontSize: '14px' }}>INFORMASI VALIDASI</h3>
+          <div className="text-sm leading-relaxed max-w-lg mx-auto" style={{ fontSize: '12px' }}>
             <p>Pengajuan Validasi Alih Media Pada Buku Tanah, Surat Ukur Dan Bidang Telah Selesai.</p>
-            <p>Untuk Mengajukan Suatu Permohonan Pada Layanan Pertanahan, Harap Melampirkan Bukti Validasi Alih Media Ini Kepada Kantor Pertanahan Kabupaten Bogor II.</p>
-            <p className="italic underline">Untuk Pengecekan Sertipikat Mohon Upload Lampiran Ini Pada Saat Pendaftaran.</p>
+            <p className="mt-2">Untuk Mengajukan Suatu Permohonan Pada Layanan Pertanahan, Harap Melampirkan Bukti Validasi Alih Media Ini Kepada Kantor Pertanahan Kabupaten Bogor II.</p>
+            <p className="mt-2 italic underline">Untuk Pengecekan Sertipikat Mohon Upload Lampiran Ini Pada Saat Pendaftaran.</p>
           </div>
         </div>
 
-        {/* Footer - pushed to bottom */}
-        <div className="mt-auto" style={{ fontSize: '11pt' }}>
+        {/* Footer */}
+        <div className="mt-auto text-sm" style={{ fontSize: '12px' }}>
           <p>Telah Diperiksa</p>
           <p>Sesuai Dengan Arsip Kantah Kab.Bogor II</p>
-          <p className="font-bold underline italic" style={{ fontSize: '11pt', marginTop: '20px' }}>NAMA PETUGAS VALIDASI </p>
+          <p className="mt-6 font-bold underline italic" style={{ fontSize: '13px' }}>NAMA PETUGAS VALIDASI</p>
 
-          <hr className="border-black" style={{ marginTop: '12px', marginBottom: '6px' }} />
+          <hr className="border-black mt-4 mb-2" />
 
-          <div style={{ fontSize: '9pt', lineHeight: '1.5' }}>
+          <div className="text-xs leading-relaxed" style={{ fontSize: '10px' }}>
             <p className="font-bold">Perhatian :</p>
             <p>- Apabila Lampiran ini hilang mohon untuk dikembalikan kepada kantor pertanahan kabupaten Bogor II</p>
             <p>- Dilarang melakukan Pemalsuan seperti mengedit atau merubah data</p>
