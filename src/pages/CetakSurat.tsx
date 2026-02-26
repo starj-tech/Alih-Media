@@ -45,7 +45,7 @@ export default function CetakSurat() {
       <div className="print-area max-w-[210mm] mx-auto bg-white text-black px-16 py-12 shadow-xl print:shadow-none print:p-16 relative overflow-hidden" style={{ fontFamily: 'Times New Roman, serif', minHeight: '297mm' }}>
         {/* Watermark Garuda */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 0 }}>
-          <img src={watermarkImg} alt="" className="w-[340px] h-auto" style={{ opacity: 0.35 }} />
+          <img src={watermarkImg} alt="" className="w-[340px] h-auto" style={{ opacity: 0.55 }} />
         </div>
         <div className="relative" style={{ zIndex: 1 }}>
         {/* Logo Garuda */}
