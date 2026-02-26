@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, CheckSquare, Info, Users, LogOut, Send, FileSearch } from 'lucide-react';
 import { UserRole } from '@/lib/auth';
-import pancasilaImg from '@/assets/pancasila.png';
+import logoBpn from '@/assets/logo-bpn.png';
 import sidebarBg from '@/assets/sidebar-bg.jpg';
 
 interface AppSidebarProps {
@@ -44,8 +44,8 @@ export default function AppSidebar({ role, onLogout }: AppSidebarProps) {
         <div className="p-6 text-center border-b border-white/15">
           <div className="w-20 h-20 mx-auto mb-3 flex items-center justify-center">
             <img
-              src={pancasilaImg}
-              alt="Garuda Pancasila"
+              src={logoBpn}
+              alt="Logo BPN"
               className="w-full h-full object-contain drop-shadow-lg"
               style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.3))' }} />
 
