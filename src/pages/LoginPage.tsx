@@ -4,8 +4,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { FileText, Mail, Lock, LogIn, UserPlus } from 'lucide-react';
+import { Mail, Lock, LogIn, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
+import garudaImg from '@/assets/garuda-login.png';
+import loginBg from '@/assets/login-bg.jpeg';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -25,14 +27,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen gradient-bg flex items-center justify-center p-4">
-      <div className="w-full max-w-md animate-fade-in">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute inset-0 z-0">
+        <img src={loginBg} alt="" className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-black/40" />
+      </div>
+      <div className="w-full max-w-md animate-fade-in relative z-10">
         <div className="text-center mb-8">
-          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-primary/20 flex items-center justify-center">
-            <FileText className="w-10 h-10 text-primary" />
+          <div className="w-24 h-24 mx-auto mb-4">
+            <img src={garudaImg} alt="Garuda Pancasila" className="w-full h-full object-contain" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Login Aplikasi</h1>
-          <p className="text-muted-foreground mt-1">Aplikasi Alih Media - Kantor Pertanahan Kab. Bogor II</p>
+          <h1 className="text-2xl font-bold text-white">Login Aplikasi</h1>
+          <p className="text-white/80 mt-1">Aplikasi Alih Media - Kantor Pertanahan Kab. Bogor II</p>
         </div>
 
         <div className="glass-card rounded-2xl p-8 shadow-xl">
