@@ -55,7 +55,7 @@ export default function LoginPage() {
       </div>
       <div className="w-full max-w-md animate-fade-in relative z-10">
         <div className="text-center mb-8">
-          <div className="w-24 h-24 mx-auto mb-4">
+          <div className="w-72 h-72 mx-auto mb-4">
             <img src={logoBpn} alt="Logo BPN" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-bold text-white">Login Aplikasi</h1>
