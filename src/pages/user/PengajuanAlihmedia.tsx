@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Send, FileUp, CalendarDays } from 'lucide-react';
+import { Send, FileUp, CalendarDays, Phone } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function PengajuanAlihmedia() {
@@ -15,6 +15,7 @@ export default function PengajuanAlihmedia() {
 
   const [form, setForm] = useState({
     namaPemegangHak: '',
+    noTelepon: '',
     jenisHak: '' as JenisHak | '',
     noHak: '',
     desa: '',
@@ -23,13 +24,14 @@ export default function PengajuanAlihmedia() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.namaPemegangHak || !form.jenisHak || !form.noHak || !form.desa || !form.kecamatan) {
+    if (!form.namaPemegangHak || !form.noTelepon || !form.jenisHak || !form.noHak || !form.desa || !form.kecamatan) {
       toast.error('Lengkapi semua field');
       return;
     }
     addBerkas({
       tanggalPengajuan: tanggal,
       namaPemegangHak: form.namaPemegangHak,
+      noTelepon: form.noTelepon,
       jenisHak: form.jenisHak as JenisHak,
       noHak: form.noHak,
       desa: form.desa,
@@ -37,7 +39,7 @@ export default function PengajuanAlihmedia() {
       userId: user?.id || '',
     });
     toast.success('Pengajuan berhasil dikirim!');
-    setForm({ namaPemegangHak: '', jenisHak: '', noHak: '', desa: '', kecamatan: '' });
+    setForm({ namaPemegangHak: '', noTelepon: '', jenisHak: '', noHak: '', desa: '', kecamatan: '' });
   };
 
   return (
@@ -68,6 +70,20 @@ export default function PengajuanAlihmedia() {
               value={form.namaPemegangHak}
               onChange={e => setForm(f => ({ ...f, namaPemegangHak: e.target.value }))}
               placeholder="Masukkan nama pemegang hak"
+              className="mt-1"
+            />
+          </div>
+
+          <div>
+            <Label className="flex items-center gap-2">
+              <Phone className="w-4 h-4 text-muted-foreground" />
+              Nomor Telepon
+            </Label>
+            <Input
+              value={form.noTelepon}
+              onChange={e => setForm(f => ({ ...f, noTelepon: e.target.value }))}
+              placeholder="Masukkan nomor telepon"
+              type="tel"
               className="mt-1"
             />
           </div>
