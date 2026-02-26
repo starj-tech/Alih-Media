@@ -10,18 +10,18 @@ interface AppSidebarProps {
 }
 
 const adminMenu = [
-  { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-  { label: 'Validasi Buku Tanah', path: '/admin/validasi-bt', icon: CheckSquare },
-  { label: 'Validasi SU & Bidang', path: '/admin/validasi-su', icon: FileSearch },
-  { label: 'Informasi Alihmedia', path: '/admin/informasi', icon: Info },
-  { label: 'Kelola User', path: '/admin/users', icon: Users },
-];
+{ label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+{ label: 'Validasi Buku Tanah', path: '/admin/validasi-bt', icon: CheckSquare },
+{ label: 'Validasi SU & Bidang', path: '/admin/validasi-su', icon: FileSearch },
+{ label: 'Informasi Alihmedia', path: '/admin/informasi', icon: Info },
+{ label: 'Kelola User', path: '/admin/users', icon: Users }];
+
 
 const userMenu = [
-  { label: 'Dashboard', path: '/user/dashboard', icon: LayoutDashboard },
-  { label: 'Pengajuan Alihmedia', path: '/user/pengajuan', icon: Send },
-  { label: 'Informasi Alihmedia', path: '/user/informasi', icon: Info },
-];
+{ label: 'Dashboard', path: '/user/dashboard', icon: LayoutDashboard },
+{ label: 'Pengajuan Alihmedia', path: '/user/pengajuan', icon: Send },
+{ label: 'Informasi Alihmedia', path: '/user/informasi', icon: Info }];
+
 
 export default function AppSidebar({ role, onLogout }: AppSidebarProps) {
   const location = useLocation();
@@ -33,9 +33,9 @@ export default function AppSidebar({ role, onLogout }: AppSidebarProps) {
       style={{
         backgroundImage: `url(${sidebarBg})`,
         backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }}
-    >
+        backgroundPosition: 'center'
+      }}>
+
       {/* Dark overlay for readability */}
       <div className="absolute inset-0 bg-black/40 z-0" />
 
@@ -47,43 +47,43 @@ export default function AppSidebar({ role, onLogout }: AppSidebarProps) {
               src={pancasilaImg}
               alt="Garuda Pancasila"
               className="w-full h-full object-contain drop-shadow-lg"
-              style={{ filter: 'brightness(2) contrast(1.1) saturate(1.2) drop-shadow(0 0 8px rgba(255,215,0,0.5))' }}
-            />
+              style={{ filter: 'brightness(2) contrast(1.1) saturate(1.2) drop-shadow(0 0 8px rgba(255,215,0,0.5))' }} />
+
           </div>
           <h2 className="text-lg font-light tracking-[0.25em] text-white/95 uppercase">Alih Media</h2>
-          <p className="text-sm font-semibold text-white/85 leading-tight mt-1.5 tracking-wide">Kantor Pertanahan<br />Kabupaten Bogor II</p>
+          <p className="font-semibold text-white/85 leading-tight mt-1.5 tracking-wide my-px text-base">Kantor Pertanahan<br />Kabupaten Bogor II</p>
         </div>
 
         <nav className="flex-1 py-4">
-          {menu.map(item => {
+          {menu.map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <Link
                 key={item.path}
                 to={item.path}
                 className={`flex items-center gap-3 px-6 py-3 mx-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  isActive
-                    ? 'bg-white/20 text-white shadow-md backdrop-blur-sm'
-                    : 'text-white/75 hover:bg-white/10 hover:text-white'
-                }`}
-              >
+                isActive ?
+                'bg-white/20 text-white shadow-md backdrop-blur-sm' :
+                'text-white/75 hover:bg-white/10 hover:text-white'}`
+                }>
+
                 <item.icon className="w-5 h-5" />
                 {item.label}
-              </Link>
-            );
+              </Link>);
+
           })}
         </nav>
 
         <div className="p-4 border-t border-white/15">
           <button
             onClick={onLogout}
-            className="flex items-center gap-3 px-6 py-3 w-full rounded-lg text-sm font-medium text-white/75 hover:bg-red-500/30 hover:text-white transition-all duration-200"
-          >
+            className="flex items-center gap-3 px-6 py-3 w-full rounded-lg text-sm font-medium text-white/75 hover:bg-red-500/30 hover:text-white transition-all duration-200">
+
             <LogOut className="w-5 h-5" />
             Logout
           </button>
         </div>
       </div>
-    </aside>
-  );
+    </aside>);
+
 }

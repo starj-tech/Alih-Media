@@ -11,8 +11,8 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-        <p className="text-gray-600">Selamat datang di panel administrasi</p>
+        <h1 className="text-2xl font-bold text-input">Dashboard</h1>
+        <p className="text-gray-300">Selamat datang di panel administrasi</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -25,17 +25,17 @@ export default function AdminDashboard() {
         title="Monitoring Berkas Alihmedia"
         searchKeys={['namaPemegangHak', 'noBerkas', 'desa']}
         columns={[
-          { header: 'No', accessor: (_, i) => i !== undefined ? i + 1 : '' } as any,
-          { header: 'No Berkas', accessor: 'noBerkas' },
-          { header: 'Nama', accessor: 'namaPemegangHak' },
-          { header: 'Jenis Hak', accessor: 'jenisHak' },
-          { header: 'No Hak', accessor: 'noHak' },
-          { header: 'Desa', accessor: 'desa' },
-          { header: 'Kecamatan', accessor: 'kecamatan' },
-          { header: 'Status', accessor: (row) => <StatusBadge status={row.status} /> },
-        ]}
-        data={berkas}
-      />
-    </div>
-  );
+        { header: 'No', accessor: (_, i) => i !== undefined ? i + 1 : '' } as any,
+        { header: 'No Berkas', accessor: 'noBerkas' },
+        { header: 'Nama', accessor: 'namaPemegangHak' },
+        { header: 'Jenis Hak', accessor: 'jenisHak' },
+        { header: 'No Hak', accessor: 'noHak' },
+        { header: 'Desa', accessor: 'desa' },
+        { header: 'Kecamatan', accessor: 'kecamatan' },
+        { header: 'Status', accessor: (row) => <StatusBadge status={row.status} /> }]
+        }
+        data={berkas} />
+
+    </div>);
+
 }
