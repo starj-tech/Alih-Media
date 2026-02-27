@@ -7,22 +7,32 @@ interface StatsCardProps {
   variant: 'primary' | 'success' | 'danger';
 }
 
-const variantClasses = {
-  primary: 'gradient-card',
-  success: 'gradient-card-success',
-  danger: 'gradient-card-danger',
+const variantStyles = {
+  primary: {
+    border: 'border-l-[3px] border-l-[hsl(170,55%,42%)]',
+    iconBg: 'bg-[hsl(170,55%,42%)]',
+  },
+  success: {
+    border: 'border-l-[3px] border-l-[hsl(150,50%,45%)]',
+    iconBg: 'bg-[hsl(150,50%,45%)]',
+  },
+  danger: {
+    border: 'border-l-[3px] border-l-[hsl(0,65%,51%)]',
+    iconBg: 'bg-[hsl(0,65%,51%)]',
+  },
 };
 
 export default function StatsCard({ title, value, icon: Icon, variant }: StatsCardProps) {
+  const style = variantStyles[variant];
   return (
-    <div className={`${variantClasses[variant]} rounded-xl p-6 shadow-lg text-on-gradient animate-fade-in`}>
+    <div className={`gentelella-panel ${style.border} p-5`}>
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium opacity-90">{title}</p>
-          <p className="text-3xl font-bold mt-1">{value}</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</p>
+          <p className="text-2xl font-bold text-foreground mt-1">{value}</p>
         </div>
-        <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center">
-          <Icon className="w-7 h-7" />
+        <div className={`w-12 h-12 rounded-full ${style.iconBg} flex items-center justify-center`}>
+          <Icon className="w-6 h-6 text-white" />
         </div>
       </div>
     </div>
