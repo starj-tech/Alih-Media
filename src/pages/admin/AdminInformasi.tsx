@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
 import { getAllBerkas, Berkas } from '@/lib/data';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Copy } from 'lucide-react';
+import { toast } from 'sonner';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const statusOptions: { value: string; label: string }[] = [
@@ -54,9 +56,19 @@ export default function AdminInformasi() {
           { header: 'Desa', accessor: 'desa', searchKey: 'desa' },
           { header: 'Kecamatan', accessor: 'kecamatan' },
           { header: 'Link', accessor: (row) => row.linkShareloc ? (
-            <a href={row.linkShareloc} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-              <ExternalLink className="w-4 h-4 mx-auto" />
-            </a>
+            <div className="flex items-center gap-1 justify-center">
+              <a href={row.linkShareloc} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                <ExternalLink className="w-4 h-4" />
+              </a>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button onClick={() => { navigator.clipboard.writeText(row.linkShareloc!); toast.success('Link disalin'); }} className="text-muted-foreground hover:text-foreground">
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Salin link</TooltipContent>
+              </Tooltip>
+            </div>
           ) : <span className="text-muted-foreground">-</span> },
           { header: 'Status', accessor: (row) => <StatusBadge status={row.status} /> },
           { header: 'Catatan', accessor: (row) => <span className="text-xs text-muted-foreground">{row.catatanPenolakan || '-'}</span> },

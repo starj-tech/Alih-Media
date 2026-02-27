@@ -4,7 +4,8 @@ import StatusBadge from '@/components/StatusBadge';
 import { getBerkasByUser, updateBerkasStatus, Berkas, BerkasStatus } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Edit, ExternalLink } from 'lucide-react';
+import { Edit, ExternalLink, Copy } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -90,9 +91,19 @@ export default function UserInformasi() {
           { header: 'Desa', accessor: 'desa' },
           { header: 'Kecamatan', accessor: 'kecamatan' },
           { header: 'Link', accessor: (row) => row.linkShareloc ? (
-            <a href={row.linkShareloc} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-              <ExternalLink className="w-4 h-4 mx-auto" />
-            </a>
+            <div className="flex items-center gap-1 justify-center">
+              <a href={row.linkShareloc} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                <ExternalLink className="w-4 h-4" />
+              </a>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button onClick={() => { navigator.clipboard.writeText(row.linkShareloc!); toast.success('Link disalin'); }} className="text-muted-foreground hover:text-foreground">
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Salin link</TooltipContent>
+              </Tooltip>
+            </div>
           ) : <span className="text-muted-foreground">-</span> },
           { header: 'Status', accessor: (row) => <StatusBadge status={row.status} /> },
           { header: 'Catatan', accessor: (row) => <span className="text-xs text-muted-foreground">{row.catatanPenolakan || '-'}</span> },
