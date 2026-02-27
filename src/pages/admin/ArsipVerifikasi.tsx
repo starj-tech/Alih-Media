@@ -3,31 +3,27 @@ import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
 import { getAllBerkas, updateBerkasStatus, deleteBerkas, isDueDateOverdue, Berkas } from '@/lib/data';
 import { Button } from '@/components/ui/button';
-import { Send, XCircle, Trash2, Download } from 'lucide-react';
+import { Send, XCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import * as XLSX from 'xlsx';
 
-export default function ValidasiBukuTanah() {
+export default function ArsipVerifikasi() {
   const [berkas, setBerkas] = useState<Berkas[]>([]);
   const [tolakId, setTolakId] = useState<string | null>(null);
   const [catatan, setCatatan] = useState('');
-  const [exportFrom, setExportFrom] = useState('');
-  const [exportTo, setExportTo] = useState('');
 
   const loadData = async () => {
     const all = await getAllBerkas();
-    setBerkas(all.filter(b => b.status === 'Validasi BT'));
+    setBerkas(all.filter(b => b.status === 'Proses'));
   };
 
   useEffect(() => { loadData(); }, []);
 
   const handleKirim = async (id: string) => {
-    await updateBerkasStatus(id, 'Selesai');
-    toast.success('Berkas selesai divalidasi');
+    await updateBerkasStatus(id, 'Validasi SU & Bidang');
+    toast.success('Berkas diteruskan ke Validasi SU & Bidang');
     loadData();
   };
 
@@ -47,61 +43,25 @@ export default function ValidasiBukuTanah() {
     loadData();
   };
 
-  const parseDate = (dateStr: string) => {
-    const parts = dateStr.split('/');
-    return new Date(+parts[2], +parts[1] - 1, +parts[0]);
-  };
-
-  const handleExport = () => {
-    let dataToExport = berkas;
-    if (exportFrom || exportTo) {
-      dataToExport = berkas.filter(b => {
-        const d = parseDate(b.tanggalPengajuan);
-        if (exportFrom && d < new Date(exportFrom)) return false;
-        if (exportTo && d > new Date(exportTo + 'T23:59:59')) return false;
-        return true;
-      });
-    }
-    if (dataToExport.length === 0) { toast.error('Tidak ada data untuk diexport'); return; }
-    const ws = XLSX.utils.json_to_sheet(dataToExport.map((b, i) => ({
-      'No': i + 1, 'Tgl Pengajuan': b.tanggalPengajuan, 'Nama Pemegang Hak': b.namaPemegangHak,
-      'No.SU/Tahun': b.noSuTahun, 'No Hak': b.noHak, 'Jenis Hak': b.jenisHak,
-      'Desa': b.desa, 'Kecamatan': b.kecamatan, 'Status': b.status, 'Catatan Penolakan': b.catatanPenolakan || '-',
-    })));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Validasi BT');
-    XLSX.writeFile(wb, `validasi-buku-tanah-${new Date().toISOString().split('T')[0]}.xlsx`);
-    toast.success('File Excel berhasil diexport');
-  };
-
   const tolakBerkas = tolakId ? berkas.find(b => b.id === tolakId) : null;
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Validasi Buku Tanah</h1>
-        <p className="text-muted-foreground">Validasi berkas buku tanah yang masuk</p>
+        <h1 className="text-2xl font-bold text-foreground">Arsip Verifikasi BT/SU</h1>
+        <p className="text-muted-foreground">Verifikasi arsip berkas yang masuk</p>
       </div>
 
       <DataTable<Berkas>
-        title="Daftar Berkas Validasi Buku Tanah"
-        searchKeys={['noHak', 'desa']}
-        headerActions={
-          <div className="flex items-center gap-2 flex-wrap">
-            <Input type="date" value={exportFrom} onChange={e => setExportFrom(e.target.value)} className="h-8 text-xs w-36" />
-            <Input type="date" value={exportTo} onChange={e => setExportTo(e.target.value)} className="h-8 text-xs w-36" />
-            <Button size="sm" variant="outline" className="gap-1 h-8" onClick={handleExport}>
-              <Download className="w-3.5 h-3.5" /> Export Excel
-            </Button>
-          </div>
-        }
+        title="Daftar Berkas Arsip Verifikasi"
+        searchKeys={['noSuTahun', 'noHak', 'desa']}
         columns={[
           { header: 'No', accessor: (_, i) => (i ?? 0) + 1 } as any,
           { header: 'Tgl Pengajuan', accessor: (row) => (
             <span className={isDueDateOverdue(row.tanggalPengajuan) ? 'text-destructive font-semibold' : ''}>{row.tanggalPengajuan}</span>
           )},
           { header: 'Nama', accessor: 'namaPemegangHak' },
-          { header: 'No.SU/Tahun', accessor: 'noSuTahun' },
+          { header: 'No.SU/Tahun', accessor: 'noSuTahun', searchKey: 'noSuTahun' },
           { header: 'No Hak', accessor: 'noHak', searchKey: 'noHak' },
           { header: 'Jenis Hak', accessor: 'jenisHak' },
           { header: 'Desa', accessor: 'desa', searchKey: 'desa' },
