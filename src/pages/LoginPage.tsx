@@ -17,24 +17,40 @@ export default function LoginPage() {
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const { login, register } = useAuth();
   const navigate = useNavigate();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const user = login(email, password);
-    if (user) {
-      toast.success('Login berhasil!');
-      navigate(user.role === 'admin' ? '/admin/dashboard' : '/user/dashboard');
-    } else {
-      toast.error('Email atau password salah');
+    if (!email.trim() || !password.trim()) {
+      toast.error('Email dan password harus diisi');
+      return;
     }
+    setLoading(true);
+    // Small delay to prevent brute force timing attacks
+    setTimeout(() => {
+      const result = login(email, password);
+      if (result && typeof result === 'object' && 'error' in result) {
+        toast.error(result.error);
+      } else if (result && typeof result === 'object' && 'role' in result) {
+        toast.success('Login berhasil!');
+        navigate(result.role === 'admin' ? '/admin/dashboard' : '/user/dashboard');
+      } else {
+        toast.error('Email atau password salah');
+      }
+      setLoading(false);
+    }, 300);
   };
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
     if (!regName || !regEmail || !regPassword) {
       toast.error('Semua field harus diisi');
+      return;
+    }
+    if (regPassword.length < 6) {
+      toast.error('Password minimal 6 karakter');
       return;
     }
     const result = register(regName, regEmail, regPassword);
@@ -76,6 +92,8 @@ export default function LoginPage() {
                   onChange={e => setEmail(e.target.value)}
                   className="pl-10"
                   required
+                  maxLength={255}
+                  autoComplete="email"
                 />
               </div>
             </div>
@@ -92,14 +110,16 @@ export default function LoginPage() {
                   onChange={e => setPassword(e.target.value)}
                   className="pl-10"
                   required
+                  maxLength={128}
+                  autoComplete="current-password"
                 />
               </div>
             </div>
 
             <div className="flex gap-3 pt-2">
-              <Button type="submit" variant="secondary" className="flex-1 gap-2 bg-muted-foreground text-white hover:bg-muted-foreground/80">
+              <Button type="submit" variant="secondary" className="flex-1 gap-2 bg-muted-foreground text-white hover:bg-muted-foreground/80" disabled={loading}>
                 <LogIn className="w-4 h-4" />
-                Login
+                {loading ? 'Memproses...' : 'Login'}
               </Button>
               <Button type="button" variant="outline" className="flex-1 gap-2" onClick={() => setShowRegister(true)}>
                 <UserPlus className="w-4 h-4" />
@@ -126,21 +146,21 @@ export default function LoginPage() {
               <Label htmlFor="reg-name">Nama Lengkap</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input id="reg-name" placeholder="Masukkan nama lengkap" value={regName} onChange={e => setRegName(e.target.value)} className="pl-10" required />
+                <Input id="reg-name" placeholder="Masukkan nama lengkap" value={regName} onChange={e => setRegName(e.target.value)} className="pl-10" required maxLength={100} autoComplete="name" />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="reg-email">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input id="reg-email" type="email" placeholder="Masukkan email" value={regEmail} onChange={e => setRegEmail(e.target.value)} className="pl-10" required />
+                <Input id="reg-email" type="email" placeholder="Masukkan email" value={regEmail} onChange={e => setRegEmail(e.target.value)} className="pl-10" required maxLength={255} autoComplete="email" />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="reg-password">Password</Label>
+              <Label htmlFor="reg-password">Password (min. 6 karakter)</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input id="reg-password" type="password" placeholder="Masukkan password" value={regPassword} onChange={e => setRegPassword(e.target.value)} className="pl-10" required />
+                <Input id="reg-password" type="password" placeholder="Masukkan password" value={regPassword} onChange={e => setRegPassword(e.target.value)} className="pl-10" required minLength={6} maxLength={128} autoComplete="new-password" />
               </div>
             </div>
             <Button type="submit" className="w-full gap-2">

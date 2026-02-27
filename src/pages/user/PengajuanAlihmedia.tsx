@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { addBerkas, JenisHak } from '@/lib/data';
+import { sanitizeString } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,18 +36,36 @@ export default function PengajuanAlihmedia() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.namaPemegangHak || !form.noTelepon || !form.jenisHak || !form.noHak || !form.desa || !form.kecamatan) {
+    
+    // Sanitize all inputs
+    const sanitized = {
+      namaPemegangHak: sanitizeString(form.namaPemegangHak),
+      noTelepon: form.noTelepon.replace(/[^\d+\-\s()]/g, ''), // Only allow phone chars
+      jenisHak: form.jenisHak,
+      noHak: sanitizeString(form.noHak),
+      desa: sanitizeString(form.desa),
+      kecamatan: sanitizeString(form.kecamatan),
+    };
+
+    if (!sanitized.namaPemegangHak || !sanitized.noTelepon || !sanitized.jenisHak || !sanitized.noHak || !sanitized.desa || !sanitized.kecamatan) {
       toast.error('Lengkapi semua field');
       return;
     }
+
+    // Validate phone number
+    if (sanitized.noTelepon.replace(/\D/g, '').length < 10) {
+      toast.error('Nomor telepon tidak valid (minimal 10 digit)');
+      return;
+    }
+
     addBerkas({
       tanggalPengajuan: tanggal,
-      namaPemegangHak: form.namaPemegangHak,
-      noTelepon: form.noTelepon,
-      jenisHak: form.jenisHak as JenisHak,
-      noHak: form.noHak,
-      desa: form.desa,
-      kecamatan: form.kecamatan,
+      namaPemegangHak: sanitized.namaPemegangHak,
+      noTelepon: sanitized.noTelepon,
+      jenisHak: sanitized.jenisHak as JenisHak,
+      noHak: sanitized.noHak,
+      desa: sanitized.desa,
+      kecamatan: sanitized.kecamatan,
       userId: user?.id || '',
     });
     toast.success('Pengajuan berhasil dikirim!');
@@ -84,6 +103,7 @@ export default function PengajuanAlihmedia() {
                 onChange={e => setForm(f => ({ ...f, namaPemegangHak: e.target.value }))}
                 placeholder="Masukkan nama pemegang hak"
                 className="mt-1 h-8 text-sm"
+                maxLength={100}
               />
             </div>
 
@@ -98,6 +118,7 @@ export default function PengajuanAlihmedia() {
                 placeholder="Masukkan nomor telepon"
                 type="tel"
                 className="mt-1 h-8 text-sm"
+                maxLength={20}
               />
             </div>
 
@@ -120,6 +141,7 @@ export default function PengajuanAlihmedia() {
                 onChange={e => setForm(f => ({ ...f, noHak: e.target.value }))}
                 placeholder="Masukkan nomor hak"
                 className="mt-1 h-8 text-sm"
+                maxLength={50}
               />
             </div>
 
@@ -131,6 +153,7 @@ export default function PengajuanAlihmedia() {
                   onChange={e => setForm(f => ({ ...f, desa: e.target.value }))}
                   placeholder="Nama desa"
                   className="mt-1 h-8 text-sm"
+                  maxLength={100}
                 />
               </div>
               <div>
@@ -140,6 +163,7 @@ export default function PengajuanAlihmedia() {
                   onChange={e => setForm(f => ({ ...f, kecamatan: e.target.value }))}
                   placeholder="Nama kecamatan"
                   className="mt-1 h-8 text-sm"
+                  maxLength={100}
                 />
               </div>
             </div>
@@ -156,6 +180,7 @@ export default function PengajuanAlihmedia() {
                 onChange={e => setForm(f => ({ ...f, linkShareloc: e.target.value }))}
                 placeholder="Masukkan link shareloc bidang tanah"
                 className="mt-1 h-8 text-sm"
+                maxLength={500}
               />
             </div>
 

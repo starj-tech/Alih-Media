@@ -1,13 +1,9 @@
 import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
 import { getAllBerkas, Berkas } from '@/lib/data';
-import { Button } from '@/components/ui/button';
-import { Printer } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 export default function AdminInformasi() {
   const berkas = getAllBerkas();
-  const navigate = useNavigate();
 
   return (
     <div className="space-y-6">
@@ -28,11 +24,9 @@ export default function AdminInformasi() {
           { header: 'Desa', accessor: 'desa' },
           { header: 'Kecamatan', accessor: 'kecamatan' },
           { header: 'Status', accessor: (row) => <StatusBadge status={row.status} /> },
-          { header: 'Progres', accessor: (row) => row.status === 'Selesai' ? (
-            <Button size="sm" variant="outline" className="gap-1" onClick={() => navigate(`/cetak/${row.id}`)}>
-              <Printer className="w-3 h-3" /> Cetak
-            </Button>
-          ) : null },
+          { header: 'Catatan', accessor: (row) => (
+            <span className="text-xs text-muted-foreground">{row.catatanPenolakan || '-'}</span>
+          )},
         ]}
         data={berkas}
       />
