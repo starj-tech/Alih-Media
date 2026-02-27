@@ -1,11 +1,12 @@
 import { ReactNode, useState, useMemo } from 'react';
-import { Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Search, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
 interface Column<T> {
   header: string;
   accessor: keyof T | ((row: T, index?: number) => ReactNode);
   className?: string;
+  searchKey?: keyof T;
 }
 
 interface DataTableProps<T> {
@@ -24,29 +25,72 @@ export default function DataTable<T extends Record<string, any>>({
   title,
   searchable = true,
   searchKeys,
-  pageSize = 10,
+  pageSize: defaultPageSize = 10,
   headerActions,
 }: DataTableProps<T>) {
-  const [search, setSearch] = useState('');
+  const [globalSearch, setGlobalSearch] = useState('');
+  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
+
+  // Derive searchable columns from searchKeys
+  const searchableColumns = useMemo(() => {
+    if (!searchKeys) return [];
+    return columns.filter(col => {
+      if (typeof col.accessor === 'string' && searchKeys.includes(col.accessor as keyof T)) return true;
+      if (col.searchKey && searchKeys.includes(col.searchKey)) return true;
+      return false;
+    }).map(col => ({
+      key: String(col.searchKey || col.accessor),
+      header: col.header,
+    }));
+  }, [columns, searchKeys]);
 
   const filteredData = useMemo(() => {
-    if (!search || !searchKeys) return data;
-    return data.filter(row =>
-      searchKeys.some(key =>
-        String(row[key]).toLowerCase().includes(search.toLowerCase())
-      )
-    );
-  }, [data, search, searchKeys]);
+    let result = data;
+
+    // Apply per-column filters
+    Object.entries(columnFilters).forEach(([key, value]) => {
+      if (value) {
+        result = result.filter(row =>
+          String(row[key]).toLowerCase().includes(value.toLowerCase())
+        );
+      }
+    });
+
+    // Apply global search
+    if (globalSearch && searchKeys) {
+      result = result.filter(row =>
+        searchKeys.some(key =>
+          String(row[key]).toLowerCase().includes(globalSearch.toLowerCase())
+        )
+      );
+    }
+
+    return result;
+  }, [data, columnFilters, globalSearch, searchKeys]);
+
+  const handleColumnFilter = (key: string, val: string) => {
+    setColumnFilters(prev => ({ ...prev, [key]: val }));
+    setCurrentPage(1);
+  };
+
+  const clearColumnFilter = (key: string) => {
+    setColumnFilters(prev => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+    setCurrentPage(1);
+  };
+
+  const handleGlobalSearch = (val: string) => {
+    setGlobalSearch(val);
+    setCurrentPage(1);
+  };
 
   const totalPages = Math.max(1, Math.ceil(filteredData.length / pageSize));
   const paginatedData = filteredData.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
-  // Reset page when search changes
-  const handleSearch = (val: string) => {
-    setSearch(val);
-    setCurrentPage(1);
-  };
 
   const getPageNumbers = () => {
     const pages: (number | '...')[] = [];
@@ -66,25 +110,62 @@ export default function DataTable<T extends Record<string, any>>({
 
   return (
     <div className="gentelella-panel">
-      {(title || searchable || headerActions) && (
+      {(title || headerActions) && (
         <div className="gentelella-panel-heading">
           <div className="flex items-center gap-3 flex-wrap flex-1">
             {title && <h3 className="text-sm font-semibold text-foreground">{title}</h3>}
             {headerActions}
           </div>
-          {searchable && (
-            <div className="relative w-56">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Pencarian..."
-                value={search}
-                onChange={e => handleSearch(e.target.value)}
-                className="pl-9 h-8 text-xs bg-background"
-              />
-            </div>
-          )}
         </div>
       )}
+
+      {/* Top bar: page size + column filters + global search */}
+      {searchable && (
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Menampilkan</span>
+            <select
+              value={pageSize}
+              onChange={e => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+              className="h-7 text-xs border border-border rounded px-1.5 bg-background text-foreground"
+            >
+              {[10, 25, 50, 100].map(n => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+
+            {/* Per-column filter chips */}
+            {searchableColumns.map(col => (
+              <div key={col.key} className="flex items-center border border-border rounded bg-background">
+                <Input
+                  placeholder={col.header}
+                  value={columnFilters[col.key] || ''}
+                  onChange={e => handleColumnFilter(col.key, e.target.value)}
+                  className="h-7 text-xs border-0 w-32 px-2 focus-visible:ring-0 shadow-none"
+                />
+                {columnFilters[col.key] && (
+                  <button
+                    onClick={() => clearColumnFilter(col.key)}
+                    className="px-1.5 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Cari:</span>
+            <Input
+              value={globalSearch}
+              onChange={e => handleGlobalSearch(e.target.value)}
+              className="h-7 text-xs w-44 bg-background"
+            />
+          </div>
+        </div>
+      )}
+
       <div className="overflow-x-auto">
         <table className="w-full text-[13px]">
           <thead>
