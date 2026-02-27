@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
 import { getBerkasByUser, Berkas } from '@/lib/data';
@@ -5,7 +6,11 @@ import { useAuth } from '@/hooks/useAuth';
 
 export default function UserInformasi() {
   const { user } = useAuth();
-  const berkas = user ? getBerkasByUser(user.id) : [];
+  const [berkas, setBerkas] = useState<Berkas[]>([]);
+
+  useEffect(() => {
+    if (user) getBerkasByUser(user.id).then(setBerkas);
+  }, [user]);
 
   return (
     <div className="space-y-6">
@@ -27,9 +32,7 @@ export default function UserInformasi() {
           { header: 'Desa', accessor: 'desa' },
           { header: 'Kecamatan', accessor: 'kecamatan' },
           { header: 'Status', accessor: (row) => <StatusBadge status={row.status} /> },
-          { header: 'Catatan', accessor: (row) => (
-            <span className="text-xs text-muted-foreground">{row.catatanPenolakan || '-'}</span>
-          )},
+          { header: 'Catatan', accessor: (row) => <span className="text-xs text-muted-foreground">{row.catatanPenolakan || '-'}</span> },
         ]}
         data={berkas}
       />

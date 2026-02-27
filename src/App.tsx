@@ -14,13 +14,23 @@ import KelolaUser from "@/pages/admin/KelolaUser";
 import UserDashboard from "@/pages/user/UserDashboard";
 import PengajuanAlihmedia from "@/pages/user/PengajuanAlihmedia";
 import UserInformasi from "@/pages/user/UserInformasi";
-
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 function AppRoutes() {
-  const { user, logout } = useAuth();
+  const { user, loading, logout } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-sm text-muted-foreground">Memuat...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
@@ -30,9 +40,7 @@ function AppRoutes() {
     );
   }
 
-  const handleLogout = () => {
-    logout();
-  };
+  const handleLogout = () => { logout(); };
 
   return (
     <Routes>
