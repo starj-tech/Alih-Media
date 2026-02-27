@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
+import FileDownloadCell from '@/components/FileDownloadCell';
 import { getAllBerkas, updateBerkasStatus, deleteBerkas, isDueDateOverdue, Berkas } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Send, XCircle, Trash2 } from 'lucide-react';
@@ -66,6 +67,8 @@ export default function ValidasiSUBidang() {
           { header: 'Jenis Hak', accessor: 'jenisHak' },
           { header: 'Desa', accessor: 'desa', searchKey: 'desa' },
           { header: 'Kecamatan', accessor: 'kecamatan' },
+          { header: 'Sertifikat', accessor: (row) => <FileDownloadCell url={row.fileSertifikatUrl} label="Sertifikat" /> },
+          { header: 'KTP', accessor: (row) => <FileDownloadCell url={row.fileKtpUrl} label="KTP" /> },
           { header: 'Status', accessor: (row) => <StatusBadge status={row.status} /> },
           { header: 'Catatan', accessor: (row) => <span className="text-xs text-muted-foreground">{row.catatanPenolakan || '-'}</span> },
           { header: 'Aksi', accessor: (row) => (

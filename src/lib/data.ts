@@ -18,6 +18,8 @@ export interface Berkas {
   userId: string;
   linkShareloc?: string;
   catatanPenolakan?: string;
+  fileSertifikatUrl?: string;
+  fileKtpUrl?: string;
 }
 
 export interface ManagedUser {
@@ -45,6 +47,8 @@ function mapRow(row: any): Berkas {
     userId: row.user_id,
     linkShareloc: row.link_shareloc || undefined,
     catatanPenolakan: row.catatan_penolakan || undefined,
+    fileSertifikatUrl: row.file_sertifikat_url || undefined,
+    fileKtpUrl: row.file_ktp_url || undefined,
   };
 }
 
@@ -58,6 +62,15 @@ export async function getBerkasByUser(userId: string): Promise<Berkas[]> {
   const { data, error } = await supabase.from('berkas').select('*').eq('user_id', userId).order('created_at', { ascending: false });
   if (error || !data) return [];
   return data.map(mapRow);
+}
+
+export async function uploadFile(file: File, userId: string, type: 'sertifikat' | 'ktp'): Promise<string | null> {
+  const ext = file.name.split('.').pop();
+  const fileName = `${userId}/${type}-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from('berkas-files').upload(fileName, file);
+  if (error) return null;
+  const { data: urlData } = supabase.storage.from('berkas-files').getPublicUrl(fileName);
+  return urlData.publicUrl;
 }
 
 export async function addBerkas(berkas: Omit<Berkas, 'id' | 'status'>): Promise<Berkas | null> {
@@ -76,6 +89,8 @@ export async function addBerkas(berkas: Omit<Berkas, 'id' | 'status'>): Promise<
     kecamatan: berkas.kecamatan,
     user_id: berkas.userId,
     link_shareloc: berkas.linkShareloc || null,
+    file_sertifikat_url: berkas.fileSertifikatUrl || null,
+    file_ktp_url: berkas.fileKtpUrl || null,
   }).select().single();
 
   if (error || !data) return null;
