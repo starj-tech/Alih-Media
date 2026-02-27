@@ -66,11 +66,11 @@ export default function ValidasiBukuTanah() {
     }
     const ws = XLSX.utils.json_to_sheet(dataToExport.map((b, i) => ({
       'No': i + 1,
-      'No Berkas': b.noBerkas,
       'Tgl Pengajuan': b.tanggalPengajuan,
       'Nama Pemegang Hak': b.namaPemegangHak,
-      'Jenis Hak': b.jenisHak,
+      'No.SU/Tahun': b.noSuTahun,
       'No Hak': b.noHak,
+      'Jenis Hak': b.jenisHak,
       'Desa': b.desa,
       'Kecamatan': b.kecamatan,
       'Status': b.status,
@@ -82,7 +82,6 @@ export default function ValidasiBukuTanah() {
     toast.success('File Excel berhasil diexport');
   };
 
-  // Get catatan for tolak dialog from existing berkas
   const tolakBerkas = tolakId ? getAllBerkas().find(b => b.id === tolakId) : null;
 
   return (
@@ -94,7 +93,7 @@ export default function ValidasiBukuTanah() {
 
       <DataTable<Berkas>
         title="Daftar Berkas Validasi Buku Tanah"
-        searchKeys={['namaPemegangHak', 'noBerkas']}
+        searchKeys={['noHak', 'desa']}
         headerActions={
           <div className="flex items-center gap-2 flex-wrap">
             <Input type="date" value={exportFrom} onChange={e => setExportFrom(e.target.value)} className="h-8 text-xs w-36" placeholder="Dari tanggal" />
@@ -106,16 +105,16 @@ export default function ValidasiBukuTanah() {
         }
         columns={[
           { header: 'No', accessor: (_, i) => (i ?? 0) + 1 } as any,
-          { header: 'No Berkas', accessor: 'noBerkas' },
           { header: 'Tgl Pengajuan', accessor: (row) => (
             <span className={isDueDateOverdue(row.tanggalPengajuan) ? 'text-destructive font-semibold' : ''}>
               {row.tanggalPengajuan}
             </span>
           )},
           { header: 'Nama', accessor: 'namaPemegangHak' },
+          { header: 'No.SU/Tahun', accessor: 'noSuTahun' },
+          { header: 'No Hak', accessor: 'noHak', searchKey: 'noHak' },
           { header: 'Jenis Hak', accessor: 'jenisHak' },
-          { header: 'No Hak', accessor: 'noHak' },
-          { header: 'Desa', accessor: 'desa' },
+          { header: 'Desa', accessor: 'desa', searchKey: 'desa' },
           { header: 'Kecamatan', accessor: 'kecamatan' },
           { header: 'Status', accessor: (row) => <StatusBadge status={row.status} /> },
           { header: 'Catatan', accessor: (row) => (
@@ -124,7 +123,7 @@ export default function ValidasiBukuTanah() {
           { header: 'Aksi', accessor: (row) => (
             <div className="flex gap-1">
               <Button size="sm" className="gap-1" onClick={() => handleKirim(row.id)}>
-                <Send className="w-3 h-3" /> Selesai
+                <Send className="w-3 h-3" /> Kirim
               </Button>
               <Button size="sm" variant="destructive" className="gap-1" onClick={() => { setTolakId(row.id); setCatatan(row.catatanPenolakan || ''); }}>
                 <XCircle className="w-3 h-3" /> Tolak

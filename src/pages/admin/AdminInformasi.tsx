@@ -13,15 +13,16 @@ export default function AdminInformasi() {
       </div>
 
       <DataTable<Berkas>
-        title="Monitoring Berkas Alihmedia"
-        searchKeys={['namaPemegangHak', 'noBerkas']}
+        title="Verifikasi Arsip"
+        searchKeys={['noHak', 'noSuTahun', 'desa']}
         columns={[
           { header: 'No', accessor: (_, i) => (i ?? 0) + 1 } as any,
-          { header: 'No Berkas', accessor: 'noBerkas' },
+          { header: 'Tgl Pengajuan', accessor: 'tanggalPengajuan' },
           { header: 'Nama', accessor: 'namaPemegangHak' },
+          { header: 'No.SU/Tahun', accessor: 'noSuTahun', searchKey: 'noSuTahun' },
+          { header: 'No Hak', accessor: 'noHak', searchKey: 'noHak' },
           { header: 'Jenis Hak', accessor: 'jenisHak' },
-          { header: 'No Hak', accessor: 'noHak' },
-          { header: 'Desa', accessor: 'desa' },
+          { header: 'Desa', accessor: 'desa', searchKey: 'desa' },
           { header: 'Kecamatan', accessor: 'kecamatan' },
           { header: 'Status', accessor: (row) => <StatusBadge status={row.status} /> },
           { header: 'Catatan', accessor: (row) => (

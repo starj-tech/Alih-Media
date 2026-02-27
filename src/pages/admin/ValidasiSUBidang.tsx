@@ -14,7 +14,6 @@ export default function ValidasiSUBidang() {
   const [tolakId, setTolakId] = useState<string | null>(null);
   const [catatan, setCatatan] = useState('');
   
-  // New flow: after Proses, goes to Validasi SU & Bidang first
   const berkas = getAllBerkas().filter(b => b.status === 'Proses' || b.status === 'Validasi SU & Bidang');
 
   const handleKirim = (id: string) => {
@@ -53,19 +52,19 @@ export default function ValidasiSUBidang() {
 
       <DataTable<Berkas>
         title="Daftar Berkas Validasi SU & Bidang"
-        searchKeys={['namaPemegangHak', 'noBerkas']}
+        searchKeys={['noSuTahun', 'desa']}
         columns={[
           { header: 'No', accessor: (_, i) => (i ?? 0) + 1 } as any,
-          { header: 'No Berkas', accessor: 'noBerkas' },
           { header: 'Tgl Pengajuan', accessor: (row) => (
             <span className={isDueDateOverdue(row.tanggalPengajuan) ? 'text-destructive font-semibold' : ''}>
               {row.tanggalPengajuan}
             </span>
           )},
           { header: 'Nama', accessor: 'namaPemegangHak' },
-          { header: 'Jenis Hak', accessor: 'jenisHak' },
+          { header: 'No.SU/Tahun', accessor: 'noSuTahun', searchKey: 'noSuTahun' },
           { header: 'No Hak', accessor: 'noHak' },
-          { header: 'Desa', accessor: 'desa' },
+          { header: 'Jenis Hak', accessor: 'jenisHak' },
+          { header: 'Desa', accessor: 'desa', searchKey: 'desa' },
           { header: 'Kecamatan', accessor: 'kecamatan' },
           { header: 'Status', accessor: (row) => <StatusBadge status={row.status} /> },
           { header: 'Catatan', accessor: (row) => (
