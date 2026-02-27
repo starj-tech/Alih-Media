@@ -2,57 +2,59 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap');
+
 @layer base {
   :root {
-    --background: 210 40% 96%;
-    --foreground: 220 20% 25%;
+    --background: 0 0% 96.5%;
+    --foreground: 210 11% 28%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 25%;
+    --card-foreground: 210 11% 28%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 25%;
+    --popover-foreground: 210 11% 28%;
 
-    --primary: 200 60% 60%;
+    --primary: 170 55% 42%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 160 40% 65%;
+    --secondary: 205 45% 30%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 30% 92%;
-    --muted-foreground: 220 10% 50%;
+    --muted: 210 14% 93%;
+    --muted-foreground: 210 8% 50%;
 
-    --accent: 270 40% 70%;
+    --accent: 170 55% 42%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 65% 55%;
+    --destructive: 0 65% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 20% 88%;
-    --input: 210 20% 88%;
-    --ring: 200 60% 60%;
+    --border: 210 14% 89%;
+    --input: 210 14% 89%;
+    --ring: 170 55% 42%;
 
-    --radius: 0.75rem;
+    --radius: 0.25rem;
 
-    --sidebar-background: 220 10% 40%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 220 10% 40%;
-    --sidebar-accent: 220 10% 33%;
+    --sidebar-background: 207 35% 24%;
+    --sidebar-foreground: 210 14% 89%;
+    --sidebar-primary: 170 55% 42%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 207 35% 20%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 220 8% 35%;
-    --sidebar-ring: 0 0% 100%;
+    --sidebar-border: 207 30% 20%;
+    --sidebar-ring: 170 55% 42%;
 
-    --gradient-start: 200 60% 70%;
-    --gradient-mid: 230 50% 72%;
-    --gradient-end: 270 40% 72%;
-
-    --success: 150 50% 50%;
+    --success: 150 50% 45%;
     --success-foreground: 0 0% 100%;
-    --warning: 40 80% 55%;
+    --warning: 40 80% 50%;
     --warning-foreground: 0 0% 100%;
-    --info: 200 60% 55%;
+    --info: 200 60% 50%;
     --info-foreground: 0 0% 100%;
+
+    --gentelella-dark: 207 35% 24%;
+    --gentelella-darker: 207 35% 18%;
+    --gentelella-teal: 170 55% 42%;
   }
 }
 
@@ -63,64 +65,54 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-family: 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 13px;
   }
 }
 
 @layer utilities {
-  .gradient-bg {
-    background: linear-gradient(135deg, 
-      hsl(200, 60%, 70%), 
-      hsl(230, 50%, 72%), 
-      hsl(270, 40%, 72%)
-    );
+  .gentelella-panel {
+    @apply bg-card rounded border border-border shadow-sm;
   }
 
-  .gradient-sidebar {
-    background: linear-gradient(180deg, 
-      hsl(220, 12%, 45%), 
-      hsl(220, 10%, 35%), 
-      hsl(220, 8%, 28%)
-    );
+  .gentelella-panel-heading {
+    @apply px-4 py-3 border-b border-border font-semibold text-foreground flex items-center justify-between;
+  }
+
+  .gentelella-panel-body {
+    @apply p-4;
   }
 
   .gradient-card {
     background: linear-gradient(135deg, 
-      hsl(200, 50%, 42%), 
-      hsl(220, 45%, 45%)
+      hsl(170, 55%, 42%), 
+      hsl(170, 55%, 36%)
     );
   }
 
   .gradient-card-success {
     background: linear-gradient(135deg, 
-      hsl(150, 40%, 38%), 
-      hsl(170, 38%, 40%)
+      hsl(150, 50%, 42%), 
+      hsl(150, 50%, 36%)
     );
   }
 
   .gradient-card-danger {
     background: linear-gradient(135deg, 
-      hsl(0, 45%, 45%), 
-      hsl(15, 45%, 43%)
+      hsl(0, 55%, 50%), 
+      hsl(0, 55%, 44%)
     );
   }
 
   .gradient-card-warning {
     background: linear-gradient(135deg, 
-      hsl(35, 55%, 42%), 
-      hsl(45, 50%, 44%)
+      hsl(35, 70%, 50%), 
+      hsl(35, 70%, 44%)
     );
-  }
-
-  .glass-card {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.6);
   }
 
   .text-on-gradient {
     color: white;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
   }
 }
 

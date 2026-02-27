@@ -34,39 +34,39 @@ export default function DataTable<T extends Record<string, any>>({
     : data;
 
   return (
-    <div className="glass-card rounded-xl shadow-lg overflow-hidden animate-fade-in">
+    <div className="gentelella-panel">
       {(title || searchable) && (
-        <div className="p-5 flex items-center justify-between border-b border-border">
-          {title && <h3 className="text-lg font-semibold text-foreground">{title}</h3>}
+        <div className="gentelella-panel-heading">
+          {title && <h3 className="text-sm font-semibold text-foreground">{title}</h3>}
           {searchable && (
-            <div className="relative w-64">
+            <div className="relative w-56">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Pencarian..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="pl-10 bg-muted/50"
+                className="pl-9 h-8 text-xs bg-background"
               />
             </div>
           )}
         </div>
       )}
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full text-[13px]">
           <thead>
-            <tr className="bg-muted/50">
+            <tr className="bg-muted/60 border-b border-border">
               {columns.map((col, i) => (
-                <th key={i} className={`px-4 py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider ${col.className || ''}`}>
+                <th key={i} className={`px-3 py-2.5 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider ${col.className || ''}`}>
                   {col.header}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody>
             {filteredData.map((row, i) => (
-              <tr key={i} className="hover:bg-muted/30 transition-colors">
+              <tr key={i} className={`border-b border-border transition-colors hover:bg-muted/40 ${i % 2 === 0 ? 'bg-card' : 'bg-muted/20'}`}>
                 {columns.map((col, j) => (
-                  <td key={j} className={`px-4 py-3 text-sm text-foreground text-center ${col.className || ''}`}>
+                  <td key={j} className={`px-3 py-2.5 text-center text-foreground ${col.className || ''}`}>
                     {typeof col.accessor === 'function'
                       ? col.accessor(row, i)
                       : row[col.accessor]}
@@ -76,13 +76,17 @@ export default function DataTable<T extends Record<string, any>>({
             ))}
             {filteredData.length === 0 && (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={columns.length} className="px-3 py-8 text-center text-muted-foreground">
                   Tidak ada data ditemukan
                 </td>
               </tr>
             )}
           </tbody>
         </table>
+      </div>
+      {/* Footer with count */}
+      <div className="px-4 py-2 border-t border-border text-xs text-muted-foreground">
+        Menampilkan {filteredData.length} dari {data.length} data
       </div>
     </div>
   );
