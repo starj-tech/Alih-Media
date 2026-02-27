@@ -21,39 +21,26 @@ export default function LoginPage() {
   const { login, register } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) {
-      toast.error('Email dan password harus diisi');
-      return;
-    }
+    if (!email.trim() || !password.trim()) { toast.error('Email dan password harus diisi'); return; }
     setLoading(true);
-    // Small delay to prevent brute force timing attacks
-    setTimeout(() => {
-      const result = login(email, password);
-      if (result && typeof result === 'object' && 'error' in result) {
-        toast.error(result.error);
-      } else if (result && typeof result === 'object' && 'role' in result) {
-        toast.success('Login berhasil!');
-        navigate(result.role === 'admin' ? '/admin/dashboard' : '/user/dashboard');
-      } else {
-        toast.error('Email atau password salah');
-      }
-      setLoading(false);
-    }, 300);
+    const result = await login(email, password);
+    if ('error' in result) {
+      toast.error(result.error);
+    } else {
+      toast.success('Login berhasil!');
+      navigate(result.role === 'admin' ? '/admin/dashboard' : '/user/dashboard');
+    }
+    setLoading(false);
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!regName || !regEmail || !regPassword) {
-      toast.error('Semua field harus diisi');
-      return;
-    }
-    if (regPassword.length < 6) {
-      toast.error('Password minimal 6 karakter');
-      return;
-    }
-    const result = register(regName, regEmail, regPassword);
+    if (!regName || !regEmail || !regPassword) { toast.error('Semua field harus diisi'); return; }
+    if (regPassword.length < 6) { toast.error('Password minimal 6 karakter'); return; }
+    setLoading(true);
+    const result = await register(regName, regEmail, regPassword);
     if (typeof result === 'string') {
       toast.error(result);
     } else {
@@ -61,6 +48,7 @@ export default function LoginPage() {
       setShowRegister(false);
       navigate('/user/dashboard');
     }
+    setLoading(false);
   };
 
   return (
@@ -84,17 +72,7 @@ export default function LoginPage() {
               <Label htmlFor="email" className="text-foreground font-medium">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Masukkan email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  className="pl-10"
-                  required
-                  maxLength={255}
-                  autoComplete="email"
-                />
+                <Input id="email" type="email" placeholder="Masukkan email" value={email} onChange={e => setEmail(e.target.value)} className="pl-10" required maxLength={255} autoComplete="email" />
               </div>
             </div>
 
@@ -102,17 +80,7 @@ export default function LoginPage() {
               <Label htmlFor="password" className="text-foreground font-medium">Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Masukkan password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className="pl-10"
-                  required
-                  maxLength={128}
-                  autoComplete="current-password"
-                />
+                <Input id="password" type="password" placeholder="Masukkan password" value={password} onChange={e => setPassword(e.target.value)} className="pl-10" required maxLength={128} autoComplete="current-password" />
               </div>
             </div>
 
@@ -127,12 +95,6 @@ export default function LoginPage() {
               </Button>
             </div>
           </form>
-
-          <div className="mt-6 p-4 rounded-lg bg-muted/50 text-xs text-muted-foreground">
-            <p className="font-semibold mb-1">Demo Akun:</p>
-            <p>Admin: admin@bpn.go.id / admin123</p>
-            <p>User: user@bpn.go.id / user123</p>
-          </div>
         </div>
       </div>
 
@@ -163,9 +125,9 @@ export default function LoginPage() {
                 <Input id="reg-password" type="password" placeholder="Masukkan password" value={regPassword} onChange={e => setRegPassword(e.target.value)} className="pl-10" required minLength={6} maxLength={128} autoComplete="new-password" />
               </div>
             </div>
-            <Button type="submit" className="w-full gap-2">
+            <Button type="submit" className="w-full gap-2" disabled={loading}>
               <UserPlus className="w-4 h-4" />
-              Daftar
+              {loading ? 'Memproses...' : 'Daftar'}
             </Button>
           </form>
         </DialogContent>

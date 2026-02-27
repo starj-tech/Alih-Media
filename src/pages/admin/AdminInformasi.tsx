@@ -1,9 +1,12 @@
+import { useState, useEffect } from 'react';
 import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
 import { getAllBerkas, Berkas } from '@/lib/data';
 
 export default function AdminInformasi() {
-  const berkas = getAllBerkas();
+  const [berkas, setBerkas] = useState<Berkas[]>([]);
+
+  useEffect(() => { getAllBerkas().then(setBerkas); }, []);
 
   return (
     <div className="space-y-6">
@@ -25,9 +28,7 @@ export default function AdminInformasi() {
           { header: 'Desa', accessor: 'desa', searchKey: 'desa' },
           { header: 'Kecamatan', accessor: 'kecamatan' },
           { header: 'Status', accessor: (row) => <StatusBadge status={row.status} /> },
-          { header: 'Catatan', accessor: (row) => (
-            <span className="text-xs text-muted-foreground">{row.catatanPenolakan || '-'}</span>
-          )},
+          { header: 'Catatan', accessor: (row) => <span className="text-xs text-muted-foreground">{row.catatanPenolakan || '-'}</span> },
         ]}
         data={berkas}
       />

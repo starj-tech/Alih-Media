@@ -45,7 +45,7 @@ export default function PengajuanAlihmedia() {
   const kecamatanList = getKecamatanList();
   const desaList = useMemo(() => form.kecamatan ? getDesaByKecamatan(form.kecamatan) : [], [form.kecamatan]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const sanitized = {
@@ -69,7 +69,7 @@ export default function PengajuanAlihmedia() {
       return;
     }
 
-    addBerkas({
+    const result = await addBerkas({
       tanggalPengajuan: tanggal,
       namaPemegangHak: sanitized.namaPemegangHak,
       noTelepon: sanitized.noTelepon,
@@ -81,8 +81,12 @@ export default function PengajuanAlihmedia() {
       linkShareloc: sanitized.linkShareloc,
       userId: user?.id || '',
     });
-    toast.success('Pengajuan berhasil dikirim!');
-    setForm({ namaPemegangHak: '', noTelepon: '', noSuTahun: '', jenisHak: '', noHak: '', desa: '', kecamatan: '', linkShareloc: '' });
+    if (result) {
+      toast.success('Pengajuan berhasil dikirim!');
+      setForm({ namaPemegangHak: '', noTelepon: '', noSuTahun: '', jenisHak: '', noHak: '', desa: '', kecamatan: '', linkShareloc: '' });
+    } else {
+      toast.error('Gagal mengirim pengajuan');
+    }
   };
 
   return (

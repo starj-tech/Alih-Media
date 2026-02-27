@@ -1,3 +1,6 @@
+// Data layer using Lovable Cloud database
+import { supabase } from '@/integrations/supabase/client';
+
 export type BerkasStatus = 'Proses' | 'Validasi SU & Bidang' | 'Validasi BT' | 'Selesai' | 'Ditolak';
 export type JenisHak = 'HM' | 'HGB' | 'HP' | 'HGU' | 'HMSRS' | 'HPL' | 'HW';
 
@@ -13,7 +16,6 @@ export interface Berkas {
   kecamatan: string;
   status: BerkasStatus;
   userId: string;
-  fileKtp?: string;
   linkShareloc?: string;
   catatanPenolakan?: string;
 }
@@ -25,57 +27,96 @@ export interface ManagedUser {
   role: 'admin' | 'user';
 }
 
-// Mock data store
-let berkasList: Berkas[] = [
-  { id: '1', tanggalPengajuan: '24/02/2026', namaPemegangHak: 'Abdurrohman Muthi', noTelepon: '081234567890', noSuTahun: '03360/2026', jenisHak: 'HM', noHak: '4640', desa: 'Cikeas Udik', kecamatan: 'Gunung Putri', status: 'Proses', userId: '2' },
-  { id: '2', tanggalPengajuan: '20/02/2026', namaPemegangHak: 'Ahmad Fauzi', noTelepon: '081298765432', noSuTahun: '1/2026', jenisHak: 'HGB', noHak: '3101', desa: 'Cileungsi', kecamatan: 'Cileungsi', status: 'Validasi BT', userId: '2' },
-  { id: '3', tanggalPengajuan: '24/02/2026', namaPemegangHak: 'Siti Nurhaliza', noTelepon: '081355566677', noSuTahun: '38/2026', jenisHak: 'HP', noHak: '3654', desa: 'Gandoang', kecamatan: 'Cileungsi', status: 'Validasi SU & Bidang', userId: '2' },
-  { id: '4', tanggalPengajuan: '22/02/2026', namaPemegangHak: 'Budi Santoso', noTelepon: '081244455566', noSuTahun: '9/2026', jenisHak: 'HGU', noHak: '3657', desa: 'Jatisari', kecamatan: 'Cileungsi', status: 'Ditolak', userId: '2', catatanPenolakan: 'Data tidak sesuai arsip' },
-  { id: '5', tanggalPengajuan: '23/02/2026', namaPemegangHak: 'Dewi Lestari', noTelepon: '081377788899', noSuTahun: '12/2026', jenisHak: 'HGB', noHak: '3221', desa: 'Dayeuh', kecamatan: 'Cileungsi', status: 'Selesai', userId: '2' },
-];
-
-let managedUsers: ManagedUser[] = [
-  { id: '1', email: 'admin@bpn.go.id', name: 'Administrator', role: 'admin' },
-  { id: '2', email: 'user@bpn.go.id', name: 'Abdurrohman Muthi', role: 'user' },
-];
-
-export function getAllBerkas(): Berkas[] { return [...berkasList]; }
-export function getBerkasByUser(userId: string): Berkas[] { return berkasList.filter(b => b.userId === userId); }
-export function getBerkasByStatus(status: BerkasStatus): Berkas[] { return berkasList.filter(b => b.status === status); }
-export function getBerkasById(id: string): Berkas | undefined { return berkasList.find(b => b.id === id); }
-
-export function addBerkas(berkas: Omit<Berkas, 'id' | 'status'>): Berkas {
-  const newBerkas: Berkas = {
-    ...berkas,
-    id: String(Date.now()),
-    status: 'Proses',
-  };
-  berkasList = [...berkasList, newBerkas];
-  return newBerkas;
-}
-
-export function updateBerkasStatus(id: string, status: BerkasStatus, catatan?: string) {
-  berkasList = berkasList.map(b => b.id === id ? { ...b, status, ...(catatan ? { catatanPenolakan: catatan } : {}) } : b);
-}
-
-export function deleteBerkas(id: string) {
-  berkasList = berkasList.filter(b => b.id !== id);
-}
-
-export function getStats() {
+// Convert DB row to Berkas interface
+function mapRow(row: any): Berkas {
+  const d = new Date(row.tanggal_pengajuan);
+  const tanggal = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
   return {
-    total: berkasList.length,
-    selesai: berkasList.filter(b => b.status === 'Selesai').length,
-    ditolak: berkasList.filter(b => b.status === 'Ditolak').length,
+    id: row.id,
+    tanggalPengajuan: tanggal,
+    namaPemegangHak: row.nama_pemegang_hak,
+    noTelepon: row.no_telepon,
+    noSuTahun: row.no_su_tahun,
+    jenisHak: row.jenis_hak as JenisHak,
+    noHak: row.no_hak,
+    desa: row.desa,
+    kecamatan: row.kecamatan,
+    status: row.status as BerkasStatus,
+    userId: row.user_id,
+    linkShareloc: row.link_shareloc || undefined,
+    catatanPenolakan: row.catatan_penolakan || undefined,
   };
 }
 
-export function getUsers(): ManagedUser[] { return [...managedUsers]; }
-export function addUser(user: Omit<ManagedUser, 'id'>) {
-  managedUsers = [...managedUsers, { ...user, id: String(Date.now()) }];
+export async function getAllBerkas(): Promise<Berkas[]> {
+  const { data, error } = await supabase.from('berkas').select('*').order('created_at', { ascending: false });
+  if (error || !data) return [];
+  return data.map(mapRow);
 }
-export function deleteUser(id: string) {
-  managedUsers = managedUsers.filter(u => u.id !== id);
+
+export async function getBerkasByUser(userId: string): Promise<Berkas[]> {
+  const { data, error } = await supabase.from('berkas').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+  if (error || !data) return [];
+  return data.map(mapRow);
+}
+
+export async function addBerkas(berkas: Omit<Berkas, 'id' | 'status'>): Promise<Berkas | null> {
+  // Parse dd/mm/yyyy to yyyy-mm-dd
+  const parts = berkas.tanggalPengajuan.split('/');
+  const dbDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+
+  const { data, error } = await supabase.from('berkas').insert({
+    tanggal_pengajuan: dbDate,
+    nama_pemegang_hak: berkas.namaPemegangHak,
+    no_telepon: berkas.noTelepon,
+    no_su_tahun: berkas.noSuTahun,
+    jenis_hak: berkas.jenisHak,
+    no_hak: berkas.noHak,
+    desa: berkas.desa,
+    kecamatan: berkas.kecamatan,
+    user_id: berkas.userId,
+    link_shareloc: berkas.linkShareloc || null,
+  }).select().single();
+
+  if (error || !data) return null;
+  return mapRow(data);
+}
+
+export async function updateBerkasStatus(id: string, status: BerkasStatus, catatan?: string) {
+  const updates: any = { status };
+  if (catatan !== undefined) updates.catatan_penolakan = catatan;
+  await supabase.from('berkas').update(updates).eq('id', id);
+}
+
+export async function deleteBerkas(id: string) {
+  await supabase.from('berkas').delete().eq('id', id);
+}
+
+export async function getStats() {
+  const { data } = await supabase.from('berkas').select('status');
+  const all = data || [];
+  return {
+    total: all.length,
+    selesai: all.filter((b: any) => b.status === 'Selesai').length,
+    ditolak: all.filter((b: any) => b.status === 'Ditolak').length,
+  };
+}
+
+export async function getUsers(): Promise<ManagedUser[]> {
+  const { data: profiles } = await supabase.from('profiles').select('*');
+  if (!profiles) return [];
+
+  const result: ManagedUser[] = [];
+  for (const p of profiles) {
+    const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', p.user_id).single();
+    result.push({
+      id: p.user_id,
+      email: p.email,
+      name: p.name,
+      role: (roleData?.role as 'admin' | 'user') || 'user',
+    });
+  }
+  return result;
 }
 
 export function isDueDateOverdue(dateStr: string): boolean {

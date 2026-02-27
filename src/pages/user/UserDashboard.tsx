@@ -1,14 +1,18 @@
+import { useState, useEffect } from 'react';
 import { FileStack, CheckCircle, XCircle } from 'lucide-react';
 import StatsCard from '@/components/StatsCard';
 import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
-import { getStats, getBerkasByUser, Berkas } from '@/lib/data';
+import { getBerkasByUser, Berkas } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function UserDashboard() {
   const { user } = useAuth();
-  const stats = getStats();
-  const berkas = user ? getBerkasByUser(user.id) : [];
+  const [berkas, setBerkas] = useState<Berkas[]>([]);
+
+  useEffect(() => {
+    if (user) getBerkasByUser(user.id).then(setBerkas);
+  }, [user]);
 
   return (
     <div className="space-y-6">
@@ -19,8 +23,8 @@ export default function UserDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatsCard title="Total Pengajuan" value={berkas.length} icon={FileStack} variant="primary" />
-        <StatsCard title="Total Selesai" value={berkas.filter((b) => b.status === 'Selesai').length} icon={CheckCircle} variant="success" />
-        <StatsCard title="Total Ditolak" value={berkas.filter((b) => b.status === 'Ditolak').length} icon={XCircle} variant="danger" />
+        <StatsCard title="Total Selesai" value={berkas.filter(b => b.status === 'Selesai').length} icon={CheckCircle} variant="success" />
+        <StatsCard title="Total Ditolak" value={berkas.filter(b => b.status === 'Ditolak').length} icon={XCircle} variant="danger" />
       </div>
 
       <DataTable<Berkas>

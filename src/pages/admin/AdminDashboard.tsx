@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { FileStack, CheckCircle, XCircle } from 'lucide-react';
 import StatsCard from '@/components/StatsCard';
 import DataTable from '@/components/DataTable';
@@ -5,8 +6,13 @@ import StatusBadge from '@/components/StatusBadge';
 import { getStats, getAllBerkas, Berkas } from '@/lib/data';
 
 export default function AdminDashboard() {
-  const stats = getStats();
-  const berkas = getAllBerkas();
+  const [stats, setStats] = useState({ total: 0, selesai: 0, ditolak: 0 });
+  const [berkas, setBerkas] = useState<Berkas[]>([]);
+
+  useEffect(() => {
+    getStats().then(setStats);
+    getAllBerkas().then(setBerkas);
+  }, []);
 
   return (
     <div className="space-y-6">
