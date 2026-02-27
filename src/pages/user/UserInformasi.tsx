@@ -92,9 +92,9 @@ export default function UserInformasi() {
           { header: 'Kecamatan', accessor: 'kecamatan' },
           { header: 'Link', accessor: (row) => row.linkShareloc ? (
             <div className="flex items-center gap-1 justify-center">
-              <a href={row.linkShareloc} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+              <button onClick={() => window.open(row.linkShareloc!, '_blank', 'noopener,noreferrer')} className="text-primary hover:text-primary/80">
                 <ExternalLink className="w-4 h-4" />
-              </a>
+              </button>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button onClick={() => { navigator.clipboard.writeText(row.linkShareloc!); toast.success('Link disalin'); }} className="text-muted-foreground hover:text-foreground">
