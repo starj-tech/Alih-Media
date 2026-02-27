@@ -14,11 +14,12 @@ export default function ValidasiSUBidang() {
   const [tolakId, setTolakId] = useState<string | null>(null);
   const [catatan, setCatatan] = useState('');
   
-  const berkas = getAllBerkas().filter(b => b.status === 'Validasi SU & Bidang');
+  // New flow: after Proses, goes to Validasi SU & Bidang first
+  const berkas = getAllBerkas().filter(b => b.status === 'Proses' || b.status === 'Validasi SU & Bidang');
 
   const handleKirim = (id: string) => {
-    updateBerkasStatus(id, 'Selesai');
-    toast.success('Berkas selesai diproses! Notifikasi akan dikirim ke user.');
+    updateBerkasStatus(id, 'Validasi BT');
+    toast.success('Berkas diteruskan ke Validasi Buku Tanah');
     setRefresh(v => v + 1);
   };
 
@@ -40,6 +41,8 @@ export default function ValidasiSUBidang() {
     toast.success('Berkas dihapus');
     setRefresh(v => v + 1);
   };
+
+  const tolakBerkas = tolakId ? getAllBerkas().find(b => b.id === tolakId) : null;
 
   return (
     <div className="space-y-6">
@@ -65,12 +68,15 @@ export default function ValidasiSUBidang() {
           { header: 'Desa', accessor: 'desa' },
           { header: 'Kecamatan', accessor: 'kecamatan' },
           { header: 'Status', accessor: (row) => <StatusBadge status={row.status} /> },
+          { header: 'Catatan', accessor: (row) => (
+            <span className="text-xs text-muted-foreground">{row.catatanPenolakan || '-'}</span>
+          )},
           { header: 'Aksi', accessor: (row) => (
             <div className="flex gap-1">
               <Button size="sm" className="gap-1" onClick={() => handleKirim(row.id)}>
                 <Send className="w-3 h-3" /> Kirim
               </Button>
-              <Button size="sm" variant="destructive" className="gap-1" onClick={() => { setTolakId(row.id); setCatatan(''); }}>
+              <Button size="sm" variant="destructive" className="gap-1" onClick={() => { setTolakId(row.id); setCatatan(row.catatanPenolakan || ''); }}>
                 <XCircle className="w-3 h-3" /> Tolak
               </Button>
               <Button size="sm" variant="outline" className="gap-1 text-destructive hover:text-destructive" onClick={() => handleHapus(row.id)}>
@@ -88,6 +94,12 @@ export default function ValidasiSUBidang() {
             <DialogTitle>Catatan Penolakan</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
+            {tolakBerkas?.catatanPenolakan && (
+              <div className="p-3 rounded bg-destructive/10 border border-destructive/20">
+                <p className="text-xs font-semibold text-destructive mb-1">Catatan sebelumnya:</p>
+                <p className="text-sm text-destructive">{tolakBerkas.catatanPenolakan}</p>
+              </div>
+            )}
             <Label>Alasan penolakan</Label>
             <Textarea
               value={catatan}

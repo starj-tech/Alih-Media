@@ -8,6 +8,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Send, FileUp, CalendarDays, Phone } from 'lucide-react';
 import { toast } from 'sonner';
 
+const jenisHakOptions: { value: JenisHak; label: string }[] = [
+  { value: 'HM', label: 'HM (Hak Milik)' },
+  { value: 'HGB', label: 'HGB (Hak Guna Bangunan)' },
+  { value: 'HP', label: 'HP (Hak Pakai)' },
+  { value: 'HGU', label: 'HGU (Hak Guna Usaha)' },
+  { value: 'HMSRS', label: 'Hak Milik Satuan Rumah Susun' },
+  { value: 'HPL', label: 'Hak Pengelolaan' },
+  { value: 'HW', label: 'Hak Wakaf' },
+];
+
 export default function PengajuanAlihmedia() {
   const { user } = useAuth();
   const today = new Date();
@@ -96,11 +106,9 @@ export default function PengajuanAlihmedia() {
               <Select value={form.jenisHak} onValueChange={v => setForm(f => ({ ...f, jenisHak: v as JenisHak }))}>
                 <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Pilih jenis hak" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="SHM">SHM (Sertifikat Hak Milik)</SelectItem>
-                  <SelectItem value="SHGB">SHGB</SelectItem>
-                  <SelectItem value="HGB">HGB (Hak Guna Bangunan)</SelectItem>
-                  <SelectItem value="HP">HP (Hak Pakai)</SelectItem>
-                  <SelectItem value="HGU">HGU (Hak Guna Usaha)</SelectItem>
+                  {jenisHakOptions.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

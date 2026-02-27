@@ -1,5 +1,5 @@
-export type BerkasStatus = 'Proses' | 'Validasi BT' | 'Validasi SU & Bidang' | 'Selesai' | 'Ditolak';
-export type JenisHak = 'SHM' | 'SHGB' | 'HGB' | 'HP' | 'HGU';
+export type BerkasStatus = 'Proses' | 'Validasi SU & Bidang' | 'Validasi BT' | 'Selesai' | 'Ditolak';
+export type JenisHak = 'HM' | 'HGB' | 'HP' | 'HGU' | 'HMSRS' | 'HPL' | 'HW';
 
 export interface Berkas {
   id: string;
@@ -26,10 +26,10 @@ export interface ManagedUser {
 
 // Mock data store
 let berkasList: Berkas[] = [
-  { id: '1', noBerkas: '03360/2026', tanggalPengajuan: '24/02/2026', namaPemegangHak: 'Abdurrohman Muthi', noTelepon: '081234567890', jenisHak: 'SHM', noHak: '4640', desa: 'Cikeasudik', kecamatan: 'Gunung Putri', status: 'Proses', userId: '2' },
-  { id: '2', noBerkas: '1/2026', tanggalPengajuan: '20/02/2026', namaPemegangHak: 'Ahmad Fauzi', noTelepon: '081298765432', jenisHak: 'SHGB', noHak: '3101', desa: 'Cileungsi', kecamatan: 'Cileungsi', status: 'Validasi BT', userId: '2' },
+  { id: '1', noBerkas: '03360/2026', tanggalPengajuan: '24/02/2026', namaPemegangHak: 'Abdurrohman Muthi', noTelepon: '081234567890', jenisHak: 'HM', noHak: '4640', desa: 'Cikeasudik', kecamatan: 'Gunung Putri', status: 'Proses', userId: '2' },
+  { id: '2', noBerkas: '1/2026', tanggalPengajuan: '20/02/2026', namaPemegangHak: 'Ahmad Fauzi', noTelepon: '081298765432', jenisHak: 'HGB', noHak: '3101', desa: 'Cileungsi', kecamatan: 'Cileungsi', status: 'Validasi BT', userId: '2' },
   { id: '3', noBerkas: '38/2026', tanggalPengajuan: '24/02/2026', namaPemegangHak: 'Siti Nurhaliza', noTelepon: '081355566677', jenisHak: 'HP', noHak: '3654', desa: 'Cileungsi', kecamatan: 'Cileungsi', status: 'Validasi SU & Bidang', userId: '2' },
-  { id: '4', noBerkas: '9/2026', tanggalPengajuan: '22/02/2026', namaPemegangHak: 'Budi Santoso', noTelepon: '081244455566', jenisHak: 'HGU', noHak: '3657', desa: 'Cileungsi', kecamatan: 'Cileungsi', status: 'Ditolak', userId: '2' },
+  { id: '4', noBerkas: '9/2026', tanggalPengajuan: '22/02/2026', namaPemegangHak: 'Budi Santoso', noTelepon: '081244455566', jenisHak: 'HGU', noHak: '3657', desa: 'Cileungsi', kecamatan: 'Cileungsi', status: 'Ditolak', userId: '2', catatanPenolakan: 'Data tidak sesuai arsip' },
   { id: '5', noBerkas: '12/2026', tanggalPengajuan: '23/02/2026', namaPemegangHak: 'Dewi Lestari', noTelepon: '081377788899', jenisHak: 'HGB', noHak: '3221', desa: 'Cileungsi', kecamatan: 'Cileungsi', status: 'Selesai', userId: '2' },
 ];
 

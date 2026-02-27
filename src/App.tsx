@@ -14,7 +14,7 @@ import KelolaUser from "@/pages/admin/KelolaUser";
 import UserDashboard from "@/pages/user/UserDashboard";
 import PengajuanAlihmedia from "@/pages/user/PengajuanAlihmedia";
 import UserInformasi from "@/pages/user/UserInformasi";
-import CetakSurat from "@/pages/CetakSurat";
+
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -49,9 +49,6 @@ function AppRoutes() {
       <Route path="/user/dashboard" element={<DashboardLayout role="user" onLogout={handleLogout}><UserDashboard /></DashboardLayout>} />
       <Route path="/user/pengajuan" element={<DashboardLayout role="user" onLogout={handleLogout}><PengajuanAlihmedia /></DashboardLayout>} />
       <Route path="/user/informasi" element={<DashboardLayout role="user" onLogout={handleLogout}><UserInformasi /></DashboardLayout>} />
-
-      {/* Cetak */}
-      <Route path="/cetak/:id" element={<CetakSurat />} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>
