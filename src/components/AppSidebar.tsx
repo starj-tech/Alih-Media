@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, CheckSquare, Info, Users, LogOut, Send, FileSearch, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Info, Users, LogOut, Send, FileSearch, Archive } from 'lucide-react';
 import { UserRole } from '@/lib/auth';
 import logoBpn from '@/assets/logo-bpn.png';
 import { useAuth } from '@/hooks/useAuth';
@@ -11,8 +11,9 @@ interface AppSidebarProps {
 
 const adminMenu = [
   { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-  { label: 'Validasi Buku Tanah', path: '/admin/validasi-bt', icon: CheckSquare },
+  { label: 'Arsip Verifikasi BT/SU', path: '/admin/arsip-verifikasi', icon: Archive },
   { label: 'Validasi SU & Bidang', path: '/admin/validasi-su', icon: FileSearch },
+  { label: 'Validasi Buku Tanah', path: '/admin/validasi-bt', icon: CheckSquare },
   { label: 'Informasi Alihmedia', path: '/admin/informasi', icon: Info },
   { label: 'Kelola User', path: '/admin/users', icon: Users },
 ];

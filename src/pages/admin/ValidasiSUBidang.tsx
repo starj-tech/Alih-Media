@@ -16,7 +16,7 @@ export default function ValidasiSUBidang() {
 
   const loadData = async () => {
     const all = await getAllBerkas();
-    setBerkas(all.filter(b => b.status === 'Proses' || b.status === 'Validasi SU & Bidang'));
+    setBerkas(all.filter(b => b.status === 'Validasi SU & Bidang'));
   };
 
   useEffect(() => { loadData(); }, []);

@@ -29,7 +29,6 @@ export default function PengajuanAlihmedia() {
   const tanggal = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
 
   const [form, setForm] = useState({
-    namaPemegangHak: '',
     noTelepon: '',
     noSuTahun: '',
     jenisHak: '' as JenisHak | '',
@@ -49,7 +48,6 @@ export default function PengajuanAlihmedia() {
     e.preventDefault();
     
     const sanitized = {
-      namaPemegangHak: sanitizeString(form.namaPemegangHak),
       noTelepon: form.noTelepon.replace(/[^\d+\-\s()]/g, ''),
       noSuTahun: sanitizeString(form.noSuTahun),
       jenisHak: form.jenisHak,
@@ -59,7 +57,7 @@ export default function PengajuanAlihmedia() {
       linkShareloc: sanitizeString(form.linkShareloc || ''),
     };
 
-    if (!sanitized.namaPemegangHak || !sanitized.noTelepon || !sanitized.noSuTahun || !sanitized.jenisHak || !sanitized.noHak || !sanitized.desa || !sanitized.kecamatan) {
+    if (!sanitized.noTelepon || !sanitized.noSuTahun || !sanitized.jenisHak || !sanitized.noHak || !sanitized.desa || !sanitized.kecamatan) {
       toast.error('Lengkapi semua field');
       return;
     }
@@ -71,7 +69,7 @@ export default function PengajuanAlihmedia() {
 
     const result = await addBerkas({
       tanggalPengajuan: tanggal,
-      namaPemegangHak: sanitized.namaPemegangHak,
+      namaPemegangHak: user?.name || '',
       noTelepon: sanitized.noTelepon,
       noSuTahun: sanitized.noSuTahun,
       jenisHak: sanitized.jenisHak as JenisHak,
@@ -83,7 +81,7 @@ export default function PengajuanAlihmedia() {
     });
     if (result) {
       toast.success('Pengajuan berhasil dikirim!');
-      setForm({ namaPemegangHak: '', noTelepon: '', noSuTahun: '', jenisHak: '', noHak: '', desa: '', kecamatan: '', linkShareloc: '' });
+      setForm({ noTelepon: '', noSuTahun: '', jenisHak: '', noHak: '', desa: '', kecamatan: '', linkShareloc: '' });
     } else {
       toast.error('Gagal mengirim pengajuan');
     }
@@ -114,14 +112,8 @@ export default function PengajuanAlihmedia() {
             </div>
 
             <div>
-              <Label className="text-xs">Nama Pemegang Hak</Label>
-              <Input
-                value={form.namaPemegangHak}
-                onChange={e => setForm(f => ({ ...f, namaPemegangHak: e.target.value }))}
-                placeholder="Masukkan nama pemegang hak"
-                className="mt-1 h-8 text-sm"
-                maxLength={100}
-              />
+              <Label className="text-xs">Nama Pemegang Hak (User)</Label>
+              <Input value={user?.name || ''} disabled className="bg-muted/50 mt-1 h-8 text-sm" />
             </div>
 
             <div>

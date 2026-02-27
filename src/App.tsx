@@ -9,6 +9,7 @@ import LoginPage from "@/pages/LoginPage";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import ValidasiBukuTanah from "@/pages/admin/ValidasiBukuTanah";
 import ValidasiSUBidang from "@/pages/admin/ValidasiSUBidang";
+import ArsipVerifikasi from "@/pages/admin/ArsipVerifikasi";
 import AdminInformasi from "@/pages/admin/AdminInformasi";
 import KelolaUser from "@/pages/admin/KelolaUser";
 import UserDashboard from "@/pages/user/UserDashboard";
@@ -48,8 +49,9 @@ function AppRoutes() {
       
       {/* Admin Routes */}
       <Route path="/admin/dashboard" element={<DashboardLayout role="admin" onLogout={handleLogout}><AdminDashboard /></DashboardLayout>} />
-      <Route path="/admin/validasi-bt" element={<DashboardLayout role="admin" onLogout={handleLogout}><ValidasiBukuTanah /></DashboardLayout>} />
+      <Route path="/admin/arsip-verifikasi" element={<DashboardLayout role="admin" onLogout={handleLogout}><ArsipVerifikasi /></DashboardLayout>} />
       <Route path="/admin/validasi-su" element={<DashboardLayout role="admin" onLogout={handleLogout}><ValidasiSUBidang /></DashboardLayout>} />
+      <Route path="/admin/validasi-bt" element={<DashboardLayout role="admin" onLogout={handleLogout}><ValidasiBukuTanah /></DashboardLayout>} />
       <Route path="/admin/informasi" element={<DashboardLayout role="admin" onLogout={handleLogout}><AdminInformasi /></DashboardLayout>} />
       <Route path="/admin/users" element={<DashboardLayout role="admin" onLogout={handleLogout}><KelolaUser /></DashboardLayout>} />
 
