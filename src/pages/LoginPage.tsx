@@ -67,30 +67,6 @@ export default function LoginPage() {
         </div>
 
         <div className="glass-card rounded-2xl p-8 shadow-xl">
-          {/* Demo Credentials */}
-          <div className="mb-5 rounded-lg bg-white/10 border border-white/20 p-3 text-sm text-white/90">
-            <p className="font-semibold mb-2 text-white">Akun Demo:</p>
-            <div className="flex flex-col gap-1.5">
-              <button
-                type="button"
-                onClick={() => { setEmail('admin@bpn.go.id'); }}
-                className="flex items-center justify-between rounded px-2 py-1 hover:bg-white/10 transition text-left"
-              >
-                <span><strong>Admin</strong> — admin@bpn.go.id</span>
-                <span className="text-xs opacity-70">Klik untuk isi</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => { setEmail('user@bpn.go.id'); }}
-                className="flex items-center justify-between rounded px-2 py-1 hover:bg-white/10 transition text-left"
-              >
-                <span><strong>User</strong> — user@bpn.go.id</span>
-                <span className="text-xs opacity-70">Klik untuk isi</span>
-              </button>
-            </div>
-            <p className="text-xs text-white/60 mt-2">Password: hubungi administrator</p>
-          </div>
-
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-foreground font-medium">Email</Label>
