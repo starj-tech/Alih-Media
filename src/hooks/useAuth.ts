@@ -10,7 +10,9 @@ export function useAuth() {
 
   const login = useCallback((email: string, password: string) => {
     const result = doLogin(email, password);
-    setUser(result);
+    if (result && typeof result === 'object' && 'id' in result) {
+      setUser(result as User);
+    }
     return result;
   }, []);
 
