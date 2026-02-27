@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
 import ExternalLinkCell from '@/components/ExternalLinkCell';
+import FileDownloadCell from '@/components/FileDownloadCell';
 import { getAllBerkas, Berkas } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -53,6 +54,8 @@ export default function AdminInformasi() {
           { header: 'Jenis Hak', accessor: 'jenisHak' },
           { header: 'Desa', accessor: 'desa', searchKey: 'desa' },
           { header: 'Kecamatan', accessor: 'kecamatan' },
+          { header: 'Sertifikat', accessor: (row) => <FileDownloadCell url={row.fileSertifikatUrl} label="Sertifikat" /> },
+          { header: 'KTP', accessor: (row) => <FileDownloadCell url={row.fileKtpUrl} label="KTP" /> },
           { header: 'Link', accessor: (row) => <ExternalLinkCell url={row.linkShareloc} /> },
           { header: 'Status', accessor: (row) => <StatusBadge status={row.status} /> },
           { header: 'Catatan', accessor: (row) => <span className="text-xs text-muted-foreground">{row.catatanPenolakan || '-'}</span> },

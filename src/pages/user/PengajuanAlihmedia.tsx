@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { addBerkas, JenisHak } from '@/lib/data';
+import { addBerkas, uploadFile, JenisHak } from '@/lib/data';
 import { sanitizeString } from '@/lib/auth';
 import { getKecamatanList, getDesaByKecamatan } from '@/lib/wilayah';
 import { Button } from '@/components/ui/button';
@@ -38,11 +38,29 @@ export default function PengajuanAlihmedia() {
     linkShareloc: '',
   });
 
+  const [fileSertifikat, setFileSertifikat] = useState<File | null>(null);
+  const [fileKtp, setFileKtp] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const sertifikatRef = useRef<HTMLInputElement>(null);
+  const ktpRef = useRef<HTMLInputElement>(null);
+
   const [kecOpen, setKecOpen] = useState(false);
   const [desaOpen, setDesaOpen] = useState(false);
 
   const kecamatanList = getKecamatanList();
   const desaList = useMemo(() => form.kecamatan ? getDesaByKecamatan(form.kecamatan) : [], [form.kecamatan]);
+
+  const validateFile = (file: File): boolean => {
+    if (file.type !== 'application/pdf') {
+      toast.error('File harus berformat PDF');
+      return false;
+    }
+    if (file.size > 50 * 1024) {
+      toast.error('Ukuran file maksimal 50KB');
+      return false;
+    }
+    return true;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,23 +85,48 @@ export default function PengajuanAlihmedia() {
       return;
     }
 
-    const result = await addBerkas({
-      tanggalPengajuan: tanggal,
-      namaPemegangHak: user?.name || '',
-      noTelepon: sanitized.noTelepon,
-      noSuTahun: sanitized.noSuTahun,
-      jenisHak: sanitized.jenisHak as JenisHak,
-      noHak: sanitized.noHak,
-      desa: sanitized.desa,
-      kecamatan: sanitized.kecamatan,
-      linkShareloc: sanitized.linkShareloc,
-      userId: user?.id || '',
-    });
-    if (result) {
-      toast.success('Pengajuan berhasil dikirim!');
-      setForm({ noTelepon: '', noSuTahun: '', jenisHak: '', noHak: '', desa: '', kecamatan: '', linkShareloc: '' });
-    } else {
-      toast.error('Gagal mengirim pengajuan');
+    if (!fileSertifikat || !fileKtp) {
+      toast.error('Upload file Sertifikat dan KTP wajib diisi');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // Upload files
+      const sertifikatUrl = await uploadFile(fileSertifikat, user?.id || '', 'sertifikat');
+      const ktpUrl = await uploadFile(fileKtp, user?.id || '', 'ktp');
+
+      if (!sertifikatUrl || !ktpUrl) {
+        toast.error('Gagal mengupload file');
+        return;
+      }
+
+      const result = await addBerkas({
+        tanggalPengajuan: tanggal,
+        namaPemegangHak: user?.name || '',
+        noTelepon: sanitized.noTelepon,
+        noSuTahun: sanitized.noSuTahun,
+        jenisHak: sanitized.jenisHak as JenisHak,
+        noHak: sanitized.noHak,
+        desa: sanitized.desa,
+        kecamatan: sanitized.kecamatan,
+        linkShareloc: sanitized.linkShareloc,
+        userId: user?.id || '',
+        fileSertifikatUrl: sertifikatUrl,
+        fileKtpUrl: ktpUrl,
+      });
+      if (result) {
+        toast.success('Pengajuan berhasil dikirim!');
+        setForm({ noTelepon: '', noSuTahun: '', jenisHak: '', noHak: '', desa: '', kecamatan: '', linkShareloc: '' });
+        setFileSertifikat(null);
+        setFileKtp(null);
+        if (sertifikatRef.current) sertifikatRef.current.value = '';
+        if (ktpRef.current) ktpRef.current.value = '';
+      } else {
+        toast.error('Gagal mengirim pengajuan');
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -237,9 +280,35 @@ export default function PengajuanAlihmedia() {
               </div>
             </div>
 
-            <div>
-              <Label className="text-xs">Upload Sertipikat & KTP (PDF, maks 50kb)</Label>
-              <Input type="file" accept=".pdf" className="mt-1 h-8 text-sm" />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs">Upload Sertifikat (PDF, maks 50KB)</Label>
+                <Input
+                  ref={sertifikatRef}
+                  type="file"
+                  accept=".pdf"
+                  className="mt-1 h-8 text-sm"
+                  onChange={e => {
+                    const file = e.target.files?.[0] || null;
+                    if (file && !validateFile(file)) { e.target.value = ''; return; }
+                    setFileSertifikat(file);
+                  }}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Upload KTP (PDF, maks 50KB)</Label>
+                <Input
+                  ref={ktpRef}
+                  type="file"
+                  accept=".pdf"
+                  className="mt-1 h-8 text-sm"
+                  onChange={e => {
+                    const file = e.target.files?.[0] || null;
+                    if (file && !validateFile(file)) { e.target.value = ''; return; }
+                    setFileKtp(file);
+                  }}
+                />
+              </div>
             </div>
 
             <div>
@@ -253,9 +322,9 @@ export default function PengajuanAlihmedia() {
               />
             </div>
 
-            <Button type="submit" className="w-full gap-2 h-9 text-sm">
+            <Button type="submit" className="w-full gap-2 h-9 text-sm" disabled={submitting}>
               <Send className="w-4 h-4" />
-              Kirim Pengajuan
+              {submitting ? 'Mengirim...' : 'Kirim Pengajuan'}
             </Button>
           </form>
         </div>
