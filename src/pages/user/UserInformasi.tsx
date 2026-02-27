@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react';
 import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
+import ExternalLinkCell from '@/components/ExternalLinkCell';
 import { getBerkasByUser, updateBerkasStatus, Berkas, BerkasStatus } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Edit, ExternalLink, Copy } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { toast } from 'sonner';
+import { Edit } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const statusOptions: { value: string; label: string }[] = [
   { value: 'all', label: 'Semua Status' },
@@ -90,21 +90,7 @@ export default function UserInformasi() {
           { header: 'Jenis Hak', accessor: 'jenisHak' },
           { header: 'Desa', accessor: 'desa' },
           { header: 'Kecamatan', accessor: 'kecamatan' },
-          { header: 'Link', accessor: (row) => row.linkShareloc ? (
-            <div className="flex items-center gap-1 justify-center">
-              <button onClick={() => window.open(row.linkShareloc!, '_blank', 'noopener,noreferrer')} className="text-primary hover:text-primary/80">
-                <ExternalLink className="w-4 h-4" />
-              </button>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button onClick={() => { navigator.clipboard.writeText(row.linkShareloc!); toast.success('Link disalin'); }} className="text-muted-foreground hover:text-foreground">
-                    <Copy className="w-3.5 h-3.5" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>Salin link</TooltipContent>
-              </Tooltip>
-            </div>
-          ) : <span className="text-muted-foreground">-</span> },
+          { header: 'Link', accessor: (row) => <ExternalLinkCell url={row.linkShareloc} /> },
           { header: 'Status', accessor: (row) => <StatusBadge status={row.status} /> },
           { header: 'Catatan', accessor: (row) => <span className="text-xs text-muted-foreground">{row.catatanPenolakan || '-'}</span> },
           { header: 'Aksi', accessor: (row) => row.status === 'Ditolak' ? (
