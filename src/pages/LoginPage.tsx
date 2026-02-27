@@ -76,7 +76,7 @@ export default function LoginPage() {
                 onClick={() => { setEmail('admin@bpn.go.id'); setPassword('admin123'); }}
                 className="flex items-center justify-between rounded px-2 py-1 hover:bg-white/10 transition text-left"
               >
-                <span><strong>Admin</strong> — admin@bpn.go.id / admin123</span>
+                <span><strong>Admin</strong> — admin@bpn.go.id</span>
                 <span className="text-xs opacity-70">Klik untuk isi</span>
               </button>
               <button
@@ -84,7 +84,7 @@ export default function LoginPage() {
                 onClick={() => { setEmail('user@bpn.go.id'); setPassword('user123'); }}
                 className="flex items-center justify-between rounded px-2 py-1 hover:bg-white/10 transition text-left"
               >
-                <span><strong>User</strong> — user@bpn.go.id / user123</span>
+                <span><strong>User</strong> — user@bpn.go.id</span>
                 <span className="text-xs opacity-70">Klik untuk isi</span>
               </button>
             </div>
