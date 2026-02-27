@@ -25,13 +25,14 @@ export default function UserDashboard() {
 
       <DataTable<Berkas>
         title="Monitoring Berkas Alihmedia"
-        searchKeys={['namaPemegangHak', 'noBerkas']}
+        searchKeys={['namaPemegangHak', 'desa']}
         columns={[
           { header: 'No', accessor: (_, i) => (i ?? 0) + 1 } as any,
-          { header: 'No Berkas', accessor: 'noBerkas' },
+          { header: 'Tgl Pengajuan', accessor: 'tanggalPengajuan' },
           { header: 'Nama', accessor: 'namaPemegangHak' },
-          { header: 'Jenis Hak', accessor: 'jenisHak' },
+          { header: 'No.SU/Tahun', accessor: 'noSuTahun' },
           { header: 'No Hak', accessor: 'noHak' },
+          { header: 'Jenis Hak', accessor: 'jenisHak' },
           { header: 'Desa', accessor: 'desa' },
           { header: 'Kecamatan', accessor: 'kecamatan' },
           { header: 'Status', accessor: (row) => <StatusBadge status={row.status} /> },

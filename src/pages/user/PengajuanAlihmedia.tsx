@@ -1,13 +1,17 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { addBerkas, JenisHak } from '@/lib/data';
 import { sanitizeString } from '@/lib/auth';
+import { getKecamatanList, getDesaByKecamatan } from '@/lib/wilayah';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Send, FileUp, CalendarDays, Phone } from 'lucide-react';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Send, FileUp, CalendarDays, Phone, ChevronsUpDown, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 const jenisHakOptions: { value: JenisHak; label: string }[] = [
   { value: 'HM', label: 'HM (Hak Milik)' },
@@ -27,6 +31,7 @@ export default function PengajuanAlihmedia() {
   const [form, setForm] = useState({
     namaPemegangHak: '',
     noTelepon: '',
+    noSuTahun: '',
     jenisHak: '' as JenisHak | '',
     noHak: '',
     desa: '',
@@ -34,25 +39,31 @@ export default function PengajuanAlihmedia() {
     linkShareloc: '',
   });
 
+  const [kecOpen, setKecOpen] = useState(false);
+  const [desaOpen, setDesaOpen] = useState(false);
+
+  const kecamatanList = getKecamatanList();
+  const desaList = useMemo(() => form.kecamatan ? getDesaByKecamatan(form.kecamatan) : [], [form.kecamatan]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Sanitize all inputs
     const sanitized = {
       namaPemegangHak: sanitizeString(form.namaPemegangHak),
-      noTelepon: form.noTelepon.replace(/[^\d+\-\s()]/g, ''), // Only allow phone chars
+      noTelepon: form.noTelepon.replace(/[^\d+\-\s()]/g, ''),
+      noSuTahun: sanitizeString(form.noSuTahun),
       jenisHak: form.jenisHak,
       noHak: sanitizeString(form.noHak),
       desa: sanitizeString(form.desa),
       kecamatan: sanitizeString(form.kecamatan),
+      linkShareloc: sanitizeString(form.linkShareloc || ''),
     };
 
-    if (!sanitized.namaPemegangHak || !sanitized.noTelepon || !sanitized.jenisHak || !sanitized.noHak || !sanitized.desa || !sanitized.kecamatan) {
+    if (!sanitized.namaPemegangHak || !sanitized.noTelepon || !sanitized.noSuTahun || !sanitized.jenisHak || !sanitized.noHak || !sanitized.desa || !sanitized.kecamatan) {
       toast.error('Lengkapi semua field');
       return;
     }
 
-    // Validate phone number
     if (sanitized.noTelepon.replace(/\D/g, '').length < 10) {
       toast.error('Nomor telepon tidak valid (minimal 10 digit)');
       return;
@@ -62,14 +73,16 @@ export default function PengajuanAlihmedia() {
       tanggalPengajuan: tanggal,
       namaPemegangHak: sanitized.namaPemegangHak,
       noTelepon: sanitized.noTelepon,
+      noSuTahun: sanitized.noSuTahun,
       jenisHak: sanitized.jenisHak as JenisHak,
       noHak: sanitized.noHak,
       desa: sanitized.desa,
       kecamatan: sanitized.kecamatan,
+      linkShareloc: sanitized.linkShareloc,
       userId: user?.id || '',
     });
     toast.success('Pengajuan berhasil dikirim!');
-    setForm({ namaPemegangHak: '', noTelepon: '', jenisHak: '', noHak: '', desa: '', kecamatan: '', linkShareloc: '' });
+    setForm({ namaPemegangHak: '', noTelepon: '', noSuTahun: '', jenisHak: '', noHak: '', desa: '', kecamatan: '', linkShareloc: '' });
   };
 
   return (
@@ -123,23 +136,11 @@ export default function PengajuanAlihmedia() {
             </div>
 
             <div>
-              <Label className="text-xs">Pilih Jenis Hak</Label>
-              <Select value={form.jenisHak} onValueChange={v => setForm(f => ({ ...f, jenisHak: v as JenisHak }))}>
-                <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Pilih jenis hak" /></SelectTrigger>
-                <SelectContent>
-                  {jenisHakOptions.map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label className="text-xs">No Hak</Label>
+              <Label className="text-xs">No.SU/Tahun</Label>
               <Input
-                value={form.noHak}
-                onChange={e => setForm(f => ({ ...f, noHak: e.target.value }))}
-                placeholder="Masukkan nomor hak"
+                value={form.noSuTahun}
+                onChange={e => setForm(f => ({ ...f, noSuTahun: e.target.value }))}
+                placeholder="Contoh: 03360/2026"
                 className="mt-1 h-8 text-sm"
                 maxLength={50}
               />
@@ -147,38 +148,110 @@ export default function PengajuanAlihmedia() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-xs">Desa</Label>
+                <Label className="text-xs">No Hak</Label>
                 <Input
-                  value={form.desa}
-                  onChange={e => setForm(f => ({ ...f, desa: e.target.value }))}
-                  placeholder="Nama desa"
+                  value={form.noHak}
+                  onChange={e => setForm(f => ({ ...f, noHak: e.target.value }))}
+                  placeholder="Masukkan nomor hak"
                   className="mt-1 h-8 text-sm"
-                  maxLength={100}
+                  maxLength={50}
                 />
               </div>
               <div>
+                <Label className="text-xs">Pilih Jenis Hak</Label>
+                <Select value={form.jenisHak} onValueChange={v => setForm(f => ({ ...f, jenisHak: v as JenisHak }))}>
+                  <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Pilih jenis hak" /></SelectTrigger>
+                  <SelectContent>
+                    {jenisHakOptions.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
                 <Label className="text-xs">Kecamatan</Label>
-                <Input
-                  value={form.kecamatan}
-                  onChange={e => setForm(f => ({ ...f, kecamatan: e.target.value }))}
-                  placeholder="Nama kecamatan"
-                  className="mt-1 h-8 text-sm"
-                  maxLength={100}
-                />
+                <Popover open={kecOpen} onOpenChange={setKecOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" aria-expanded={kecOpen} className="mt-1 w-full h-8 text-sm justify-between font-normal">
+                      {form.kecamatan || 'Pilih kecamatan...'}
+                      <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Cari kecamatan..." />
+                      <CommandList>
+                        <CommandEmpty>Tidak ditemukan.</CommandEmpty>
+                        <CommandGroup>
+                          {kecamatanList.map(kec => (
+                            <CommandItem
+                              key={kec}
+                              value={kec}
+                              onSelect={() => {
+                                setForm(f => ({ ...f, kecamatan: kec, desa: '' }));
+                                setKecOpen(false);
+                              }}
+                            >
+                              <Check className={cn('mr-2 h-4 w-4', form.kecamatan === kec ? 'opacity-100' : 'opacity-0')} />
+                              {kec}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div>
+                <Label className="text-xs">Desa</Label>
+                <Popover open={desaOpen} onOpenChange={setDesaOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" aria-expanded={desaOpen} disabled={!form.kecamatan} className="mt-1 w-full h-8 text-sm justify-between font-normal">
+                      {form.desa || 'Pilih desa...'}
+                      <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Cari desa..." />
+                      <CommandList>
+                        <CommandEmpty>Tidak ditemukan.</CommandEmpty>
+                        <CommandGroup>
+                          {desaList.map(desa => (
+                            <CommandItem
+                              key={desa}
+                              value={desa}
+                              onSelect={() => {
+                                setForm(f => ({ ...f, desa }));
+                                setDesaOpen(false);
+                              }}
+                            >
+                              <Check className={cn('mr-2 h-4 w-4', form.desa === desa ? 'opacity-100' : 'opacity-0')} />
+                              {desa}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
 
             <div>
-              <Label className="text-xs">Upload KTP & Sertifikat (PDF, maks 50kb)</Label>
+              <Label className="text-xs">Upload Sertipikat & KTP (PDF, maks 50kb)</Label>
               <Input type="file" accept=".pdf" className="mt-1 h-8 text-sm" />
             </div>
 
             <div>
-              <Label className="text-xs">Link Shareloct Bidang Tanah</Label>
+              <Label className="text-xs">Tautan Koordinat Shareloct</Label>
               <Input
                 value={form.linkShareloc || ''}
                 onChange={e => setForm(f => ({ ...f, linkShareloc: e.target.value }))}
-                placeholder="Masukkan link shareloc bidang tanah"
+                placeholder="Masukkan link koordinat shareloc bidang tanah"
                 className="mt-1 h-8 text-sm"
                 maxLength={500}
               />
