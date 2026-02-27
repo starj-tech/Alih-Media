@@ -73,7 +73,7 @@ export default function LoginPage() {
             <div className="flex flex-col gap-1.5">
               <button
                 type="button"
-                onClick={() => { setEmail('admin@bpn.go.id'); setPassword('admin123'); }}
+                onClick={() => { setEmail('admin@bpn.go.id'); }}
                 className="flex items-center justify-between rounded px-2 py-1 hover:bg-white/10 transition text-left"
               >
                 <span><strong>Admin</strong> — admin@bpn.go.id</span>
@@ -81,13 +81,14 @@ export default function LoginPage() {
               </button>
               <button
                 type="button"
-                onClick={() => { setEmail('user@bpn.go.id'); setPassword('user123'); }}
+                onClick={() => { setEmail('user@bpn.go.id'); }}
                 className="flex items-center justify-between rounded px-2 py-1 hover:bg-white/10 transition text-left"
               >
                 <span><strong>User</strong> — user@bpn.go.id</span>
                 <span className="text-xs opacity-70">Klik untuk isi</span>
               </button>
             </div>
+            <p className="text-xs text-white/60 mt-2">Password: hubungi administrator</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
