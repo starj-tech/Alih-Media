@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Send, FileUp, CalendarDays, Phone, ChevronsUpDown, Check } from 'lucide-react';
+import { Send, FileUp, CalendarDays, ChevronsUpDown, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -29,7 +29,6 @@ export default function PengajuanAlihmedia() {
   const tanggal = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
 
   const [form, setForm] = useState({
-    noTelepon: '',
     noSuTahun: '',
     jenisHak: '' as JenisHak | '',
     noHak: '',
@@ -66,7 +65,6 @@ export default function PengajuanAlihmedia() {
     e.preventDefault();
     
     const sanitized = {
-      noTelepon: form.noTelepon.replace(/[^\d+\-\s()]/g, ''),
       noSuTahun: sanitizeString(form.noSuTahun),
       jenisHak: form.jenisHak,
       noHak: sanitizeString(form.noHak),
@@ -75,13 +73,8 @@ export default function PengajuanAlihmedia() {
       linkShareloc: sanitizeString(form.linkShareloc || ''),
     };
 
-    if (!sanitized.noTelepon || !sanitized.noSuTahun || !sanitized.jenisHak || !sanitized.noHak || !sanitized.desa || !sanitized.kecamatan) {
+    if (!sanitized.noSuTahun || !sanitized.jenisHak || !sanitized.noHak || !sanitized.desa || !sanitized.kecamatan) {
       toast.error('Lengkapi semua field');
-      return;
-    }
-
-    if (sanitized.noTelepon.replace(/\D/g, '').length < 10) {
-      toast.error('Nomor telepon tidak valid (minimal 10 digit)');
       return;
     }
 
@@ -92,7 +85,6 @@ export default function PengajuanAlihmedia() {
 
     setSubmitting(true);
     try {
-      // Upload files
       const sertifikatUrl = await uploadFile(fileSertifikat, user?.id || '', 'sertifikat');
       const ktpUrl = await uploadFile(fileKtp, user?.id || '', 'ktp');
 
@@ -104,7 +96,7 @@ export default function PengajuanAlihmedia() {
       const result = await addBerkas({
         tanggalPengajuan: tanggal,
         namaPemegangHak: user?.name || '',
-        noTelepon: sanitized.noTelepon,
+        noTelepon: '', // No longer collected in form, stored in profile
         noSuTahun: sanitized.noSuTahun,
         jenisHak: sanitized.jenisHak as JenisHak,
         noHak: sanitized.noHak,
@@ -117,7 +109,7 @@ export default function PengajuanAlihmedia() {
       });
       if (result) {
         toast.success('Pengajuan berhasil dikirim!');
-        setForm({ noTelepon: '', noSuTahun: '', jenisHak: '', noHak: '', desa: '', kecamatan: '', linkShareloc: '' });
+        setForm({ noSuTahun: '', jenisHak: '', noHak: '', desa: '', kecamatan: '', linkShareloc: '' });
         setFileSertifikat(null);
         setFileKtp(null);
         if (sertifikatRef.current) sertifikatRef.current.value = '';
@@ -131,21 +123,21 @@ export default function PengajuanAlihmedia() {
   };
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-4 sm:space-y-6 w-full max-w-2xl px-1 sm:px-0">
       <div>
-        <h1 className="text-lg font-bold text-foreground">Pengajuan Alihmedia</h1>
-        <p className="text-sm text-muted-foreground">Input pengajuan berkas alihmedia baru</p>
+        <h1 className="text-base sm:text-lg font-bold text-foreground">Pengajuan Alihmedia</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground">Input pengajuan berkas alihmedia baru</p>
       </div>
 
       <div className="gentelella-panel">
         <div className="gentelella-panel-heading">
-          <h3 className="text-sm font-semibold flex items-center gap-2">
+          <h3 className="text-xs sm:text-sm font-semibold flex items-center gap-2">
             <FileUp className="w-4 h-4 text-primary" />
             Input Pengajuan Berkas Alihmedia
           </h3>
         </div>
         <div className="gentelella-panel-body">
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
             <div>
               <Label className="flex items-center gap-2 text-xs">
                 <CalendarDays className="w-3.5 h-3.5 text-muted-foreground" />
@@ -155,23 +147,8 @@ export default function PengajuanAlihmedia() {
             </div>
 
             <div>
-              <Label className="text-xs">Nama Pemegang Hak (User)</Label>
+              <Label className="text-xs">Nama Pemohon</Label>
               <Input value={user?.name || ''} disabled className="bg-muted/50 mt-1 h-8 text-sm" />
-            </div>
-
-            <div>
-              <Label className="flex items-center gap-2 text-xs">
-                <Phone className="w-3.5 h-3.5 text-muted-foreground" />
-                Nomor Telepon
-              </Label>
-              <Input
-                value={form.noTelepon}
-                onChange={e => setForm(f => ({ ...f, noTelepon: e.target.value }))}
-                placeholder="Masukkan nomor telepon"
-                type="tel"
-                className="mt-1 h-8 text-sm"
-                maxLength={20}
-              />
             </div>
 
             <div>
@@ -185,7 +162,7 @@ export default function PengajuanAlihmedia() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <Label className="text-xs">No Hak</Label>
                 <Input
@@ -209,13 +186,13 @@ export default function PengajuanAlihmedia() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <Label className="text-xs">Kecamatan</Label>
                 <Popover open={kecOpen} onOpenChange={setKecOpen}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" role="combobox" aria-expanded={kecOpen} className="mt-1 w-full h-8 text-sm justify-between font-normal">
-                      {form.kecamatan || 'Pilih kecamatan...'}
+                      <span className="truncate">{form.kecamatan || 'Pilih kecamatan...'}</span>
                       <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -249,7 +226,7 @@ export default function PengajuanAlihmedia() {
                 <Popover open={desaOpen} onOpenChange={setDesaOpen}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" role="combobox" aria-expanded={desaOpen} disabled={!form.kecamatan} className="mt-1 w-full h-8 text-sm justify-between font-normal">
-                      {form.desa || 'Pilih desa...'}
+                      <span className="truncate">{form.desa || 'Pilih desa...'}</span>
                       <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -280,14 +257,14 @@ export default function PengajuanAlihmedia() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <Label className="text-xs">Upload Sertifikat (PDF, maks 50KB)</Label>
                 <Input
                   ref={sertifikatRef}
                   type="file"
                   accept=".pdf"
-                  className="mt-1 h-8 text-sm"
+                  className="mt-1 h-8 text-xs sm:text-sm"
                   onChange={e => {
                     const file = e.target.files?.[0] || null;
                     if (file && !validateFile(file)) { e.target.value = ''; return; }
@@ -301,7 +278,7 @@ export default function PengajuanAlihmedia() {
                   ref={ktpRef}
                   type="file"
                   accept=".pdf"
-                  className="mt-1 h-8 text-sm"
+                  className="mt-1 h-8 text-xs sm:text-sm"
                   onChange={e => {
                     const file = e.target.files?.[0] || null;
                     if (file && !validateFile(file)) { e.target.value = ''; return; }
@@ -312,7 +289,7 @@ export default function PengajuanAlihmedia() {
             </div>
 
             <div>
-              <Label className="text-xs">Tautan Koordinat Shareloct</Label>
+              <Label className="text-xs">Tautan Koordinat Shareloc</Label>
               <Input
                 value={form.linkShareloc || ''}
                 onChange={e => setForm(f => ({ ...f, linkShareloc: e.target.value }))}

@@ -47,12 +47,17 @@ export function useAuth() {
     return profile;
   }, []);
 
-  const register = useCallback(async (name: string, email: string, password: string): Promise<User | string> => {
+  const register = useCallback(async (
+    name: string,
+    email: string,
+    password: string,
+    extra?: { no_telepon?: string; pengguna?: string; nama_instansi?: string }
+  ): Promise<User | string> => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { name },
+        data: { name, ...extra },
         emailRedirectTo: window.location.origin,
       },
     });
