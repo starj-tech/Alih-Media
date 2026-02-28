@@ -44,7 +44,8 @@ export default function LoginPage() {
       toast.error(result.error);
     } else {
       toast.success('Login berhasil!');
-      navigate(result.role === 'admin' ? '/admin/dashboard' : '/user/dashboard');
+      const isAdmin = ['admin', 'super_admin', 'admin_arsip', 'admin_validasi_su', 'admin_validasi_bt'].includes(result.role);
+      navigate(isAdmin ? '/admin/dashboard' : '/user/dashboard');
     }
     setLoading(false);
   };
