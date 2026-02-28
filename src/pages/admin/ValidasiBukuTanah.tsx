@@ -3,10 +3,10 @@ import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
 import FileDownloadCell from '@/components/FileDownloadCell';
 import ExportExcelButton from '@/components/ExportExcelButton';
-import { getAllBerkas, updateBerkasStatus, deleteBerkas, isDueDateOverdue, Berkas } from '@/lib/data';
+import { getAllBerkas, updateBerkasStatus, isDueDateOverdue, Berkas } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Send, XCircle, Trash2 } from 'lucide-react';
+import { Send, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -41,11 +41,6 @@ export default function ValidasiBukuTanah() {
     loadData();
   };
 
-  const handleHapus = async (id: string) => {
-    await deleteBerkas(id);
-    toast.success('Berkas dihapus');
-    loadData();
-  };
 
   const tolakBerkas = tolakId ? berkas.find(b => b.id === tolakId) : null;
 
@@ -79,7 +74,6 @@ export default function ValidasiBukuTanah() {
             <div className="flex gap-1">
               <Button size="sm" className="gap-1" onClick={() => handleKirim(row.id)}><Send className="w-3 h-3" /> Kirim</Button>
               <Button size="sm" variant="destructive" className="gap-1" onClick={() => { setTolakId(row.id); setCatatan(row.catatanPenolakan || ''); }}><XCircle className="w-3 h-3" /> Tolak</Button>
-              <Button size="sm" variant="outline" className="gap-1 text-destructive hover:text-destructive" onClick={() => handleHapus(row.id)}><Trash2 className="w-3 h-3" /></Button>
             </div>
           )},
         ]}
