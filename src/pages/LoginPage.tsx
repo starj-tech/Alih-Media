@@ -4,18 +4,32 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Mail, Lock, LogIn, UserPlus, User } from 'lucide-react';
+import { Mail, Lock, LogIn, UserPlus, User, Phone, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import logoBpn from '@/assets/logo-bpn.png';
 import loginBg from '@/assets/login-bg.jpeg';
+
+const penggunaOptions = [
+  'Perorangan',
+  'Staf PPAT',
+  'Notaris/PPAT',
+  'Bank',
+  'PT/Badan Hukum',
+] as const;
+
+const needsInstansi = (val: string) => ['Staf PPAT', 'Bank', 'PT/Badan Hukum'].includes(val);
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showRegister, setShowRegister] = useState(false);
   const [regName, setRegName] = useState('');
+  const [regNoTelepon, setRegNoTelepon] = useState('');
   const [regEmail, setRegEmail] = useState('');
+  const [regPengguna, setRegPengguna] = useState('');
+  const [regNamaInstansi, setRegNamaInstansi] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, register } = useAuth();
@@ -37,10 +51,25 @@ export default function LoginPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!regName || !regEmail || !regPassword) { toast.error('Semua field harus diisi'); return; }
+    if (!regName || !regEmail || !regPassword || !regNoTelepon || !regPengguna) {
+      toast.error('Semua field wajib harus diisi');
+      return;
+    }
+    if (regNoTelepon.replace(/\D/g, '').length < 10) {
+      toast.error('Nomor telepon minimal 10 digit');
+      return;
+    }
+    if (needsInstansi(regPengguna) && !regNamaInstansi.trim()) {
+      toast.error('Nama instansi harus diisi');
+      return;
+    }
     if (regPassword.length < 6) { toast.error('Password minimal 6 karakter'); return; }
     setLoading(true);
-    const result = await register(regName, regEmail, regPassword);
+    const result = await register(regName, regEmail, regPassword, {
+      no_telepon: regNoTelepon,
+      pengguna: regPengguna,
+      nama_instansi: needsInstansi(regPengguna) ? regNamaInstansi : undefined,
+    });
     if (typeof result === 'string') {
       toast.error(result);
     } else {
@@ -49,6 +78,11 @@ export default function LoginPage() {
       navigate('/user/dashboard');
     }
     setLoading(false);
+  };
+
+  const resetRegForm = () => {
+    setRegName(''); setRegNoTelepon(''); setRegEmail('');
+    setRegPengguna(''); setRegNamaInstansi(''); setRegPassword('');
   };
 
   return (
@@ -89,7 +123,7 @@ export default function LoginPage() {
                 <LogIn className="w-4 h-4" />
                 {loading ? 'Memproses...' : 'Login'}
               </Button>
-              <Button type="button" variant="outline" className="flex-1 gap-2" onClick={() => setShowRegister(true)}>
+              <Button type="button" variant="outline" className="flex-1 gap-2" onClick={() => { resetRegForm(); setShowRegister(true); }}>
                 <UserPlus className="w-4 h-4" />
                 Registrasi
               </Button>
@@ -99,18 +133,27 @@ export default function LoginPage() {
       </div>
 
       <Dialog open={showRegister} onOpenChange={setShowRegister}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Registrasi Akun Baru</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="reg-name">Nama Lengkap</Label>
+              <Label htmlFor="reg-name">Nama Pemohon</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input id="reg-name" placeholder="Masukkan nama lengkap" value={regName} onChange={e => setRegName(e.target.value)} className="pl-10" required maxLength={100} autoComplete="name" />
+                <Input id="reg-name" placeholder="Masukkan nama pemohon" value={regName} onChange={e => setRegName(e.target.value)} className="pl-10" required maxLength={100} autoComplete="name" />
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="reg-phone">No. HP</Label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input id="reg-phone" type="tel" placeholder="Masukkan nomor HP" value={regNoTelepon} onChange={e => setRegNoTelepon(e.target.value)} className="pl-10" required maxLength={20} />
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="reg-email">Email</Label>
               <div className="relative">
@@ -118,6 +161,31 @@ export default function LoginPage() {
                 <Input id="reg-email" type="email" placeholder="Masukkan email" value={regEmail} onChange={e => setRegEmail(e.target.value)} className="pl-10" required maxLength={255} autoComplete="email" />
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label>Pengguna</Label>
+              <Select value={regPengguna} onValueChange={v => { setRegPengguna(v); if (!needsInstansi(v)) setRegNamaInstansi(''); }}>
+                <SelectTrigger><SelectValue placeholder="Pilih jenis pengguna" /></SelectTrigger>
+                <SelectContent>
+                  {penggunaOptions.map(opt => (
+                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {needsInstansi(regPengguna) && (
+              <div className="space-y-2">
+                <Label htmlFor="reg-instansi">
+                  {regPengguna === 'Bank' ? 'Nama Bank' : regPengguna === 'PT/Badan Hukum' ? 'Nama PT/Badan Hukum' : 'Nama Notaris/PPAT'}
+                </Label>
+                <div className="relative">
+                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input id="reg-instansi" placeholder="Masukkan nama instansi" value={regNamaInstansi} onChange={e => setRegNamaInstansi(e.target.value)} className="pl-10" required maxLength={200} />
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="reg-password">Password (min. 6 karakter)</Label>
               <div className="relative">
@@ -125,6 +193,7 @@ export default function LoginPage() {
                 <Input id="reg-password" type="password" placeholder="Masukkan password" value={regPassword} onChange={e => setRegPassword(e.target.value)} className="pl-10" required minLength={6} maxLength={128} autoComplete="new-password" />
               </div>
             </div>
+
             <Button type="submit" className="w-full gap-2" disabled={loading}>
               <UserPlus className="w-4 h-4" />
               {loading ? 'Memproses...' : 'Daftar'}
