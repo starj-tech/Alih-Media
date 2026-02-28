@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, CheckSquare, Info, Users, LogOut, Send, FileSearch, Archive, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Info, Users, LogOut, Send, FileSearch, Archive, BarChart3, ChevronDown, ChevronRight } from 'lucide-react';
 import { UserRole, getRoleLabel } from '@/lib/auth';
 import logoBpn from '@/assets/logo-bpn.png';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,9 +15,14 @@ function getMenu(role: UserRole) {
     case 'super_admin':
       return [
         { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-        { label: 'Dashboard Arsip', path: '/admin/dashboard-arsip', icon: Archive },
-        { label: 'Dashboard Validasi SU', path: '/admin/dashboard-validasi-su', icon: FileSearch },
-        { label: 'Dashboard Validasi BT', path: '/admin/dashboard-validasi-bt', icon: CheckSquare },
+        {
+          label: 'Dashboard Kinerja', icon: BarChart3,
+          children: [
+            { label: 'Dashboard Arsip', path: '/admin/dashboard-arsip', icon: Archive },
+            { label: 'Dashboard Validasi SU', path: '/admin/dashboard-validasi-su', icon: FileSearch },
+            { label: 'Dashboard Validasi BT', path: '/admin/dashboard-validasi-bt', icon: CheckSquare },
+          ],
+        },
         { label: 'Rekap Kinerja Admin', path: '/admin/rekap-kinerja', icon: BarChart3 },
         { label: 'Arsip Verifikasi BT/SU', path: '/admin/arsip-verifikasi', icon: Archive },
         { label: 'Validasi SU & Bidang', path: '/admin/validasi-su', icon: FileSearch },
@@ -66,6 +72,27 @@ export default function AppSidebar({ role, onLogout }: AppSidebarProps) {
   const location = useLocation();
   const { user } = useAuth();
   const menu = getMenu(role);
+  const [openSubs, setOpenSubs] = useState<Record<string, boolean>>({});
+
+  const toggleSub = (label: string) => setOpenSubs(prev => ({ ...prev, [label]: !prev[label] }));
+
+  const renderLink = (item: { label: string; path: string; icon: any }, nested = false) => {
+    const isActive = location.pathname === item.path;
+    return (
+      <Link
+        key={item.path}
+        to={item.path}
+        className={`flex items-center gap-3 ${nested ? 'pl-9 pr-3' : 'px-3'} py-[10px] rounded text-[13px] transition-colors mb-0.5 ${
+          isActive
+            ? 'bg-[hsl(var(--sidebar-accent))] text-white border-r-[3px] border-[hsl(var(--sidebar-primary))]'
+            : 'text-[hsl(var(--sidebar-foreground))] opacity-80 hover:opacity-100 hover:bg-[hsl(var(--sidebar-accent))]'
+        }`}
+      >
+        <item.icon className="w-4 h-4 flex-shrink-0" />
+        <span>{item.label}</span>
+      </Link>
+    );
+  };
 
   return (
     <aside className="w-[230px] min-h-screen flex flex-col bg-[hsl(var(--sidebar-background))] print:hidden">
@@ -92,22 +119,29 @@ export default function AppSidebar({ role, onLogout }: AppSidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 px-2">
-        {menu.map((item) => {
-          const isActive = location.pathname === item.path;
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`flex items-center gap-3 px-3 py-[10px] rounded text-[13px] transition-colors mb-0.5 ${
-                isActive
-                  ? 'bg-[hsl(var(--sidebar-accent))] text-white border-r-[3px] border-[hsl(var(--sidebar-primary))]'
-                  : 'text-[hsl(var(--sidebar-foreground))] opacity-80 hover:opacity-100 hover:bg-[hsl(var(--sidebar-accent))]'
-              }`}
-            >
-              <item.icon className="w-4 h-4 flex-shrink-0" />
-              <span>{item.label}</span>
-            </Link>
-          );
+        {menu.map((item: any) => {
+          if (item.children) {
+            const isOpen = !!openSubs[item.label];
+            const hasActiveChild = item.children.some((c: any) => location.pathname === c.path);
+            return (
+              <div key={item.label}>
+                <button
+                  onClick={() => toggleSub(item.label)}
+                  className={`flex items-center gap-3 px-3 py-[10px] w-full rounded text-[13px] transition-colors mb-0.5 ${
+                    hasActiveChild
+                      ? 'bg-[hsl(var(--sidebar-accent))] text-white'
+                      : 'text-[hsl(var(--sidebar-foreground))] opacity-80 hover:opacity-100 hover:bg-[hsl(var(--sidebar-accent))]'
+                  }`}
+                >
+                  <item.icon className="w-4 h-4 flex-shrink-0" />
+                  <span className="flex-1 text-left">{item.label}</span>
+                  {isOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                </button>
+                {isOpen && item.children.map((child: any) => renderLink(child, true))}
+              </div>
+            );
+          }
+          return renderLink(item);
         })}
       </nav>
 
