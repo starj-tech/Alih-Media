@@ -49,13 +49,25 @@ export default function PengajuanAlihmedia() {
   const kecamatanList = getKecamatanList();
   const desaList = useMemo(() => form.kecamatan ? getDesaByKecamatan(form.kecamatan) : [], [form.kecamatan]);
 
-  const validateFile = (file: File): boolean => {
+  const validateFilePdf = (file: File): boolean => {
     if (file.type !== 'application/pdf') {
       toast.error('File harus berformat PDF');
       return false;
     }
     if (file.size > 50 * 1024) {
       toast.error('Ukuran file maksimal 50KB');
+      return false;
+    }
+    return true;
+  };
+
+  const validateFileImage = (file: File): boolean => {
+    if (!['image/jpeg', 'image/jpg'].includes(file.type)) {
+      toast.error('File harus berformat JPG/JPEG');
+      return false;
+    }
+    if (file.size > 500 * 1024) {
+      toast.error('Ukuran file maksimal 500KB');
       return false;
     }
     return true;
@@ -267,21 +279,21 @@ export default function PengajuanAlihmedia() {
                   className="mt-1 h-8 text-xs sm:text-sm"
                   onChange={e => {
                     const file = e.target.files?.[0] || null;
-                    if (file && !validateFile(file)) { e.target.value = ''; return; }
+                    if (file && !validateFilePdf(file)) { e.target.value = ''; return; }
                     setFileSertifikat(file);
                   }}
                 />
               </div>
               <div>
-                <Label className="text-xs">Upload KTP (PDF, maks 50KB)</Label>
+                <Label className="text-xs">Upload KTP Pemegang Sertifikat (JPG, maks 500KB)</Label>
                 <Input
                   ref={ktpRef}
                   type="file"
-                  accept=".pdf"
+                  accept=".jpg,.jpeg"
                   className="mt-1 h-8 text-xs sm:text-sm"
                   onChange={e => {
                     const file = e.target.files?.[0] || null;
-                    if (file && !validateFile(file)) { e.target.value = ''; return; }
+                    if (file && !validateFileImage(file)) { e.target.value = ''; return; }
                     setFileKtp(file);
                   }}
                 />
