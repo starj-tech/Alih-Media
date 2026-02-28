@@ -3,6 +3,7 @@ import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
 import FileDownloadCell from '@/components/FileDownloadCell';
 import { getAllBerkas, updateBerkasStatus, deleteBerkas, isDueDateOverdue, Berkas } from '@/lib/data';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Send, XCircle, Trash2, Download } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import * as XLSX from 'xlsx';
 
 export default function ValidasiBukuTanah() {
+  const { user } = useAuth();
   const [berkas, setBerkas] = useState<Berkas[]>([]);
   const [tolakId, setTolakId] = useState<string | null>(null);
   const [catatan, setCatatan] = useState('');
@@ -27,7 +29,7 @@ export default function ValidasiBukuTanah() {
   useEffect(() => { loadData(); }, []);
 
   const handleKirim = async (id: string) => {
-    await updateBerkasStatus(id, 'Selesai');
+    await updateBerkasStatus(id, 'Selesai', undefined, user?.id);
     toast.success('Berkas selesai divalidasi');
     loadData();
   };
@@ -35,7 +37,7 @@ export default function ValidasiBukuTanah() {
   const handleTolak = async () => {
     if (!tolakId) return;
     if (!catatan.trim()) { toast.error('Masukkan catatan penolakan'); return; }
-    await updateBerkasStatus(tolakId, 'Ditolak', catatan.trim());
+    await updateBerkasStatus(tolakId, 'Ditolak', catatan.trim(), user?.id);
     toast.success('Berkas ditolak');
     setTolakId(null);
     setCatatan('');

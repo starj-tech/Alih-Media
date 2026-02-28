@@ -1,7 +1,7 @@
 // Auth utilities using Lovable Cloud
 import { supabase } from '@/integrations/supabase/client';
 
-export type UserRole = 'admin' | 'user';
+export type UserRole = 'admin' | 'user' | 'super_admin' | 'super_user' | 'admin_arsip' | 'admin_validasi_su' | 'admin_validasi_bt';
 
 export interface User {
   id: string;
@@ -26,6 +26,26 @@ export function isValidEmail(email: string): boolean {
 
 export function isValidName(name: string): boolean {
   return name.length >= 2 && name.length <= 100 && /^[a-zA-Z\s'.,-]+$/.test(name);
+}
+
+export function isAdminRole(role: UserRole): boolean {
+  return ['admin', 'super_admin', 'admin_arsip', 'admin_validasi_su', 'admin_validasi_bt'].includes(role);
+}
+
+export function isSuperUser(role: UserRole): boolean {
+  return role === 'super_user';
+}
+
+export function getRoleLabel(role: UserRole): string {
+  switch (role) {
+    case 'super_admin': return 'Super Admin';
+    case 'admin': return 'Admin';
+    case 'admin_arsip': return 'Admin Arsip BT/SU';
+    case 'admin_validasi_su': return 'Admin Validasi SU & Bidang';
+    case 'admin_validasi_bt': return 'Admin Validasi BT';
+    case 'super_user': return 'Super User';
+    case 'user': return 'User';
+  }
 }
 
 export async function getUserProfile(userId: string): Promise<User | null> {

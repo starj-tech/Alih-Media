@@ -4,9 +4,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { isAdminRole } from "@/lib/auth";
 import DashboardLayout from "@/components/DashboardLayout";
 import LoginPage from "@/pages/LoginPage";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
+import SuperAdminDashboard from "@/pages/admin/SuperAdminDashboard";
+import RekapKinerja from "@/pages/admin/RekapKinerja";
 import ValidasiBukuTanah from "@/pages/admin/ValidasiBukuTanah";
 import ValidasiSUBidang from "@/pages/admin/ValidasiSUBidang";
 import ArsipVerifikasi from "@/pages/admin/ArsipVerifikasi";
@@ -42,23 +45,42 @@ function AppRoutes() {
   }
 
   const handleLogout = () => { logout(); };
+  const role = user.role;
+  const defaultRoute = isAdminRole(role) ? '/admin/dashboard' : '/user/dashboard';
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to={user.role === 'admin' ? '/admin/dashboard' : '/user/dashboard'} />} />
+      <Route path="/" element={<Navigate to={defaultRoute} />} />
       
-      {/* Admin Routes */}
-      <Route path="/admin/dashboard" element={<DashboardLayout role="admin" onLogout={handleLogout}><AdminDashboard /></DashboardLayout>} />
-      <Route path="/admin/arsip-verifikasi" element={<DashboardLayout role="admin" onLogout={handleLogout}><ArsipVerifikasi /></DashboardLayout>} />
-      <Route path="/admin/validasi-su" element={<DashboardLayout role="admin" onLogout={handleLogout}><ValidasiSUBidang /></DashboardLayout>} />
-      <Route path="/admin/validasi-bt" element={<DashboardLayout role="admin" onLogout={handleLogout}><ValidasiBukuTanah /></DashboardLayout>} />
-      <Route path="/admin/informasi" element={<DashboardLayout role="admin" onLogout={handleLogout}><AdminInformasi /></DashboardLayout>} />
-      <Route path="/admin/users" element={<DashboardLayout role="admin" onLogout={handleLogout}><KelolaUser /></DashboardLayout>} />
+      {/* Admin Routes - accessible by admin roles */}
+      {isAdminRole(role) && (
+        <>
+          <Route path="/admin/dashboard" element={
+            <DashboardLayout role={role} onLogout={handleLogout}>
+              {role === 'super_admin' ? <SuperAdminDashboard /> : <AdminDashboard />}
+            </DashboardLayout>
+          } />
+          <Route path="/admin/arsip-verifikasi" element={<DashboardLayout role={role} onLogout={handleLogout}><ArsipVerifikasi /></DashboardLayout>} />
+          <Route path="/admin/validasi-su" element={<DashboardLayout role={role} onLogout={handleLogout}><ValidasiSUBidang /></DashboardLayout>} />
+          <Route path="/admin/validasi-bt" element={<DashboardLayout role={role} onLogout={handleLogout}><ValidasiBukuTanah /></DashboardLayout>} />
+          <Route path="/admin/informasi" element={<DashboardLayout role={role} onLogout={handleLogout}><AdminInformasi /></DashboardLayout>} />
+          {(role === 'super_admin' || role === 'admin') && (
+            <>
+              <Route path="/admin/users" element={<DashboardLayout role={role} onLogout={handleLogout}><KelolaUser /></DashboardLayout>} />
+              <Route path="/admin/rekap-kinerja" element={<DashboardLayout role={role} onLogout={handleLogout}><RekapKinerja /></DashboardLayout>} />
+            </>
+          )}
+        </>
+      )}
 
-      {/* User Routes */}
-      <Route path="/user/dashboard" element={<DashboardLayout role="user" onLogout={handleLogout}><UserDashboard /></DashboardLayout>} />
-      <Route path="/user/pengajuan" element={<DashboardLayout role="user" onLogout={handleLogout}><PengajuanAlihmedia /></DashboardLayout>} />
-      <Route path="/user/informasi" element={<DashboardLayout role="user" onLogout={handleLogout}><UserInformasi /></DashboardLayout>} />
+      {/* User Routes - accessible by user and super_user */}
+      {!isAdminRole(role) && (
+        <>
+          <Route path="/user/dashboard" element={<DashboardLayout role={role} onLogout={handleLogout}><UserDashboard /></DashboardLayout>} />
+          <Route path="/user/pengajuan" element={<DashboardLayout role={role} onLogout={handleLogout}><PengajuanAlihmedia /></DashboardLayout>} />
+          <Route path="/user/informasi" element={<DashboardLayout role={role} onLogout={handleLogout}><UserInformasi /></DashboardLayout>} />
+        </>
+      )}
 
       <Route path="*" element={<NotFound />} />
     </Routes>

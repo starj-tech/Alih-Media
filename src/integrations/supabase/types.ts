@@ -31,6 +31,8 @@ export type Database = {
           tanggal_pengajuan: string
           updated_at: string
           user_id: string
+          validated_at: string | null
+          validated_by: string | null
         }
         Insert: {
           catatan_penolakan?: string | null
@@ -48,6 +50,8 @@ export type Database = {
           tanggal_pengajuan?: string
           updated_at?: string
           user_id: string
+          validated_at?: string | null
+          validated_by?: string | null
         }
         Update: {
           catatan_penolakan?: string | null
@@ -65,6 +69,8 @@ export type Database = {
           tanggal_pengajuan?: string
           updated_at?: string
           user_id?: string
+          validated_at?: string | null
+          validated_by?: string | null
         }
         Relationships: []
       }
@@ -127,6 +133,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_today_submission_count: {
+        Args: { _user_id: string }
+        Returns: number
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -138,6 +148,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role:

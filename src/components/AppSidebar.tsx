@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, CheckSquare, Info, Users, LogOut, Send, FileSearch, Archive } from 'lucide-react';
-import { UserRole } from '@/lib/auth';
+import { LayoutDashboard, CheckSquare, Info, Users, LogOut, Send, FileSearch, Archive, BarChart3 } from 'lucide-react';
+import { UserRole, getRoleLabel } from '@/lib/auth';
 import logoBpn from '@/assets/logo-bpn.png';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -9,39 +9,73 @@ interface AppSidebarProps {
   onLogout: () => void;
 }
 
-const adminMenu = [
-  { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-  { label: 'Arsip Verifikasi BT/SU', path: '/admin/arsip-verifikasi', icon: Archive },
-  { label: 'Validasi SU & Bidang', path: '/admin/validasi-su', icon: FileSearch },
-  { label: 'Validasi Buku Tanah', path: '/admin/validasi-bt', icon: CheckSquare },
-  { label: 'Informasi Alihmedia', path: '/admin/informasi', icon: Info },
-  { label: 'Kelola User', path: '/admin/users', icon: Users },
-];
-
-const userMenu = [
-  { label: 'Dashboard', path: '/user/dashboard', icon: LayoutDashboard },
-  { label: 'Pengajuan Alihmedia', path: '/user/pengajuan', icon: Send },
-  { label: 'Informasi Alihmedia', path: '/user/informasi', icon: Info },
-];
+function getMenu(role: UserRole) {
+  switch (role) {
+    case 'super_admin':
+      return [
+        { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+        { label: 'Rekap Kinerja Admin', path: '/admin/rekap-kinerja', icon: BarChart3 },
+        { label: 'Arsip Verifikasi BT/SU', path: '/admin/arsip-verifikasi', icon: Archive },
+        { label: 'Validasi SU & Bidang', path: '/admin/validasi-su', icon: FileSearch },
+        { label: 'Validasi Buku Tanah', path: '/admin/validasi-bt', icon: CheckSquare },
+        { label: 'Informasi Alihmedia', path: '/admin/informasi', icon: Info },
+        { label: 'Kelola User', path: '/admin/users', icon: Users },
+      ];
+    case 'admin':
+      return [
+        { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+        { label: 'Arsip Verifikasi BT/SU', path: '/admin/arsip-verifikasi', icon: Archive },
+        { label: 'Validasi SU & Bidang', path: '/admin/validasi-su', icon: FileSearch },
+        { label: 'Validasi Buku Tanah', path: '/admin/validasi-bt', icon: CheckSquare },
+        { label: 'Informasi Alihmedia', path: '/admin/informasi', icon: Info },
+        { label: 'Kelola User', path: '/admin/users', icon: Users },
+      ];
+    case 'admin_arsip':
+      return [
+        { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+        { label: 'Arsip Verifikasi BT/SU', path: '/admin/arsip-verifikasi', icon: Archive },
+        { label: 'Informasi Alihmedia', path: '/admin/informasi', icon: Info },
+      ];
+    case 'admin_validasi_su':
+      return [
+        { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+        { label: 'Validasi SU & Bidang', path: '/admin/validasi-su', icon: FileSearch },
+        { label: 'Informasi Alihmedia', path: '/admin/informasi', icon: Info },
+      ];
+    case 'admin_validasi_bt':
+      return [
+        { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+        { label: 'Validasi Buku Tanah', path: '/admin/validasi-bt', icon: CheckSquare },
+        { label: 'Informasi Alihmedia', path: '/admin/informasi', icon: Info },
+      ];
+    case 'super_user':
+    case 'user':
+    default:
+      return [
+        { label: 'Dashboard', path: '/user/dashboard', icon: LayoutDashboard },
+        { label: 'Pengajuan Alihmedia', path: '/user/pengajuan', icon: Send },
+        { label: 'Informasi Alihmedia', path: '/user/informasi', icon: Info },
+      ];
+  }
+}
 
 export default function AppSidebar({ role, onLogout }: AppSidebarProps) {
   const location = useLocation();
   const { user } = useAuth();
-  const menu = role === 'admin' ? adminMenu : userMenu;
+  const menu = getMenu(role);
 
   return (
     <aside className="w-[230px] min-h-screen flex flex-col bg-[hsl(var(--sidebar-background))] print:hidden">
       {/* Profile section */}
       <div className="p-4 border-b border-[hsl(var(--sidebar-border))]">
         <div className="flex items-center gap-3">
-          <img
-            src={logoBpn}
-            alt="Logo BPN"
-            className="w-10 h-10 object-contain"
-          />
+          <img src={logoBpn} alt="Logo BPN" className="w-10 h-10 object-contain" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-white truncate">{user?.name || 'User'}</p>
-            <p className="text-xs text-[hsl(var(--sidebar-foreground))] opacity-60 truncate">{user?.email}</p>
+            <p className="text-[10px] text-[hsl(var(--sidebar-foreground))] opacity-60 truncate">{user?.email}</p>
+            <span className="inline-block mt-0.5 text-[9px] px-1.5 py-0.5 rounded bg-primary/20 text-primary font-semibold">
+              {getRoleLabel(role)}
+            </span>
           </div>
         </div>
       </div>

@@ -20,13 +20,15 @@ export interface Berkas {
   catatanPenolakan?: string;
   fileSertifikatUrl?: string;
   fileKtpUrl?: string;
+  validatedBy?: string;
+  validatedAt?: string;
 }
 
 export interface ManagedUser {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'user';
+  role: 'admin' | 'user' | 'super_admin' | 'super_user' | 'admin_arsip' | 'admin_validasi_su' | 'admin_validasi_bt';
 }
 
 // Convert DB row to Berkas interface
@@ -49,6 +51,8 @@ function mapRow(row: any): Berkas {
     catatanPenolakan: row.catatan_penolakan || undefined,
     fileSertifikatUrl: row.file_sertifikat_url || undefined,
     fileKtpUrl: row.file_ktp_url || undefined,
+    validatedBy: row.validated_by || undefined,
+    validatedAt: row.validated_at || undefined,
   };
 }
 
@@ -97,9 +101,13 @@ export async function addBerkas(berkas: Omit<Berkas, 'id' | 'status'>): Promise<
   return mapRow(data);
 }
 
-export async function updateBerkasStatus(id: string, status: BerkasStatus, catatan?: string) {
+export async function updateBerkasStatus(id: string, status: BerkasStatus, catatan?: string, validatorId?: string) {
   const updates: any = { status };
   if (catatan !== undefined) updates.catatan_penolakan = catatan;
+  if (validatorId) {
+    updates.validated_by = validatorId;
+    updates.validated_at = new Date().toISOString();
+  }
   await supabase.from('berkas').update(updates).eq('id', id);
 }
 
@@ -117,6 +125,36 @@ export async function getStats() {
   };
 }
 
+export async function getAdminStats() {
+  const { data } = await supabase.from('berkas').select('status, validated_by');
+  const all = data || [];
+  
+  // Count validations per admin
+  const adminCounts: Record<string, number> = {};
+  for (const b of all) {
+    if ((b as any).validated_by && ((b as any).status === 'Selesai' || (b as any).status !== 'Proses')) {
+      const vid = (b as any).validated_by;
+      adminCounts[vid] = (adminCounts[vid] || 0) + 1;
+    }
+  }
+
+  return {
+    total: all.length,
+    proses: all.filter((b: any) => b.status === 'Proses').length,
+    validasiSu: all.filter((b: any) => b.status === 'Validasi SU & Bidang').length,
+    validasiBt: all.filter((b: any) => b.status === 'Validasi BT').length,
+    selesai: all.filter((b: any) => b.status === 'Selesai').length,
+    ditolak: all.filter((b: any) => b.status === 'Ditolak').length,
+    adminCounts,
+  };
+}
+
+export async function getTodaySubmissionCount(userId: string): Promise<number> {
+  const { data, error } = await supabase.rpc('get_today_submission_count', { _user_id: userId });
+  if (error) return 0;
+  return data || 0;
+}
+
 export async function getUsers(): Promise<ManagedUser[]> {
   const { data: profiles } = await supabase.from('profiles').select('*');
   if (!profiles) return [];
@@ -128,7 +166,7 @@ export async function getUsers(): Promise<ManagedUser[]> {
       id: p.user_id,
       email: p.email,
       name: p.name,
-      role: (roleData?.role as 'admin' | 'user') || 'user',
+      role: (roleData?.role as ManagedUser['role']) || 'user',
     });
   }
   return result;
