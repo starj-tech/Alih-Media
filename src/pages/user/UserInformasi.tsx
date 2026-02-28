@@ -3,6 +3,7 @@ import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
 import ExternalLinkCell from '@/components/ExternalLinkCell';
 import FileDownloadCell from '@/components/FileDownloadCell';
+import ExportExcelButton from '@/components/ExportExcelButton';
 import { getBerkasByUser, uploadFile, Berkas, BerkasStatus } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -106,16 +107,19 @@ export default function UserInformasi() {
         title="Monitoring Berkas Alihmedia"
         searchKeys={['namaPemegangHak', 'desa']}
         headerActions={
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-8 text-xs w-48">
-              <SelectValue placeholder="Filter Status" />
-            </SelectTrigger>
-            <SelectContent>
-              {statusOptions.map(opt => (
-                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-8 text-xs w-48">
+                <SelectValue placeholder="Filter Status" />
+              </SelectTrigger>
+              <SelectContent>
+                {statusOptions.map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <ExportExcelButton data={filteredBerkas} fileName="informasi-user" sheetName="Informasi" />
+          </div>
         }
         columns={[
           { header: 'No', accessor: (_, i) => (i ?? 0) + 1 } as any,

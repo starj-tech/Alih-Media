@@ -3,13 +3,25 @@ import { FileStack, CheckCircle, XCircle, Clock, FileSearch, CheckSquare, BarCha
 import StatsCard from '@/components/StatsCard';
 import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
+import ExportExcelButton from '@/components/ExportExcelButton';
 import { getAdminStats, getAllBerkas, getUsers, Berkas, ManagedUser } from '@/lib/data';
 import { getRoleLabel, UserRole } from '@/lib/auth';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const statusOptions = [
+  { value: 'all', label: 'Semua Status' },
+  { value: 'Proses', label: 'Proses' },
+  { value: 'Validasi SU & Bidang', label: 'Validasi SU & Bidang' },
+  { value: 'Validasi BT', label: 'Validasi BT' },
+  { value: 'Selesai', label: 'Selesai' },
+  { value: 'Ditolak', label: 'Ditolak' },
+];
 
 export default function SuperAdminDashboard() {
   const [stats, setStats] = useState({ total: 0, proses: 0, validasiSu: 0, validasiBt: 0, selesai: 0, ditolak: 0, adminCounts: {} as Record<string, number> });
   const [berkas, setBerkas] = useState<Berkas[]>([]);
   const [users, setUsers] = useState<ManagedUser[]>([]);
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     getAdminStats().then(setStats);
@@ -17,7 +29,8 @@ export default function SuperAdminDashboard() {
     getUsers().then(setUsers);
   }, []);
 
-  // Build admin performance data
+  const filteredBerkas = statusFilter === 'all' ? berkas : berkas.filter(b => b.status === statusFilter);
+
   const adminUsers = users.filter(u => ['admin_arsip', 'admin_validasi_su', 'admin_validasi_bt', 'admin'].includes(u.role));
   const adminPerformance = adminUsers.map(admin => ({
     name: admin.name,
@@ -88,6 +101,21 @@ export default function SuperAdminDashboard() {
       <DataTable<Berkas>
         title="Monitoring Seluruh Berkas"
         searchKeys={['namaPemegangHak', 'desa']}
+        headerActions={
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-8 text-xs w-48">
+                <SelectValue placeholder="Filter Status" />
+              </SelectTrigger>
+              <SelectContent>
+                {statusOptions.map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <ExportExcelButton data={filteredBerkas} fileName="super-admin-dashboard" sheetName="Dashboard" />
+          </div>
+        }
         columns={[
           { header: 'No', accessor: (_, i) => i !== undefined ? i + 1 : '' } as any,
           { header: 'Tgl Pengajuan', accessor: 'tanggalPengajuan' },
@@ -99,7 +127,7 @@ export default function SuperAdminDashboard() {
           { header: 'Kecamatan', accessor: 'kecamatan' },
           { header: 'Status', accessor: (row) => <StatusBadge status={row.status} /> },
         ]}
-        data={berkas}
+        data={filteredBerkas}
       />
     </div>
   );

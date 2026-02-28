@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
 import FileDownloadCell from '@/components/FileDownloadCell';
+import ExportExcelButton from '@/components/ExportExcelButton';
 import { getAllBerkas, updateBerkasStatus, deleteBerkas, isDueDateOverdue, Berkas } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -58,6 +59,7 @@ export default function ArsipVerifikasi() {
       <DataTable<Berkas>
         title="Daftar Berkas Arsip Verifikasi"
         searchKeys={['noSuTahun', 'noHak', 'desa']}
+        headerActions={<ExportExcelButton data={berkas} fileName="arsip-verifikasi" sheetName="Arsip Verifikasi" />}
         columns={[
           { header: 'No', accessor: (_, i) => (i ?? 0) + 1 } as any,
           { header: 'Tgl Pengajuan', accessor: (row) => (

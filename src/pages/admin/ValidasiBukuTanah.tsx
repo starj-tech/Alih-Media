@@ -2,24 +2,21 @@ import { useState, useEffect } from 'react';
 import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
 import FileDownloadCell from '@/components/FileDownloadCell';
+import ExportExcelButton from '@/components/ExportExcelButton';
 import { getAllBerkas, updateBerkasStatus, deleteBerkas, isDueDateOverdue, Berkas } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Send, XCircle, Trash2, Download } from 'lucide-react';
+import { Send, XCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import * as XLSX from 'xlsx';
 
 export default function ValidasiBukuTanah() {
   const { user } = useAuth();
   const [berkas, setBerkas] = useState<Berkas[]>([]);
   const [tolakId, setTolakId] = useState<string | null>(null);
   const [catatan, setCatatan] = useState('');
-  const [exportFrom, setExportFrom] = useState('');
-  const [exportTo, setExportTo] = useState('');
 
   const loadData = async () => {
     const all = await getAllBerkas();
@@ -50,33 +47,6 @@ export default function ValidasiBukuTanah() {
     loadData();
   };
 
-  const parseDate = (dateStr: string) => {
-    const parts = dateStr.split('/');
-    return new Date(+parts[2], +parts[1] - 1, +parts[0]);
-  };
-
-  const handleExport = () => {
-    let dataToExport = berkas;
-    if (exportFrom || exportTo) {
-      dataToExport = berkas.filter(b => {
-        const d = parseDate(b.tanggalPengajuan);
-        if (exportFrom && d < new Date(exportFrom)) return false;
-        if (exportTo && d > new Date(exportTo + 'T23:59:59')) return false;
-        return true;
-      });
-    }
-    if (dataToExport.length === 0) { toast.error('Tidak ada data untuk diexport'); return; }
-    const ws = XLSX.utils.json_to_sheet(dataToExport.map((b, i) => ({
-      'No': i + 1, 'Tgl Pengajuan': b.tanggalPengajuan, 'Nama Pemegang Hak': b.namaPemegangHak,
-      'No.SU/Tahun': b.noSuTahun, 'No Hak': b.noHak, 'Jenis Hak': b.jenisHak,
-      'Desa': b.desa, 'Kecamatan': b.kecamatan, 'Status': b.status, 'Catatan Penolakan': b.catatanPenolakan || '-',
-    })));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Validasi BT');
-    XLSX.writeFile(wb, `validasi-buku-tanah-${new Date().toISOString().split('T')[0]}.xlsx`);
-    toast.success('File Excel berhasil diexport');
-  };
-
   const tolakBerkas = tolakId ? berkas.find(b => b.id === tolakId) : null;
 
   return (
@@ -89,15 +59,7 @@ export default function ValidasiBukuTanah() {
       <DataTable<Berkas>
         title="Daftar Berkas Validasi Buku Tanah"
         searchKeys={['noHak', 'desa']}
-        headerActions={
-          <div className="flex items-center gap-2 flex-wrap">
-            <Input type="date" value={exportFrom} onChange={e => setExportFrom(e.target.value)} className="h-8 text-xs w-36" />
-            <Input type="date" value={exportTo} onChange={e => setExportTo(e.target.value)} className="h-8 text-xs w-36" />
-            <Button size="sm" variant="outline" className="gap-1 h-8" onClick={handleExport}>
-              <Download className="w-3.5 h-3.5" /> Export Excel
-            </Button>
-          </div>
-        }
+        headerActions={<ExportExcelButton data={berkas} fileName="validasi-buku-tanah" sheetName="Validasi BT" />}
         columns={[
           { header: 'No', accessor: (_, i) => (i ?? 0) + 1 } as any,
           { header: 'Tgl Pengajuan', accessor: (row) => (

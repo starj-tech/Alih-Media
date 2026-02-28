@@ -14,6 +14,9 @@ function getMenu(role: UserRole) {
     case 'super_admin':
       return [
         { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+        { label: 'Dashboard Arsip', path: '/admin/dashboard-arsip', icon: Archive },
+        { label: 'Dashboard Validasi SU', path: '/admin/dashboard-validasi-su', icon: FileSearch },
+        { label: 'Dashboard Validasi BT', path: '/admin/dashboard-validasi-bt', icon: CheckSquare },
         { label: 'Rekap Kinerja Admin', path: '/admin/rekap-kinerja', icon: BarChart3 },
         { label: 'Arsip Verifikasi BT/SU', path: '/admin/arsip-verifikasi', icon: Archive },
         { label: 'Validasi SU & Bidang', path: '/admin/validasi-su', icon: FileSearch },
