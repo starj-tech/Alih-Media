@@ -121,6 +121,9 @@ export default function KelolaUser() {
           { header: 'No', accessor: (_, i) => (i ?? 0) + 1 } as any,
           { header: 'Nama', accessor: 'name' },
           { header: 'Email', accessor: 'email' },
+          { header: 'No HP', accessor: 'noTelepon' },
+          { header: 'Pengguna', accessor: (row) => row.pengguna || '-' },
+          { header: 'Nama Instansi', accessor: (row) => row.namaInstansi || '-' },
           { header: 'Role', accessor: (row) => (
             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
               row.role === 'super_admin' ? 'bg-destructive/20 text-destructive' :
