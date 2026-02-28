@@ -19,6 +19,8 @@ export type Database = {
           catatan_penolakan: string | null
           created_at: string
           desa: string
+          file_ktp_url: string | null
+          file_sertifikat_url: string | null
           id: string
           jenis_hak: Database["public"]["Enums"]["jenis_hak"]
           kecamatan: string
@@ -38,6 +40,8 @@ export type Database = {
           catatan_penolakan?: string | null
           created_at?: string
           desa: string
+          file_ktp_url?: string | null
+          file_sertifikat_url?: string | null
           id?: string
           jenis_hak: Database["public"]["Enums"]["jenis_hak"]
           kecamatan: string
@@ -57,6 +61,8 @@ export type Database = {
           catatan_penolakan?: string | null
           created_at?: string
           desa?: string
+          file_ktp_url?: string | null
+          file_sertifikat_url?: string | null
           id?: string
           jenis_hak?: Database["public"]["Enums"]["jenis_hak"]
           kecamatan?: string
