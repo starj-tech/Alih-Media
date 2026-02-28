@@ -28,6 +28,9 @@ export interface ManagedUser {
   id: string;
   email: string;
   name: string;
+  noTelepon: string;
+  pengguna: string;
+  namaInstansi: string | null;
   role: 'admin' | 'user' | 'super_admin' | 'super_user' | 'admin_arsip' | 'admin_validasi_su' | 'admin_validasi_bt';
 }
 
@@ -174,6 +177,9 @@ export async function getUsers(): Promise<ManagedUser[]> {
     id: p.user_id,
     email: p.email,
     name: p.name,
+    noTelepon: p.no_telepon || '',
+    pengguna: p.pengguna || 'Perorangan',
+    namaInstansi: p.nama_instansi || null,
     role: (roleMap[p.user_id] as ManagedUser['role']) || 'user',
   }));
 }
