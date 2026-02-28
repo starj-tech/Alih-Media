@@ -4,10 +4,11 @@ import StatusBadge from '@/components/StatusBadge';
 import ExternalLinkCell from '@/components/ExternalLinkCell';
 import FileDownloadCell from '@/components/FileDownloadCell';
 import ExportExcelButton from '@/components/ExportExcelButton';
-import { getBerkasByUser, uploadFile, Berkas, BerkasStatus } from '@/lib/data';
+import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
+import { getBerkasByUser, uploadFile, deleteBerkas, Berkas, BerkasStatus } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Edit } from 'lucide-react';
+import { Edit, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,6 +34,8 @@ export default function UserInformasi() {
   const [fileSertifikat, setFileSertifikat] = useState<File | null>(null);
   const [fileKtp, setFileKtp] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const sertifikatRef = useRef<HTMLInputElement>(null);
   const ktpRef = useRef<HTMLInputElement>(null);
 
@@ -67,13 +70,18 @@ export default function UserInformasi() {
     if (!editId || !user) return;
     setSubmitting(true);
     try {
-      const updates: any = {
+      const updates: Record<string, unknown> = {
         no_su_tahun: editForm.noSuTahun,
         no_hak: editForm.noHak,
         link_shareloc: editForm.linkShareloc || null,
-        status: 'Proses' as BerkasStatus,
-        catatan_penolakan: null,
       };
+
+      // Only reset status to Proses if currently Ditolak
+      const currentBerkas = berkas.find(b => b.id === editId);
+      if (currentBerkas?.status === 'Ditolak') {
+        updates.status = 'Proses' as BerkasStatus;
+        updates.catatan_penolakan = null;
+      }
 
       if (fileSertifikat) {
         const url = await uploadFile(fileSertifikat, user.id, 'sertifikat');
@@ -86,11 +94,24 @@ export default function UserInformasi() {
 
       const { error } = await supabase.from('berkas').update(updates).eq('id', editId);
       if (error) { toast.error('Gagal mengupdate berkas'); return; }
-      toast.success('Berkas diajukan kembali');
+      toast.success(currentBerkas?.status === 'Ditolak' ? 'Berkas diajukan kembali' : 'Berkas berhasil diupdate');
       setEditId(null);
       loadData();
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      await deleteBerkas(deleteId);
+      toast.success('Berkas berhasil dihapus');
+      setDeleteId(null);
+      loadData();
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -135,18 +156,26 @@ export default function UserInformasi() {
           { header: 'Link', accessor: (row) => <ExternalLinkCell url={row.linkShareloc} /> },
           { header: 'Status', accessor: (row) => <StatusBadge status={row.status} /> },
           { header: 'Catatan', accessor: (row) => <span className="text-xs text-muted-foreground">{row.catatanPenolakan || '-'}</span> },
-          { header: 'Aksi', accessor: (row) => row.status === 'Ditolak' ? (
-            <Button size="sm" variant="outline" className="gap-1" onClick={() => handleEdit(row)}>
-              <Edit className="w-3 h-3" /> Edit
-            </Button>
-          ) : null },
+          { header: 'Aksi', accessor: (row) => (
+            <div className="flex gap-1">
+              <Button size="sm" variant="outline" className="gap-1" onClick={() => handleEdit(row)}>
+                <Edit className="w-3 h-3" /> Edit
+              </Button>
+              <Button size="sm" variant="outline" className="gap-1 text-destructive hover:text-destructive" onClick={() => setDeleteId(row.id)}>
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            </div>
+          )},
         ]}
         data={filteredBerkas}
       />
 
+      {/* Edit Dialog */}
       <Dialog open={!!editId} onOpenChange={(open) => { if (!open) setEditId(null); }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Edit & Ajukan Kembali</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>{editBerkas?.status === 'Ditolak' ? 'Edit & Ajukan Kembali' : 'Edit Berkas'}</DialogTitle>
+          </DialogHeader>
           <div className="space-y-3">
             {editBerkas?.catatanPenolakan && (
               <div className="p-3 rounded bg-destructive/10 border border-destructive/20">
@@ -197,10 +226,20 @@ export default function UserInformasi() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditId(null)}>Batal</Button>
-            <Button onClick={handleSubmitEdit} disabled={submitting}>{submitting ? 'Mengirim...' : 'Kirim Ulang'}</Button>
+            <Button onClick={handleSubmitEdit} disabled={submitting}>
+              {submitting ? 'Mengirim...' : editBerkas?.status === 'Ditolak' ? 'Kirim Ulang' : 'Simpan'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <DeleteConfirmDialog
+        open={!!deleteId}
+        onOpenChange={(open) => { if (!open) setDeleteId(null); }}
+        onConfirm={handleDelete}
+        loading={deleting}
+      />
     </div>
   );
 }

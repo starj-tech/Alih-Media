@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
-import { FileStack, CheckCircle, XCircle, Clock, FileSearch, CheckSquare, BarChart3 } from 'lucide-react';
+import { FileStack, CheckCircle, XCircle, Clock, FileSearch, CheckSquare, BarChart3, Trash2 } from 'lucide-react';
 import StatsCard from '@/components/StatsCard';
 import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
 import ExportExcelButton from '@/components/ExportExcelButton';
-import { getAdminStats, getAllBerkas, getUsers, Berkas, ManagedUser } from '@/lib/data';
+import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
+import { getAdminStats, getAllBerkas, getUsers, deleteBerkas, Berkas, ManagedUser } from '@/lib/data';
 import { getRoleLabel, UserRole } from '@/lib/auth';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 const statusOptions = [
   { value: 'all', label: 'Semua Status' },
@@ -22,6 +25,8 @@ export default function SuperAdminDashboard() {
   const [berkas, setBerkas] = useState<Berkas[]>([]);
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     getAdminStats().then(setStats);
@@ -29,7 +34,26 @@ export default function SuperAdminDashboard() {
     getUsers().then(setUsers);
   }, []);
 
+  const loadData = () => {
+    getAdminStats().then(setStats);
+    getAllBerkas().then(setBerkas);
+    getUsers().then(setUsers);
+  };
+
   const filteredBerkas = statusFilter === 'all' ? berkas : berkas.filter(b => b.status === statusFilter);
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      await deleteBerkas(deleteId);
+      toast.success('Berkas berhasil dihapus');
+      setDeleteId(null);
+      loadData();
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const adminUsers = users.filter(u => ['admin_arsip', 'admin_validasi_su', 'admin_validasi_bt', 'admin'].includes(u.role));
   const adminPerformance = adminUsers.map(admin => ({
@@ -126,8 +150,20 @@ export default function SuperAdminDashboard() {
           { header: 'Desa', accessor: 'desa' },
           { header: 'Kecamatan', accessor: 'kecamatan' },
           { header: 'Status', accessor: (row) => <StatusBadge status={row.status} /> },
+          { header: 'Aksi', accessor: (row) => (
+            <Button size="sm" variant="outline" className="gap-1 text-destructive hover:text-destructive" onClick={() => setDeleteId(row.id)}>
+              <Trash2 className="w-3 h-3" /> Hapus
+            </Button>
+          )},
         ]}
         data={filteredBerkas}
+      />
+
+      <DeleteConfirmDialog
+        open={!!deleteId}
+        onOpenChange={(open) => { if (!open) setDeleteId(null); }}
+        onConfirm={handleDelete}
+        loading={deleting}
       />
     </div>
   );
