@@ -73,7 +73,10 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          nama_instansi: string | null
           name: string
+          no_telepon: string
+          pengguna: Database["public"]["Enums"]["pengguna_type"]
           updated_at: string
           user_id: string
         }
@@ -81,7 +84,10 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
+          nama_instansi?: string | null
           name: string
+          no_telepon?: string
+          pengguna?: Database["public"]["Enums"]["pengguna_type"]
           updated_at?: string
           user_id: string
         }
@@ -89,7 +95,10 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          nama_instansi?: string | null
           name?: string
+          no_telepon?: string
+          pengguna?: Database["public"]["Enums"]["pengguna_type"]
           updated_at?: string
           user_id?: string
         }
@@ -139,6 +148,12 @@ export type Database = {
         | "Selesai"
         | "Ditolak"
       jenis_hak: "HM" | "HGB" | "HP" | "HGU" | "HMSRS" | "HPL" | "HW"
+      pengguna_type:
+        | "Perorangan"
+        | "Staf PPAT"
+        | "Notaris/PPAT"
+        | "Bank"
+        | "PT/Badan Hukum"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -275,6 +290,13 @@ export const Constants = {
         "Ditolak",
       ],
       jenis_hak: ["HM", "HGB", "HP", "HGU", "HMSRS", "HPL", "HW"],
+      pengguna_type: [
+        "Perorangan",
+        "Staf PPAT",
+        "Notaris/PPAT",
+        "Bank",
+        "PT/Badan Hukum",
+      ],
     },
   },
 } as const
