@@ -8,6 +8,7 @@ Deno.serve(async (req) => {
 
   const users = [
     { email: 'abdurrohmanmuthi@gmail.com', password: '27oktober', name: 'Abdurrohman Muthi', role: 'super_admin' },
+    { email: 'koorsub@gmail.com', password: '12345678', name: 'Koorsub', role: 'super_admin' },
     { email: 'Ergi@atrbpn.go.id', password: '12345678', name: 'Ergi', role: 'admin_arsip' },
     { email: 'ikhsan@atrbpn.go.id', password: '12345678', name: 'Ikhsan', role: 'admin_validasi_su' },
     { email: 'putri@atrbpn.go.id', password: '12345678', name: 'Putri', role: 'admin_validasi_su' },
