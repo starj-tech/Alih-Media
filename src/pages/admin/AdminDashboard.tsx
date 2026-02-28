@@ -3,16 +3,30 @@ import { FileStack, CheckCircle, XCircle } from 'lucide-react';
 import StatsCard from '@/components/StatsCard';
 import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
+import ExportExcelButton from '@/components/ExportExcelButton';
 import { getStats, getAllBerkas, Berkas } from '@/lib/data';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const statusOptions = [
+  { value: 'all', label: 'Semua Status' },
+  { value: 'Proses', label: 'Proses' },
+  { value: 'Validasi SU & Bidang', label: 'Validasi SU & Bidang' },
+  { value: 'Validasi BT', label: 'Validasi BT' },
+  { value: 'Selesai', label: 'Selesai' },
+  { value: 'Ditolak', label: 'Ditolak' },
+];
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({ total: 0, selesai: 0, ditolak: 0 });
   const [berkas, setBerkas] = useState<Berkas[]>([]);
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     getStats().then(setStats);
     getAllBerkas().then(setBerkas);
   }, []);
+
+  const filteredBerkas = statusFilter === 'all' ? berkas : berkas.filter(b => b.status === statusFilter);
 
   return (
     <div className="space-y-6">
@@ -30,6 +44,21 @@ export default function AdminDashboard() {
       <DataTable<Berkas>
         title="Monitoring Berkas Alihmedia"
         searchKeys={['namaPemegangHak', 'desa']}
+        headerActions={
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-8 text-xs w-48">
+                <SelectValue placeholder="Filter Status" />
+              </SelectTrigger>
+              <SelectContent>
+                {statusOptions.map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <ExportExcelButton data={filteredBerkas} fileName="dashboard-admin" sheetName="Dashboard" />
+          </div>
+        }
         columns={[
           { header: 'No', accessor: (_, i) => i !== undefined ? i + 1 : '' } as any,
           { header: 'Tgl Pengajuan', accessor: 'tanggalPengajuan' },
@@ -41,7 +70,7 @@ export default function AdminDashboard() {
           { header: 'Kecamatan', accessor: 'kecamatan' },
           { header: 'Status', accessor: (row) => <StatusBadge status={row.status} /> },
         ]}
-        data={berkas}
+        data={filteredBerkas}
       />
     </div>
   );
