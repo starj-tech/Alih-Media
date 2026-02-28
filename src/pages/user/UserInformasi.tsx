@@ -50,9 +50,15 @@ export default function UserInformasi() {
     setFileKtp(null);
   };
 
-  const validateFile = (file: File): boolean => {
+  const validateFilePdf = (file: File): boolean => {
     if (file.type !== 'application/pdf') { toast.error('File harus berformat PDF'); return false; }
-    if (file.size > 50 * 1024) { toast.error('Ukuran file maksimal 50KB'); return false; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('Ukuran file maksimal 5MB'); return false; }
+    return true;
+  };
+
+  const validateFileImage = (file: File): boolean => {
+    if (!['image/jpeg', 'image/jpg'].includes(file.type)) { toast.error('File harus berformat JPG/JPEG'); return false; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('Ukuran file maksimal 5MB'); return false; }
     return true;
   };
 
@@ -153,11 +159,11 @@ export default function UserInformasi() {
               <Input value={editForm.noHak} onChange={e => setEditForm(f => ({ ...f, noHak: e.target.value }))} className="mt-1 h-8 text-sm" />
             </div>
             <div>
-              <Label className="text-xs">Link Shareloc</Label>
+              <Label className="text-xs">Link Shareloc (opsional)</Label>
               <Input value={editForm.linkShareloc} onChange={e => setEditForm(f => ({ ...f, linkShareloc: e.target.value }))} className="mt-1 h-8 text-sm" />
             </div>
             <div>
-              <Label className="text-xs">Upload Sertifikat Baru (PDF, maks 50KB) - opsional</Label>
+              <Label className="text-xs">Upload Sertifikat Baru (PDF, maks 5MB) - opsional</Label>
               <Input
                 ref={sertifikatRef}
                 type="file"
@@ -165,21 +171,21 @@ export default function UserInformasi() {
                 className="mt-1 h-8 text-sm"
                 onChange={e => {
                   const file = e.target.files?.[0] || null;
-                  if (file && !validateFile(file)) { e.target.value = ''; return; }
+                  if (file && !validateFilePdf(file)) { e.target.value = ''; return; }
                   setFileSertifikat(file);
                 }}
               />
             </div>
             <div>
-              <Label className="text-xs">Upload KTP Baru (PDF, maks 50KB) - opsional</Label>
+              <Label className="text-xs">Upload KTP Pemegang Sertifikat (JPG, maks 5MB) - opsional</Label>
               <Input
                 ref={ktpRef}
                 type="file"
-                accept=".pdf"
+                accept=".jpg,.jpeg"
                 className="mt-1 h-8 text-sm"
                 onChange={e => {
                   const file = e.target.files?.[0] || null;
-                  if (file && !validateFile(file)) { e.target.value = ''; return; }
+                  if (file && !validateFileImage(file)) { e.target.value = ''; return; }
                   setFileKtp(file);
                 }}
               />

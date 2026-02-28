@@ -1,7 +1,7 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { addBerkas, uploadFile, JenisHak } from '@/lib/data';
-import { sanitizeString } from '@/lib/auth';
+import { addBerkas, uploadFile, getTodaySubmissionCount, JenisHak } from '@/lib/data';
+import { sanitizeString, isSuperUser } from '@/lib/auth';
 import { getKecamatanList, getDesaByKecamatan } from '@/lib/wilayah';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Send, FileUp, CalendarDays, ChevronsUpDown, Check } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Send, FileUp, CalendarDays, ChevronsUpDown, Check, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -23,10 +24,14 @@ const jenisHakOptions: { value: JenisHak; label: string }[] = [
   { value: 'HW', label: 'Hak Wakaf' },
 ];
 
+const DAILY_LIMIT = 5;
+
 export default function PengajuanAlihmedia() {
   const { user } = useAuth();
   const today = new Date();
   const tanggal = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+
+  const isSU = user ? isSuperUser(user.role) : false;
 
   const [form, setForm] = useState({
     noSuTahun: '',
@@ -40,6 +45,8 @@ export default function PengajuanAlihmedia() {
   const [fileSertifikat, setFileSertifikat] = useState<File | null>(null);
   const [fileKtp, setFileKtp] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [todayCount, setTodayCount] = useState(0);
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
   const sertifikatRef = useRef<HTMLInputElement>(null);
   const ktpRef = useRef<HTMLInputElement>(null);
 
@@ -49,13 +56,23 @@ export default function PengajuanAlihmedia() {
   const kecamatanList = getKecamatanList();
   const desaList = useMemo(() => form.kecamatan ? getDesaByKecamatan(form.kecamatan) : [], [form.kecamatan]);
 
+  // Check daily limit
+  useEffect(() => {
+    if (user && !isSU) {
+      getTodaySubmissionCount(user.id).then(count => {
+        setTodayCount(count);
+        if (count >= DAILY_LIMIT) setQuotaExceeded(true);
+      });
+    }
+  }, [user, isSU]);
+
   const validateFilePdf = (file: File): boolean => {
     if (file.type !== 'application/pdf') {
       toast.error('File harus berformat PDF');
       return false;
     }
-    if (file.size > 50 * 1024) {
-      toast.error('Ukuran file maksimal 50KB');
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Ukuran file maksimal 5MB');
       return false;
     }
     return true;
@@ -66,8 +83,8 @@ export default function PengajuanAlihmedia() {
       toast.error('File harus berformat JPG/JPEG');
       return false;
     }
-    if (file.size > 500 * 1024) {
-      toast.error('Ukuran file maksimal 500KB');
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Ukuran file maksimal 5MB');
       return false;
     }
     return true;
@@ -76,6 +93,12 @@ export default function PengajuanAlihmedia() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Check daily limit for non-super users
+    if (!isSU && todayCount >= DAILY_LIMIT) {
+      setQuotaExceeded(true);
+      return;
+    }
+
     const sanitized = {
       noSuTahun: sanitizeString(form.noSuTahun),
       jenisHak: form.jenisHak,
@@ -90,25 +113,32 @@ export default function PengajuanAlihmedia() {
       return;
     }
 
-    if (!fileSertifikat || !fileKtp) {
-      toast.error('Upload file Sertifikat dan KTP wajib diisi');
-      return;
+    // Super User doesn't need to upload files
+    if (!isSU) {
+      if (!fileSertifikat || !fileKtp) {
+        toast.error('Upload file Sertifikat dan KTP wajib diisi');
+        return;
+      }
     }
 
     setSubmitting(true);
     try {
-      const sertifikatUrl = await uploadFile(fileSertifikat, user?.id || '', 'sertifikat');
-      const ktpUrl = await uploadFile(fileKtp, user?.id || '', 'ktp');
+      let sertifikatUrl: string | null = null;
+      let ktpUrl: string | null = null;
 
-      if (!sertifikatUrl || !ktpUrl) {
-        toast.error('Gagal mengupload file');
-        return;
+      if (fileSertifikat) {
+        sertifikatUrl = await uploadFile(fileSertifikat, user?.id || '', 'sertifikat');
+        if (!sertifikatUrl) { toast.error('Gagal mengupload file sertifikat'); return; }
+      }
+      if (fileKtp) {
+        ktpUrl = await uploadFile(fileKtp, user?.id || '', 'ktp');
+        if (!ktpUrl) { toast.error('Gagal mengupload file KTP'); return; }
       }
 
       const result = await addBerkas({
         tanggalPengajuan: tanggal,
         namaPemegangHak: user?.name || '',
-        noTelepon: '', // No longer collected in form, stored in profile
+        noTelepon: '',
         noSuTahun: sanitized.noSuTahun,
         jenisHak: sanitized.jenisHak as JenisHak,
         noHak: sanitized.noHak,
@@ -116,8 +146,8 @@ export default function PengajuanAlihmedia() {
         kecamatan: sanitized.kecamatan,
         linkShareloc: sanitized.linkShareloc,
         userId: user?.id || '',
-        fileSertifikatUrl: sertifikatUrl,
-        fileKtpUrl: ktpUrl,
+        fileSertifikatUrl: sertifikatUrl || undefined,
+        fileKtpUrl: ktpUrl || undefined,
       });
       if (result) {
         toast.success('Pengajuan berhasil dikirim!');
@@ -126,6 +156,12 @@ export default function PengajuanAlihmedia() {
         setFileKtp(null);
         if (sertifikatRef.current) sertifikatRef.current.value = '';
         if (ktpRef.current) ktpRef.current.value = '';
+        // Update count
+        if (!isSU) {
+          const newCount = todayCount + 1;
+          setTodayCount(newCount);
+          if (newCount >= DAILY_LIMIT) setQuotaExceeded(true);
+        }
       } else {
         toast.error('Gagal mengirim pengajuan');
       }
@@ -139,6 +175,11 @@ export default function PengajuanAlihmedia() {
       <div>
         <h1 className="text-base sm:text-lg font-bold text-foreground">Pengajuan Alihmedia</h1>
         <p className="text-xs sm:text-sm text-muted-foreground">Input pengajuan berkas alihmedia baru</p>
+        {!isSU && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Kuota hari ini: <span className="font-semibold">{todayCount}/{DAILY_LIMIT}</span>
+          </p>
+        )}
       </div>
 
       <div className="gentelella-panel">
@@ -271,7 +312,7 @@ export default function PengajuanAlihmedia() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <Label className="text-xs">Upload Sertifikat (PDF, maks 50KB)</Label>
+                <Label className="text-xs">Upload Sertifikat (PDF, maks 5MB){isSU ? ' - opsional' : ''}</Label>
                 <Input
                   ref={sertifikatRef}
                   type="file"
@@ -285,7 +326,7 @@ export default function PengajuanAlihmedia() {
                 />
               </div>
               <div>
-                <Label className="text-xs">Upload KTP Pemegang Sertifikat (JPG, maks 500KB)</Label>
+                <Label className="text-xs">Upload KTP Pemegang Sertifikat (JPG, maks 5MB){isSU ? ' - opsional' : ''}</Label>
                 <Input
                   ref={ktpRef}
                   type="file"
@@ -301,7 +342,7 @@ export default function PengajuanAlihmedia() {
             </div>
 
             <div>
-              <Label className="text-xs">Tautan Koordinat Shareloc</Label>
+              <Label className="text-xs">Tautan Koordinat Shareloc (opsional)</Label>
               <Input
                 value={form.linkShareloc || ''}
                 onChange={e => setForm(f => ({ ...f, linkShareloc: e.target.value }))}
@@ -311,13 +352,29 @@ export default function PengajuanAlihmedia() {
               />
             </div>
 
-            <Button type="submit" className="w-full gap-2 h-9 text-sm" disabled={submitting}>
+            <Button type="submit" className="w-full gap-2 h-9 text-sm" disabled={submitting || (!isSU && quotaExceeded)}>
               <Send className="w-4 h-4" />
               {submitting ? 'Mengirim...' : 'Kirim Pengajuan'}
             </Button>
           </form>
         </div>
       </div>
+
+      {/* Quota exceeded dialog */}
+      <Dialog open={quotaExceeded && !isSU} onOpenChange={setQuotaExceeded}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              Kuota Harian Tercapai
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Pengajuan Validasi Alihmedia sudah melebihi batas kuota yang ditentukan. Lakukan kembali di hari berikutnya.
+          </p>
+          <Button onClick={() => setQuotaExceeded(false)} className="w-full">Tutup</Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
