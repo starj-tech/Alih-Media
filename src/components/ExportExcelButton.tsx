@@ -44,8 +44,16 @@ export default function ExportExcelButton({ data, fileName, sheetName = 'Data' }
     if (exportFrom || exportTo) {
       filtered = filtered.filter(b => {
         const d = parseDate(b.tanggalPengajuan);
-        if (exportFrom && d < new Date(exportFrom)) return false;
-        if (exportTo && d > new Date(exportTo + 'T23:59:59')) return false;
+        if (exportFrom) {
+          const fromParts = exportFrom.split('-');
+          const from = new Date(+fromParts[0], +fromParts[1] - 1, +fromParts[2]);
+          if (d < from) return false;
+        }
+        if (exportTo) {
+          const toParts = exportTo.split('-');
+          const to = new Date(+toParts[0], +toParts[1] - 1, +toParts[2], 23, 59, 59);
+          if (d > to) return false;
+        }
         return true;
       });
     }
