@@ -156,20 +156,39 @@ export async function getTodaySubmissionCount(userId: string): Promise<number> {
 }
 
 export async function getUsers(): Promise<ManagedUser[]> {
-  const { data: profiles } = await supabase.from('profiles').select('*');
-  if (!profiles) return [];
+  // Batch load profiles and roles in parallel
+  const [profilesRes, rolesRes] = await Promise.all([
+    supabase.from('profiles').select('*'),
+    supabase.from('user_roles').select('*'),
+  ]);
 
-  const result: ManagedUser[] = [];
-  for (const p of profiles) {
-    const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', p.user_id).single();
-    result.push({
-      id: p.user_id,
-      email: p.email,
-      name: p.name,
-      role: (roleData?.role as ManagedUser['role']) || 'user',
-    });
+  const profiles = profilesRes.data || [];
+  const roles = rolesRes.data || [];
+
+  const roleMap: Record<string, string> = {};
+  for (const r of roles) {
+    roleMap[r.user_id] = r.role;
   }
-  return result;
+
+  return profiles.map(p => ({
+    id: p.user_id,
+    email: p.email,
+    name: p.name,
+    role: (roleMap[p.user_id] as ManagedUser['role']) || 'user',
+  }));
+}
+
+export async function manageUser(action: string, data: Record<string, any>): Promise<{ success?: boolean; error?: string; id?: string }> {
+  const { data: session } = await supabase.auth.getSession();
+  const token = session?.session?.access_token;
+  if (!token) return { error: 'Not authenticated' };
+
+  const res = await supabase.functions.invoke('manage-users', {
+    body: { action, ...data },
+  });
+
+  if (res.error) return { error: res.error.message };
+  return res.data;
 }
 
 export function isDueDateOverdue(dateStr: string): boolean {
