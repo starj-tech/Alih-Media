@@ -19,7 +19,7 @@ export default function FileDownloadCell({ url, label }: FileDownloadCellProps) 
     try {
       const signedUrl = await getSignedFileUrl(url);
       if (!signedUrl) {
-        toast.error('Gagal membuka file. URL tidak tersedia.');
+        toast.error('Gagal membuka file. File tidak ditemukan di storage.');
         return;
       }
 
@@ -31,6 +31,9 @@ export default function FileDownloadCell({ url, label }: FileDownloadCellProps) 
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+    } catch (err) {
+      console.error('Error opening file:', err);
+      toast.error('Gagal membuka file. Terjadi kesalahan.');
     } finally {
       setLoading(false);
     }
