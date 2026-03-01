@@ -133,7 +133,7 @@ export default function UserInformasi() {
 
       <DataTable<Berkas>
         title="Monitoring Berkas Alihmedia"
-        searchKeys={['namaPemegangHak', 'desa']}
+        searchKeys={['noHak', 'desa']}
         headerActions={
           <div className="flex items-center gap-2 flex-wrap">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -152,7 +152,7 @@ export default function UserInformasi() {
         columns={[
           { header: 'No', accessor: (_, i) => (i ?? 0) + 1 } as any,
           { header: 'Tgl Pengajuan', accessor: 'tanggalPengajuan' },
-          { header: 'Nama', accessor: 'namaPemegangHak' },
+          { header: 'Nama Pemohon', accessor: 'namaPemegangHak' },
           { header: 'No.SU/Tahun', accessor: 'noSuTahun' },
           { header: 'No Hak', accessor: 'noHak' },
           { header: 'Jenis Hak', accessor: 'jenisHak' },
