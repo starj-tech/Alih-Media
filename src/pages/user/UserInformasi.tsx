@@ -33,11 +33,13 @@ export default function UserInformasi() {
   const [editForm, setEditForm] = useState({ noSuTahun: '', noHak: '', linkShareloc: '' });
   const [fileSertifikat, setFileSertifikat] = useState<File | null>(null);
   const [fileKtp, setFileKtp] = useState<File | null>(null);
+  const [fileFotoBangunan, setFileFotoBangunan] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const sertifikatRef = useRef<HTMLInputElement>(null);
   const ktpRef = useRef<HTMLInputElement>(null);
+  const fotoBangunanRef = useRef<HTMLInputElement>(null);
 
   const loadData = () => {
     if (user) getBerkasByUser(user.id).then(setBerkas);
@@ -52,6 +54,7 @@ export default function UserInformasi() {
     setEditForm({ noSuTahun: row.noSuTahun, noHak: row.noHak, linkShareloc: row.linkShareloc || '' });
     setFileSertifikat(null);
     setFileKtp(null);
+    setFileFotoBangunan(null);
   };
 
   const validateFilePdf = (file: File): boolean => {
@@ -90,6 +93,10 @@ export default function UserInformasi() {
       if (fileKtp) {
         const url = await uploadFile(fileKtp, user.id, 'ktp');
         if (url) updates.file_ktp_url = url;
+      }
+      if (fileFotoBangunan) {
+        const url = await uploadFile(fileFotoBangunan, user.id, 'foto-bangunan');
+        if (url) updates.file_foto_bangunan_url = url;
       }
 
       const { error } = await supabase.from('berkas').update(updates).eq('id', editId);
@@ -221,6 +228,20 @@ export default function UserInformasi() {
                   const file = e.target.files?.[0] || null;
                   if (file && !validateFileImage(file)) { e.target.value = ''; return; }
                   setFileKtp(file);
+                }}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Upload Photo Bangunan / Lokasi Tanah dengan Geotag (JPG, maks 5MB) - opsional</Label>
+              <Input
+                ref={fotoBangunanRef}
+                type="file"
+                accept=".jpg,.jpeg"
+                className="mt-1 h-8 text-sm"
+                onChange={e => {
+                  const file = e.target.files?.[0] || null;
+                  if (file && !validateFileImage(file)) { e.target.value = ''; return; }
+                  setFileFotoBangunan(file);
                 }}
               />
             </div>

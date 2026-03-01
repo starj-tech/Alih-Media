@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { FileText, Loader2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { getSignedFileUrl } from '@/lib/data';
+import { toast } from 'sonner';
 
 interface FileDownloadCellProps {
   url?: string;
@@ -16,33 +17,20 @@ export default function FileDownloadCell({ url, label }: FileDownloadCellProps) 
   const handleClick = async () => {
     setLoading(true);
     try {
-      // Open window synchronously to avoid popup blocker (async breaks user gesture)
-      let newWindow: Window | null = null;
-      try {
-        if (window.top && window.top !== window && typeof window.top.open === 'function') {
-          newWindow = window.top.open('about:blank', '_blank', 'noopener,noreferrer');
-        }
-      } catch { /* cross-origin */ }
-      if (!newWindow) {
-        newWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
-      }
-
       const signedUrl = await getSignedFileUrl(url);
       if (!signedUrl) {
-        newWindow?.close();
+        toast.error('Gagal membuka file. URL tidak tersedia.');
         return;
       }
 
-      if (newWindow) {
-        newWindow.location.href = signedUrl;
-      } else {
-        // Fallback: use anchor element
-        const a = document.createElement('a');
-        a.href = signedUrl;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        a.click();
-      }
+      // Use anchor element to navigate - works reliably in iframes
+      const a = document.createElement('a');
+      a.href = signedUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     } finally {
       setLoading(false);
     }
