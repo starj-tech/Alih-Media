@@ -60,7 +60,7 @@ export default function BerkasTimelineDialog({ berkas, open, onOpenChange }: Pro
         {berkas && (
           <div className="text-sm space-y-1 pb-3 border-b">
             <p><span className="text-muted-foreground">Nama:</span> <span className="font-medium">{berkas.namaPemegangHak}</span></p>
-            <p><span className="text-muted-foreground">No Hak:</span> <span className="font-medium">{berkas.noHak}</span></p>
+            <p><span className="text-muted-foreground">No Hak:</span> <span className="font-medium">{berkas.noHak}</span> <span className="text-muted-foreground ml-2">Jenis Hak:</span> <span className="font-medium">{berkas.jenisHak}</span></p>
             <p><span className="text-muted-foreground">No.SU/Tahun:</span> <span className="font-medium">{berkas.noSuTahun}</span></p>
             <p><span className="text-muted-foreground">Desa:</span> <span className="font-medium">{berkas.desa}</span></p>
           </div>
