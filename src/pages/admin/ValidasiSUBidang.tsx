@@ -6,7 +6,7 @@ import ExportExcelButton from '@/components/ExportExcelButton';
 import { getAllBerkas, updateBerkasStatus, isDueDateOverdue, Berkas } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Send, XCircle } from 'lucide-react';
+import { Send, XCircle, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,6 +17,7 @@ export default function ValidasiSUBidang() {
   const [berkas, setBerkas] = useState<Berkas[]>([]);
   const [tolakId, setTolakId] = useState<string | null>(null);
   const [catatan, setCatatan] = useState('');
+  const [kembalikanId, setKembalikanId] = useState<string | null>(null);
 
   const loadData = async () => {
     const all = await getAllBerkas();
@@ -41,6 +42,13 @@ export default function ValidasiSUBidang() {
     loadData();
   };
 
+  const handleKembalikan = async () => {
+    if (!kembalikanId) return;
+    await updateBerkasStatus(kembalikanId, 'Proses', undefined, user?.id);
+    toast.success('Berkas dikembalikan ke Arsip Verifikasi');
+    setKembalikanId(null);
+    loadData();
+  };
 
   const tolakBerkas = tolakId ? berkas.find(b => b.id === tolakId) : null;
 
@@ -74,6 +82,7 @@ export default function ValidasiSUBidang() {
             <div className="flex gap-1">
               <Button size="sm" className="gap-1" onClick={() => handleKirim(row.id)}><Send className="w-3 h-3" /> Kirim</Button>
               <Button size="sm" variant="destructive" className="gap-1" onClick={() => { setTolakId(row.id); setCatatan(row.catatanPenolakan || ''); }}><XCircle className="w-3 h-3" /> Tolak</Button>
+              <Button size="sm" variant="outline" className="gap-1" onClick={() => setKembalikanId(row.id)}><Undo2 className="w-3 h-3" /></Button>
             </div>
           )},
         ]}
@@ -96,6 +105,17 @@ export default function ValidasiSUBidang() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setTolakId(null)}>Batal</Button>
             <Button variant="destructive" onClick={handleTolak}>Tolak Berkas</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!kembalikanId} onOpenChange={(open) => { if (!open) setKembalikanId(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Kembalikan Berkas</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Apakah Anda yakin ingin mengembalikan Data ini ke Petugas Sebelumnya?</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setKembalikanId(null)}>Batal</Button>
+            <Button onClick={handleKembalikan}>Ya, Kembalikan</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
