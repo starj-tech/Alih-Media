@@ -5,10 +5,12 @@ import ExternalLinkCell from '@/components/ExternalLinkCell';
 import FileDownloadCell from '@/components/FileDownloadCell';
 import ExportExcelButton from '@/components/ExportExcelButton';
 import BerkasTimelineDialog from '@/components/BerkasTimelineDialog';
-import { getAllBerkas, deleteUploadedFiles, Berkas } from '@/lib/data';
+import { getAllBerkas, deleteUploadedFiles, updateBerkasStatus, Berkas, BerkasStatus } from '@/lib/data';
+import { useAuth } from '@/hooks/useAuth';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Eye, Trash2 } from 'lucide-react';
+import { Eye, Trash2, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const statusOptions: { value: string; label: string }[] = [
@@ -20,10 +22,21 @@ const statusOptions: { value: string; label: string }[] = [
   { value: 'Ditolak', label: 'Ditolak' },
 ];
 
+const kembalikanOptions: { value: BerkasStatus; label: string }[] = [
+  { value: 'Proses', label: 'Arsip Verifikasi' },
+  { value: 'Validasi SU & Bidang', label: 'Validasi SU/Bidang' },
+  { value: 'Validasi BT', label: 'Validasi BT' },
+];
+
 export default function AdminInformasi() {
+  const { user } = useAuth();
   const [berkas, setBerkas] = useState<Berkas[]>([]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [timelineBerkas, setTimelineBerkas] = useState<Berkas | null>(null);
+  const [kembalikanBerkas, setKembalikanBerkas] = useState<Berkas | null>(null);
+  const [kembalikanLoading, setKembalikanLoading] = useState(false);
+
+  const isSuperAdmin = user?.role === 'super_admin';
 
   const loadData = () => { getAllBerkas().then(setBerkas); };
   useEffect(() => { loadData(); }, []);
@@ -35,6 +48,21 @@ export default function AdminInformasi() {
     const ok = await deleteUploadedFiles(row.id);
     if (ok) { toast.success('File berhasil dihapus'); loadData(); }
     else toast.error('Gagal menghapus file');
+  };
+
+  const handleKembalikan = async (targetStatus: BerkasStatus) => {
+    if (!kembalikanBerkas || !user) return;
+    setKembalikanLoading(true);
+    try {
+      await updateBerkasStatus(kembalikanBerkas.id, targetStatus, undefined, user.id);
+      toast.success(`Berkas dikembalikan ke ${kembalikanOptions.find(o => o.value === targetStatus)?.label}`);
+      setKembalikanBerkas(null);
+      loadData();
+    } catch {
+      toast.error('Gagal mengembalikan berkas');
+    } finally {
+      setKembalikanLoading(false);
+    }
   };
 
   return (
@@ -81,7 +109,12 @@ export default function AdminInformasi() {
               <Button size="sm" variant="outline" className="gap-1" onClick={() => setTimelineBerkas(row)}>
                 <Eye className="w-3 h-3" /> Detail
               </Button>
-              {row.status === 'Selesai' && (row.fileSertifikatUrl || row.fileKtpUrl) && (
+              {isSuperAdmin && (
+                <Button size="sm" variant="outline" className="gap-1" onClick={() => setKembalikanBerkas(row)}>
+                  <Undo2 className="w-3 h-3" /> Kembali
+                </Button>
+              )}
+              {isSuperAdmin && row.status === 'Selesai' && (row.fileSertifikatUrl || row.fileKtpUrl) && (
                 <Button size="sm" variant="outline" className="gap-1 text-destructive hover:text-destructive" onClick={() => handleDeleteFiles(row)}>
                   <Trash2 className="w-3 h-3" /> Hapus File
                 </Button>
@@ -93,6 +126,32 @@ export default function AdminInformasi() {
       />
 
       <BerkasTimelineDialog berkas={timelineBerkas} open={!!timelineBerkas} onOpenChange={(open) => { if (!open) setTimelineBerkas(null); }} />
+
+      {/* Kembalikan Dialog */}
+      <Dialog open={!!kembalikanBerkas} onOpenChange={(open) => { if (!open) setKembalikanBerkas(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Kembalikan Berkas</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">Silahkan Pilih Bagian Yang Akan Dituju</p>
+          <div className="flex flex-col gap-2 mt-2">
+            {kembalikanOptions.map(opt => (
+              <Button
+                key={opt.value}
+                variant="outline"
+                className="justify-start"
+                disabled={kembalikanLoading || kembalikanBerkas?.status === opt.value}
+                onClick={() => handleKembalikan(opt.value)}
+              >
+                {opt.label}
+              </Button>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setKembalikanBerkas(null)} disabled={kembalikanLoading}>Batal</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
