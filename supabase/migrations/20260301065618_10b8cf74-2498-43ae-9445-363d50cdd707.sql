@@ -1,0 +1,1 @@
+ALTER TABLE public.validation_logs ADD COLUMN IF NOT EXISTS ip_address text;

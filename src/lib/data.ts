@@ -129,20 +129,90 @@ export async function addBerkas(berkas: Omit<Berkas, 'id' | 'status'>): Promise<
   return mapRow(data);
 }
 
+export async function getClientIp(): Promise<string> {
+  try {
+    const res = await fetch('https://api.ipify.org?format=json');
+    const data = await res.json();
+    return data.ip || '-';
+  } catch { return '-'; }
+}
+
 export async function updateBerkasStatus(id: string, status: BerkasStatus, catatan?: string, validatorId?: string) {
   const updates: any = { status };
   if (catatan !== undefined) updates.catatan_penolakan = catatan;
   if (validatorId) {
     updates.validated_by = validatorId;
     updates.validated_at = new Date().toISOString();
-    // Log validation action
+    const ip = await getClientIp();
     await supabase.from('validation_logs').insert({
       berkas_id: id,
       admin_id: validatorId,
       action: status,
+      ip_address: ip,
     });
   }
   await supabase.from('berkas').update(updates).eq('id', id);
+}
+
+export interface TimelineEntry {
+  action: string;
+  adminName: string;
+  adminEmail: string;
+  timestamp: string;
+  ipAddress: string;
+}
+
+export async function getBerkasTimeline(berkasId: string): Promise<TimelineEntry[]> {
+  const { data: logs } = await supabase
+    .from('validation_logs')
+    .select('*')
+    .eq('berkas_id', berkasId)
+    .order('created_at', { ascending: true });
+
+  if (!logs || logs.length === 0) return [];
+
+  const adminIds = [...new Set(logs.map((l: any) => l.admin_id))];
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('user_id, name, email')
+    .in('user_id', adminIds);
+
+  const profileMap: Record<string, { name: string; email: string }> = {};
+  for (const p of profiles || []) {
+    profileMap[p.user_id] = { name: p.name, email: p.email };
+  }
+
+  return logs.map((log: any) => ({
+    action: log.action,
+    adminName: profileMap[log.admin_id]?.name || '-',
+    adminEmail: profileMap[log.admin_id]?.email || '-',
+    timestamp: log.created_at,
+    ipAddress: log.ip_address || '-',
+  }));
+}
+
+export async function deleteUploadedFiles(berkasId: string): Promise<boolean> {
+  const { data: row } = await supabase.from('berkas').select('file_sertifikat_url, file_ktp_url').eq('id', berkasId).single();
+  if (!row) return false;
+
+  const filesToDelete: string[] = [];
+  if (row.file_sertifikat_url) filesToDelete.push(row.file_sertifikat_url);
+  if (row.file_ktp_url) filesToDelete.push(row.file_ktp_url);
+
+  if (filesToDelete.length > 0) {
+    // Extract paths if they are full URLs
+    const paths = filesToDelete.map(f => {
+      if (f.startsWith('http')) {
+        const match = f.match(/berkas-files\/(.+)$/);
+        return match ? match[1] : f;
+      }
+      return f;
+    });
+    await supabase.storage.from('berkas-files').remove(paths);
+  }
+
+  await supabase.from('berkas').update({ file_sertifikat_url: null, file_ktp_url: null }).eq('id', berkasId);
+  return true;
 }
 
 export async function deleteBerkas(id: string) {

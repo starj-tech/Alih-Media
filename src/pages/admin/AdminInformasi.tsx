@@ -4,8 +4,12 @@ import StatusBadge from '@/components/StatusBadge';
 import ExternalLinkCell from '@/components/ExternalLinkCell';
 import FileDownloadCell from '@/components/FileDownloadCell';
 import ExportExcelButton from '@/components/ExportExcelButton';
-import { getAllBerkas, Berkas } from '@/lib/data';
+import BerkasTimelineDialog from '@/components/BerkasTimelineDialog';
+import { getAllBerkas, deleteUploadedFiles, Berkas } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Eye, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const statusOptions: { value: string; label: string }[] = [
   { value: 'all', label: 'Semua Status' },
@@ -19,10 +23,19 @@ const statusOptions: { value: string; label: string }[] = [
 export default function AdminInformasi() {
   const [berkas, setBerkas] = useState<Berkas[]>([]);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [timelineBerkas, setTimelineBerkas] = useState<Berkas | null>(null);
 
-  useEffect(() => { getAllBerkas().then(setBerkas); }, []);
+  const loadData = () => { getAllBerkas().then(setBerkas); };
+  useEffect(() => { loadData(); }, []);
 
   const filteredBerkas = statusFilter === 'all' ? berkas : berkas.filter(b => b.status === statusFilter);
+
+  const handleDeleteFiles = async (row: Berkas) => {
+    if (!row.fileSertifikatUrl && !row.fileKtpUrl) { toast.info('Tidak ada file untuk dihapus'); return; }
+    const ok = await deleteUploadedFiles(row.id);
+    if (ok) { toast.success('File berhasil dihapus'); loadData(); }
+    else toast.error('Gagal menghapus file');
+  };
 
   return (
     <div className="space-y-6">
@@ -63,9 +76,23 @@ export default function AdminInformasi() {
           { header: 'Link', accessor: (row) => <ExternalLinkCell url={row.linkShareloc} /> },
           { header: 'Status', accessor: (row) => <StatusBadge status={row.status} /> },
           { header: 'Catatan', accessor: (row) => <span className="text-xs text-muted-foreground">{row.catatanPenolakan || '-'}</span> },
+          { header: 'Aksi', accessor: (row) => (
+            <div className="flex gap-1">
+              <Button size="sm" variant="outline" className="gap-1" onClick={() => setTimelineBerkas(row)}>
+                <Eye className="w-3 h-3" /> Detail
+              </Button>
+              {row.status === 'Selesai' && (row.fileSertifikatUrl || row.fileKtpUrl) && (
+                <Button size="sm" variant="outline" className="gap-1 text-destructive hover:text-destructive" onClick={() => handleDeleteFiles(row)}>
+                  <Trash2 className="w-3 h-3" /> Hapus File
+                </Button>
+              )}
+            </div>
+          )},
         ]}
         data={filteredBerkas}
       />
+
+      <BerkasTimelineDialog berkas={timelineBerkas} open={!!timelineBerkas} onOpenChange={(open) => { if (!open) setTimelineBerkas(null); }} />
     </div>
   );
 }
