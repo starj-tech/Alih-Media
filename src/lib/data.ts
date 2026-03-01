@@ -129,26 +129,15 @@ export async function addBerkas(berkas: Omit<Berkas, 'id' | 'status'>): Promise<
   return mapRow(data);
 }
 
-export async function getClientIp(): Promise<string> {
-  try {
-    const res = await fetch('https://api.ipify.org?format=json');
-    const data = await res.json();
-    return data.ip || '-';
-  } catch { return '-'; }
-}
-
 export async function updateBerkasStatus(id: string, status: BerkasStatus, catatan?: string, validatorId?: string) {
   const updates: any = { status };
   if (catatan !== undefined) updates.catatan_penolakan = catatan;
   if (validatorId) {
     updates.validated_by = validatorId;
     updates.validated_at = new Date().toISOString();
-    const ip = await getClientIp();
-    await supabase.from('validation_logs').insert({
-      berkas_id: id,
-      admin_id: validatorId,
-      action: status,
-      ip_address: ip,
+    // Log validation server-side (IP detected by edge function)
+    await supabase.functions.invoke('log-validation', {
+      body: { berkas_id: id, action: status },
     });
   }
   await supabase.from('berkas').update(updates).eq('id', id);
