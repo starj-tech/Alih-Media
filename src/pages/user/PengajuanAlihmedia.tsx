@@ -205,7 +205,7 @@ export default function PengajuanAlihmedia() {
             </div>
 
             <div>
-              <Label className="text-xs">No.SU/Tahun</Label>
+              <Label className="text-xs">No.SU/Tahun <span className="text-destructive">*</span></Label>
               <Input
                 value={form.noSuTahun}
                 onChange={e => setForm(f => ({ ...f, noSuTahun: e.target.value }))}
@@ -217,17 +217,17 @@ export default function PengajuanAlihmedia() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <Label className="text-xs">No Hak</Label>
+                <Label className="text-xs">No Hak <span className="text-destructive">*</span></Label>
                 <Input
                   value={form.noHak}
                   onChange={e => setForm(f => ({ ...f, noHak: e.target.value }))}
-                  placeholder="Masukkan nomor hak"
+                  placeholder="Contoh: 00455"
                   className="mt-1 h-8 text-sm"
                   maxLength={50}
                 />
               </div>
               <div>
-                <Label className="text-xs">Pilih Jenis Hak</Label>
+                <Label className="text-xs">Pilih Jenis Hak <span className="text-destructive">*</span></Label>
                 <Select value={form.jenisHak} onValueChange={v => setForm(f => ({ ...f, jenisHak: v as JenisHak }))}>
                   <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Pilih jenis hak" /></SelectTrigger>
                   <SelectContent>
@@ -241,7 +241,7 @@ export default function PengajuanAlihmedia() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <Label className="text-xs">Kecamatan</Label>
+                <Label className="text-xs">Kecamatan <span className="text-destructive">*</span></Label>
                 <Popover open={kecOpen} onOpenChange={setKecOpen}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" role="combobox" aria-expanded={kecOpen} className="mt-1 w-full h-8 text-sm justify-between font-normal">
@@ -275,7 +275,7 @@ export default function PengajuanAlihmedia() {
                 </Popover>
               </div>
               <div>
-                <Label className="text-xs">Desa</Label>
+                <Label className="text-xs">Desa <span className="text-destructive">*</span></Label>
                 <Popover open={desaOpen} onOpenChange={setDesaOpen}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" role="combobox" aria-expanded={desaOpen} disabled={!form.kecamatan} className="mt-1 w-full h-8 text-sm justify-between font-normal">
@@ -312,7 +312,7 @@ export default function PengajuanAlihmedia() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <Label className="text-xs">Upload Sertifikat (PDF, maks 5MB){isSU ? ' - opsional' : ''}</Label>
+                <Label className="text-xs">Upload Sertifikat (PDF, maks 5MB){isSU ? ' - opsional' : ''} {!isSU && <span className="text-destructive">*</span>}</Label>
                 <Input
                   ref={sertifikatRef}
                   type="file"
@@ -326,7 +326,7 @@ export default function PengajuanAlihmedia() {
                 />
               </div>
               <div>
-                <Label className="text-xs">Upload KTP Pemegang Sertifikat (JPG, maks 5MB){isSU ? ' - opsional' : ''}</Label>
+                <Label className="text-xs">Upload KTP Pemegang Sertifikat (JPG, maks 5MB){isSU ? ' - opsional' : ''} {!isSU && <span className="text-destructive">*</span>}</Label>
                 <Input
                   ref={ktpRef}
                   type="file"

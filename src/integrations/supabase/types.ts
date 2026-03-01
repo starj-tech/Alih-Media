@@ -19,6 +19,7 @@ export type Database = {
           catatan_penolakan: string | null
           created_at: string
           desa: string
+          file_foto_bangunan_url: string | null
           file_ktp_url: string | null
           file_sertifikat_url: string | null
           id: string
@@ -40,6 +41,7 @@ export type Database = {
           catatan_penolakan?: string | null
           created_at?: string
           desa: string
+          file_foto_bangunan_url?: string | null
           file_ktp_url?: string | null
           file_sertifikat_url?: string | null
           id?: string
@@ -61,6 +63,7 @@ export type Database = {
           catatan_penolakan?: string | null
           created_at?: string
           desa?: string
+          file_foto_bangunan_url?: string | null
           file_ktp_url?: string | null
           file_sertifikat_url?: string | null
           id?: string

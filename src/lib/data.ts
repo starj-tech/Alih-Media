@@ -20,6 +20,7 @@ export interface Berkas {
   catatanPenolakan?: string;
   fileSertifikatUrl?: string;
   fileKtpUrl?: string;
+  fileFotoBangunanUrl?: string;
   validatedBy?: string;
   validatedAt?: string;
 }
@@ -54,6 +55,7 @@ function mapRow(row: any): Berkas {
     catatanPenolakan: row.catatan_penolakan || undefined,
     fileSertifikatUrl: row.file_sertifikat_url || undefined,
     fileKtpUrl: row.file_ktp_url || undefined,
+    fileFotoBangunanUrl: row.file_foto_bangunan_url || undefined,
     validatedBy: row.validated_by || undefined,
     validatedAt: row.validated_at || undefined,
   };
@@ -71,7 +73,7 @@ export async function getBerkasByUser(userId: string): Promise<Berkas[]> {
   return data.map(mapRow);
 }
 
-export async function uploadFile(file: File, userId: string, type: 'sertifikat' | 'ktp'): Promise<string | null> {
+export async function uploadFile(file: File, userId: string, type: 'sertifikat' | 'ktp' | 'foto-bangunan'): Promise<string | null> {
   const ext = file.name.split('.').pop();
   const fileName = `${userId}/${type}-${Date.now()}.${ext}`;
   const { error } = await supabase.storage.from('berkas-files').upload(fileName, file);
@@ -181,12 +183,13 @@ export async function getBerkasTimeline(berkasId: string): Promise<TimelineEntry
 }
 
 export async function deleteUploadedFiles(berkasId: string): Promise<boolean> {
-  const { data: row } = await supabase.from('berkas').select('file_sertifikat_url, file_ktp_url').eq('id', berkasId).single();
+  const { data: row } = await supabase.from('berkas').select('file_sertifikat_url, file_ktp_url, file_foto_bangunan_url').eq('id', berkasId).single();
   if (!row) return false;
 
   const filesToDelete: string[] = [];
   if (row.file_sertifikat_url) filesToDelete.push(row.file_sertifikat_url);
   if (row.file_ktp_url) filesToDelete.push(row.file_ktp_url);
+  if (row.file_foto_bangunan_url) filesToDelete.push(row.file_foto_bangunan_url);
 
   if (filesToDelete.length > 0) {
     // Extract paths if they are full URLs
@@ -200,7 +203,7 @@ export async function deleteUploadedFiles(berkasId: string): Promise<boolean> {
     await supabase.storage.from('berkas-files').remove(paths);
   }
 
-  await supabase.from('berkas').update({ file_sertifikat_url: null, file_ktp_url: null }).eq('id', berkasId);
+  await supabase.from('berkas').update({ file_sertifikat_url: null, file_ktp_url: null, file_foto_bangunan_url: null }).eq('id', berkasId);
   return true;
 }
 
