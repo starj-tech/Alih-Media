@@ -110,6 +110,12 @@ export async function updateBerkasStatus(id: string, status: BerkasStatus, catat
   if (validatorId) {
     updates.validated_by = validatorId;
     updates.validated_at = new Date().toISOString();
+    // Log validation action
+    await supabase.from('validation_logs').insert({
+      berkas_id: id,
+      admin_id: validatorId,
+      action: status,
+    });
   }
   await supabase.from('berkas').update(updates).eq('id', id);
 }
@@ -129,16 +135,18 @@ export async function getStats() {
 }
 
 export async function getAdminStats() {
-  const { data } = await supabase.from('berkas').select('status, validated_by');
-  const all = data || [];
+  const [berkasRes, logsRes] = await Promise.all([
+    supabase.from('berkas').select('status'),
+    supabase.from('validation_logs').select('admin_id'),
+  ]);
+  const all = berkasRes.data || [];
+  const logs = logsRes.data || [];
   
-  // Count validations per admin
+  // Count validations per admin from validation_logs
   const adminCounts: Record<string, number> = {};
-  for (const b of all) {
-    if ((b as any).validated_by && ((b as any).status === 'Selesai' || (b as any).status !== 'Proses')) {
-      const vid = (b as any).validated_by;
-      adminCounts[vid] = (adminCounts[vid] || 0) + 1;
-    }
+  for (const log of logs) {
+    const aid = (log as any).admin_id;
+    adminCounts[aid] = (adminCounts[aid] || 0) + 1;
   }
 
   return {

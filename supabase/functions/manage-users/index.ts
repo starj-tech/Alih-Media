@@ -60,13 +60,27 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'update') {
-      const { userId, name, role } = body;
+      const { userId, name, role, noTelepon, pengguna, namaInstansi, password } = body;
 
-      if (name) {
-        await supabase.from('profiles').update({ name }).eq('user_id', userId);
+      // Update profile fields
+      const profileUpdates: Record<string, any> = {};
+      if (name !== undefined) profileUpdates.name = name;
+      if (noTelepon !== undefined) profileUpdates.no_telepon = noTelepon;
+      if (pengguna !== undefined) profileUpdates.pengguna = pengguna;
+      if (namaInstansi !== undefined) profileUpdates.nama_instansi = namaInstansi;
+
+      if (Object.keys(profileUpdates).length > 0) {
+        await supabase.from('profiles').update(profileUpdates).eq('user_id', userId);
       }
+
       if (role) {
         await supabase.from('user_roles').update({ role }).eq('user_id', userId);
+      }
+
+      // Reset password if provided
+      if (password) {
+        const { error: pwError } = await supabase.auth.admin.updateUserById(userId, { password });
+        if (pwError) throw pwError;
       }
 
       return new Response(JSON.stringify({ success: true }), {
@@ -77,12 +91,10 @@ Deno.serve(async (req) => {
     if (action === 'delete') {
       const { userId } = body;
       
-      // Prevent deleting self
       if (userId === caller.id) {
         throw new Error('Tidak dapat menghapus akun sendiri');
       }
 
-      // Delete from auth (cascades to profiles and user_roles via FK)
       const { error } = await supabase.auth.admin.deleteUser(userId);
       if (error) throw error;
 

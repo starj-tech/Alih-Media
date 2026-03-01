@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, EyeOff } from 'lucide-react';
 
 const ROLES: { value: UserRole; label: string }[] = [
   { value: 'super_admin', label: 'Super Admin' },
@@ -20,6 +20,9 @@ const ROLES: { value: UserRole; label: string }[] = [
   { value: 'super_user', label: 'Super User' },
   { value: 'user', label: 'User' },
 ];
+
+const PENGGUNA_OPTIONS = ['Perorangan', 'Staf PPAT', 'Notaris/PPAT', 'Bank', 'PT/Badan Hukum'];
+const SHOW_INSTANSI = ['Notaris/PPAT', 'Bank', 'PT/Badan Hukum'];
 
 export default function KelolaUser() {
   const [users, setUsers] = useState<ManagedUser[]>([]);
@@ -32,7 +35,8 @@ export default function KelolaUser() {
   // Edit dialog
   const [editOpen, setEditOpen] = useState(false);
   const [editUser, setEditUser] = useState<ManagedUser | null>(null);
-  const [editForm, setEditForm] = useState({ name: '', role: '' });
+  const [editForm, setEditForm] = useState({ name: '', role: '', noTelepon: '', pengguna: '', namaInstansi: '', password: '' });
+  const [showEditPassword, setShowEditPassword] = useState(false);
 
   // Delete dialog
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -65,14 +69,33 @@ export default function KelolaUser() {
 
   const openEdit = (user: ManagedUser) => {
     setEditUser(user);
-    setEditForm({ name: user.name, role: user.role });
+    setEditForm({
+      name: user.name,
+      role: user.role,
+      noTelepon: user.noTelepon,
+      pengguna: user.pengguna || 'Perorangan',
+      namaInstansi: user.namaInstansi || '',
+      password: '',
+    });
+    setShowEditPassword(false);
     setEditOpen(true);
   };
 
   const handleEdit = async () => {
     if (!editUser) return;
     setLoading(true);
-    const res = await manageUser('update', { userId: editUser.id, ...editForm });
+    const payload: Record<string, any> = {
+      userId: editUser.id,
+      name: editForm.name,
+      role: editForm.role,
+      noTelepon: editForm.noTelepon,
+      pengguna: editForm.pengguna,
+      namaInstansi: SHOW_INSTANSI.includes(editForm.pengguna) ? editForm.namaInstansi : null,
+    };
+    if (editForm.password) {
+      payload.password = editForm.password;
+    }
+    const res = await manageUser('update', payload);
     setLoading(false);
     if (res.error) {
       toast({ title: 'Gagal', description: res.error, variant: 'destructive' });
@@ -190,7 +213,7 @@ export default function KelolaUser() {
 
       {/* Edit User Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
           </DialogHeader>
@@ -204,6 +227,27 @@ export default function KelolaUser() {
               <Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
             </div>
             <div>
+              <Label>No HP</Label>
+              <Input value={editForm.noTelepon} onChange={e => setEditForm(f => ({ ...f, noTelepon: e.target.value }))} placeholder="08xxxxxxxxxx" />
+            </div>
+            <div>
+              <Label>Pengguna</Label>
+              <Select value={editForm.pengguna} onValueChange={v => setEditForm(f => ({ ...f, pengguna: v, namaInstansi: '' }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PENGGUNA_OPTIONS.map(p => (
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {SHOW_INSTANSI.includes(editForm.pengguna) && (
+              <div>
+                <Label>Nama Instansi / PT / Badan Hukum</Label>
+                <Input value={editForm.namaInstansi} onChange={e => setEditForm(f => ({ ...f, namaInstansi: e.target.value }))} placeholder="Nama instansi" />
+              </div>
+            )}
+            <div>
               <Label>Role</Label>
               <Select value={editForm.role} onValueChange={v => setEditForm(f => ({ ...f, role: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -213,6 +257,25 @@ export default function KelolaUser() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label>Password Baru (kosongkan jika tidak ingin mengubah)</Label>
+              <div className="relative">
+                <Input
+                  type={showEditPassword ? 'text' : 'password'}
+                  value={editForm.password}
+                  onChange={e => setEditForm(f => ({ ...f, password: e.target.value }))}
+                  placeholder="Minimal 6 karakter"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowEditPassword(v => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showEditPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
           </div>
           <DialogFooter>
