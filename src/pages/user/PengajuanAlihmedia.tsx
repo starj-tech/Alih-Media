@@ -44,11 +44,13 @@ export default function PengajuanAlihmedia() {
 
   const [fileSertifikat, setFileSertifikat] = useState<File | null>(null);
   const [fileKtp, setFileKtp] = useState<File | null>(null);
+  const [fileFotoBangunan, setFileFotoBangunan] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [todayCount, setTodayCount] = useState(0);
   const [quotaExceeded, setQuotaExceeded] = useState(false);
   const sertifikatRef = useRef<HTMLInputElement>(null);
   const ktpRef = useRef<HTMLInputElement>(null);
+  const fotoBangunanRef = useRef<HTMLInputElement>(null);
 
   const [kecOpen, setKecOpen] = useState(false);
   const [desaOpen, setDesaOpen] = useState(false);
@@ -125,6 +127,7 @@ export default function PengajuanAlihmedia() {
     try {
       let sertifikatUrl: string | null = null;
       let ktpUrl: string | null = null;
+      let fotoBangunanUrl: string | null = null;
 
       if (fileSertifikat) {
         sertifikatUrl = await uploadFile(fileSertifikat, user?.id || '', 'sertifikat');
@@ -133,6 +136,10 @@ export default function PengajuanAlihmedia() {
       if (fileKtp) {
         ktpUrl = await uploadFile(fileKtp, user?.id || '', 'ktp');
         if (!ktpUrl) { toast.error('Gagal mengupload file KTP'); return; }
+      }
+      if (fileFotoBangunan) {
+        fotoBangunanUrl = await uploadFile(fileFotoBangunan, user?.id || '', 'foto-bangunan');
+        if (!fotoBangunanUrl) { toast.error('Gagal mengupload foto bangunan'); return; }
       }
 
       const result = await addBerkas({
@@ -148,14 +155,17 @@ export default function PengajuanAlihmedia() {
         userId: user?.id || '',
         fileSertifikatUrl: sertifikatUrl || undefined,
         fileKtpUrl: ktpUrl || undefined,
+        fileFotoBangunanUrl: fotoBangunanUrl || undefined,
       });
       if (result) {
         toast.success('Pengajuan berhasil dikirim!');
         setForm({ noSuTahun: '', jenisHak: '', noHak: '', desa: '', kecamatan: '', linkShareloc: '' });
         setFileSertifikat(null);
         setFileKtp(null);
+        setFileFotoBangunan(null);
         if (sertifikatRef.current) sertifikatRef.current.value = '';
         if (ktpRef.current) ktpRef.current.value = '';
+        if (fotoBangunanRef.current) fotoBangunanRef.current.value = '';
         // Update count
         if (!isSU) {
           const newCount = todayCount + 1;
@@ -339,6 +349,21 @@ export default function PengajuanAlihmedia() {
                   }}
                 />
               </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">Upload Photo Bangunan / Lokasi Tanah dengan Geotag (JPG, maks 5MB) - opsional</Label>
+              <Input
+                ref={fotoBangunanRef}
+                type="file"
+                accept=".jpg,.jpeg"
+                className="mt-1 h-8 text-xs sm:text-sm"
+                onChange={e => {
+                  const file = e.target.files?.[0] || null;
+                  if (file && !validateFileImage(file)) { e.target.value = ''; return; }
+                  setFileFotoBangunan(file);
+                }}
+              />
             </div>
 
             <div>
