@@ -44,7 +44,7 @@ export default function AdminInformasi() {
   const filteredBerkas = statusFilter === 'all' ? berkas : berkas.filter(b => b.status === statusFilter);
 
   const handleDeleteFiles = async (row: Berkas) => {
-    if (!row.fileSertifikatUrl && !row.fileKtpUrl) { toast.info('Tidak ada file untuk dihapus'); return; }
+    if (!row.fileSertifikatUrl && !row.fileKtpUrl && !row.fileFotoBangunanUrl) { toast.info('Tidak ada file untuk dihapus'); return; }
     const ok = await deleteUploadedFiles(row.id);
     if (ok) { toast.success('File berhasil dihapus'); loadData(); }
     else toast.error('Gagal menghapus file');
@@ -101,6 +101,7 @@ export default function AdminInformasi() {
           { header: 'Kecamatan', accessor: 'kecamatan' },
           { header: 'Sertifikat', accessor: (row) => <FileDownloadCell url={row.fileSertifikatUrl} label="Sertifikat" /> },
           { header: 'KTP', accessor: (row) => <FileDownloadCell url={row.fileKtpUrl} label="KTP" /> },
+          { header: 'Foto Bangunan', accessor: (row) => <FileDownloadCell url={row.fileFotoBangunanUrl} label="Foto Bangunan" /> },
           { header: 'Link', accessor: (row) => <ExternalLinkCell url={row.linkShareloc} /> },
           { header: 'Status', accessor: (row) => <StatusBadge status={row.status} /> },
           { header: 'Catatan', accessor: (row) => <span className="text-xs text-muted-foreground">{row.catatanPenolakan || '-'}</span> },
@@ -114,7 +115,7 @@ export default function AdminInformasi() {
                   <Undo2 className="w-3 h-3" /> Kembali
                 </Button>
               )}
-              {isSuperAdmin && row.status === 'Selesai' && (row.fileSertifikatUrl || row.fileKtpUrl) && (
+              {isSuperAdmin && row.status === 'Selesai' && (row.fileSertifikatUrl || row.fileKtpUrl || row.fileFotoBangunanUrl) && (
                 <Button size="sm" variant="outline" className="gap-1 text-destructive hover:text-destructive" onClick={() => handleDeleteFiles(row)}>
                   <Trash2 className="w-3 h-3" /> Hapus File
                 </Button>
