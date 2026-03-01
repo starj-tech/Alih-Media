@@ -125,6 +125,7 @@ export async function addBerkas(berkas: Omit<Berkas, 'id' | 'status'>): Promise<
     link_shareloc: berkas.linkShareloc || null,
     file_sertifikat_url: berkas.fileSertifikatUrl || null,
     file_ktp_url: berkas.fileKtpUrl || null,
+    file_foto_bangunan_url: berkas.fileFotoBangunanUrl || null,
   }).select().single();
 
   if (error || !data) return null;
