@@ -58,7 +58,7 @@ export default function SuperAdminDashboard() {
   };
 
   const handleDeleteFiles = async (row: Berkas) => {
-    if (!row.fileSertifikatUrl && !row.fileKtpUrl) { toast.info('Tidak ada file untuk dihapus'); return; }
+    if (!row.fileSertifikatUrl && !row.fileKtpUrl && !row.fileFotoBangunanUrl) { toast.info('Tidak ada file untuk dihapus'); return; }
     const ok = await deleteUploadedFiles(row.id);
     if (ok) { toast.success('File berhasil dihapus'); loadData(); }
     else toast.error('Gagal menghapus file');
@@ -164,7 +164,7 @@ export default function SuperAdminDashboard() {
               <Button size="sm" variant="outline" className="gap-1" onClick={() => setTimelineBerkas(row)}>
                 <Eye className="w-3 h-3" /> Detail
               </Button>
-              {row.status === 'Selesai' && (row.fileSertifikatUrl || row.fileKtpUrl) && (
+              {row.status === 'Selesai' && (row.fileSertifikatUrl || row.fileKtpUrl || row.fileFotoBangunanUrl) && (
                 <Button size="sm" variant="outline" className="gap-1 text-destructive hover:text-destructive" onClick={() => handleDeleteFiles(row)}>
                   <Trash2 className="w-3 h-3" /> Hapus File
                 </Button>
