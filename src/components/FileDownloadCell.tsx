@@ -16,15 +16,33 @@ export default function FileDownloadCell({ url, label }: FileDownloadCellProps) 
   const handleClick = async () => {
     setLoading(true);
     try {
-      const signedUrl = await getSignedFileUrl(url);
-      if (!signedUrl) return;
+      // Open window synchronously to avoid popup blocker (async breaks user gesture)
+      let newWindow: Window | null = null;
       try {
         if (window.top && window.top !== window && typeof window.top.open === 'function') {
-          const w = window.top.open(signedUrl, '_blank', 'noopener,noreferrer');
-          if (w) return;
+          newWindow = window.top.open('about:blank', '_blank', 'noopener,noreferrer');
         }
       } catch { /* cross-origin */ }
-      window.open(signedUrl, '_blank', 'noopener,noreferrer');
+      if (!newWindow) {
+        newWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
+      }
+
+      const signedUrl = await getSignedFileUrl(url);
+      if (!signedUrl) {
+        newWindow?.close();
+        return;
+      }
+
+      if (newWindow) {
+        newWindow.location.href = signedUrl;
+      } else {
+        // Fallback: use anchor element
+        const a = document.createElement('a');
+        a.href = signedUrl;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.click();
+      }
     } finally {
       setLoading(false);
     }
