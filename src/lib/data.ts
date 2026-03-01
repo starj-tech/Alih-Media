@@ -76,13 +76,38 @@ export async function uploadFile(file: File, userId: string, type: 'sertifikat' 
   const fileName = `${userId}/${type}-${Date.now()}.${ext}`;
   const { error } = await supabase.storage.from('berkas-files').upload(fileName, file);
   if (error) return null;
-  const { data: urlData } = supabase.storage.from('berkas-files').getPublicUrl(fileName);
-  return urlData.publicUrl;
+  // Store the file path only (bucket is private, we'll use signed URLs to access)
+  return fileName;
+}
+
+export async function getSignedFileUrl(filePath: string): Promise<string | null> {
+  if (!filePath) return null;
+  // If it's already a full URL (legacy public URL), extract the path
+  if (filePath.startsWith('http')) {
+    const match = filePath.match(/berkas-files\/(.+)$/);
+    if (match) filePath = match[1];
+    else return null;
+  }
+  const { data, error } = await supabase.storage
+    .from('berkas-files')
+    .createSignedUrl(filePath, 3600); // 1 hour expiry
+  if (error || !data) return null;
+  return data.signedUrl;
 }
 
 export async function addBerkas(berkas: Omit<Berkas, 'id' | 'status'>): Promise<Berkas | null> {
-  // Parse dd/mm/yyyy to yyyy-mm-dd
+  // Validate and parse dd/mm/yyyy to yyyy-mm-dd
+  const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
+  if (!dateRegex.test(berkas.tanggalPengajuan)) {
+    throw new Error('Format tanggal tidak valid');
+  }
   const parts = berkas.tanggalPengajuan.split('/');
+  const day = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10);
+  const year = parseInt(parts[2], 10);
+  if (month < 1 || month > 12 || day < 1 || day > 31 || year < 2000 || year > 2100) {
+    throw new Error('Tanggal tidak valid');
+  }
   const dbDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
 
   const { data, error } = await supabase.from('berkas').insert({
