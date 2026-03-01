@@ -141,6 +141,7 @@ export type Database = {
           berkas_id: string
           created_at: string
           id: string
+          ip_address: string | null
         }
         Insert: {
           action: string
@@ -148,6 +149,7 @@ export type Database = {
           berkas_id: string
           created_at?: string
           id?: string
+          ip_address?: string | null
         }
         Update: {
           action?: string
@@ -155,6 +157,7 @@ export type Database = {
           berkas_id?: string
           created_at?: string
           id?: string
+          ip_address?: string | null
         }
         Relationships: []
       }

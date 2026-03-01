@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { FileStack, CheckCircle, XCircle, Clock, FileSearch, CheckSquare, BarChart3, Trash2 } from 'lucide-react';
+import { FileStack, CheckCircle, XCircle, Clock, FileSearch, CheckSquare, BarChart3, Trash2, Eye } from 'lucide-react';
 import StatsCard from '@/components/StatsCard';
 import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
 import ExportExcelButton from '@/components/ExportExcelButton';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
-import { getAdminStats, getAllBerkas, getUsers, deleteBerkas, Berkas, ManagedUser } from '@/lib/data';
+import BerkasTimelineDialog from '@/components/BerkasTimelineDialog';
+import { getAdminStats, getAllBerkas, getUsers, deleteBerkas, deleteUploadedFiles, Berkas, ManagedUser } from '@/lib/data';
 import { getRoleLabel, UserRole } from '@/lib/auth';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ export default function SuperAdminDashboard() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [timelineBerkas, setTimelineBerkas] = useState<Berkas | null>(null);
 
   useEffect(() => {
     getAdminStats().then(setStats);
@@ -53,6 +55,13 @@ export default function SuperAdminDashboard() {
     } finally {
       setDeleting(false);
     }
+  };
+
+  const handleDeleteFiles = async (row: Berkas) => {
+    if (!row.fileSertifikatUrl && !row.fileKtpUrl) { toast.info('Tidak ada file untuk dihapus'); return; }
+    const ok = await deleteUploadedFiles(row.id);
+    if (ok) { toast.success('File berhasil dihapus'); loadData(); }
+    else toast.error('Gagal menghapus file');
   };
 
   const adminUsers = users.filter(u => ['admin_arsip', 'admin_validasi_su', 'admin_validasi_bt', 'admin'].includes(u.role));
@@ -151,13 +160,25 @@ export default function SuperAdminDashboard() {
           { header: 'Kecamatan', accessor: 'kecamatan' },
           { header: 'Status', accessor: (row) => <StatusBadge status={row.status} /> },
           { header: 'Aksi', accessor: (row) => (
-            <Button size="sm" variant="outline" className="gap-1 text-destructive hover:text-destructive" onClick={() => setDeleteId(row.id)}>
-              <Trash2 className="w-3 h-3" /> Hapus
-            </Button>
+            <div className="flex gap-1">
+              <Button size="sm" variant="outline" className="gap-1" onClick={() => setTimelineBerkas(row)}>
+                <Eye className="w-3 h-3" /> Detail
+              </Button>
+              {row.status === 'Selesai' && (row.fileSertifikatUrl || row.fileKtpUrl) && (
+                <Button size="sm" variant="outline" className="gap-1 text-destructive hover:text-destructive" onClick={() => handleDeleteFiles(row)}>
+                  <Trash2 className="w-3 h-3" /> Hapus File
+                </Button>
+              )}
+              <Button size="sm" variant="outline" className="gap-1 text-destructive hover:text-destructive" onClick={() => setDeleteId(row.id)}>
+                <Trash2 className="w-3 h-3" /> Hapus
+              </Button>
+            </div>
           )},
         ]}
         data={filteredBerkas}
       />
+
+      <BerkasTimelineDialog berkas={timelineBerkas} open={!!timelineBerkas} onOpenChange={(open) => { if (!open) setTimelineBerkas(null); }} />
 
       <DeleteConfirmDialog
         open={!!deleteId}
