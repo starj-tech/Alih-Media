@@ -300,6 +300,15 @@ export async function manageUser(action: string, data: Record<string, any>): Pro
   return res.data;
 }
 
+export async function getMyValidationCount(userId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from('validation_logs')
+    .select('*', { count: 'exact', head: true })
+    .eq('admin_id', userId);
+  if (error) return 0;
+  return count || 0;
+}
+
 export function isDueDateOverdue(dateStr: string): boolean {
   const parts = dateStr.split('/');
   const date = new Date(+parts[2], +parts[1] - 1, +parts[0]);
