@@ -73,6 +73,11 @@ export default function UserInformasi() {
     if (!editId || !user) return;
     setSubmitting(true);
     try {
+      if (editForm.noHak.length < 5) {
+        toast.error('No Hak harus minimal 5 digit');
+        return;
+      }
+
       const updates: Record<string, unknown> = {
         no_su_tahun: editForm.noSuTahun,
         no_hak: editForm.noHak,
@@ -201,7 +206,10 @@ export default function UserInformasi() {
             </div>
             <div>
               <Label className="text-xs">No Hak</Label>
-              <Input value={editForm.noHak} onChange={e => setEditForm(f => ({ ...f, noHak: e.target.value }))} className="mt-1 h-8 text-sm" />
+              <Input value={editForm.noHak} onChange={e => setEditForm(f => ({ ...f, noHak: e.target.value }))} className="mt-1 h-8 text-sm" minLength={5} maxLength={50} />
+              {editForm.noHak.length > 0 && editForm.noHak.length < 5 && (
+                <p className="text-xs text-destructive mt-1">No Hak harus minimal 5 digit</p>
+              )}
             </div>
             <div>
               <Label className="text-xs">Link Shareloc (opsional)</Label>
