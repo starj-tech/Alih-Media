@@ -79,11 +79,15 @@ export default function UserInformasi() {
         link_shareloc: editForm.linkShareloc || null,
       };
 
-      // Only reset status to Proses if currently Ditolak
+      // If currently Ditolak, restore to the stage that rejected it
       const currentBerkas = berkas.find(b => b.id === editId);
       if (currentBerkas?.status === 'Ditolak') {
-        updates.status = 'Proses' as BerkasStatus;
+        // Fetch the rejected_from_status from DB
+        const { data: berkasRow } = await supabase.from('berkas').select('rejected_from_status').eq('id', editId).single();
+        const restoreStatus = berkasRow?.rejected_from_status || 'Proses';
+        updates.status = restoreStatus as BerkasStatus;
         updates.catatan_penolakan = null;
+        updates.rejected_from_status = null;
       }
 
       if (fileSertifikat) {

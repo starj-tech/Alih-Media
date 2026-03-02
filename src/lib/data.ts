@@ -135,6 +135,15 @@ export async function addBerkas(berkas: Omit<Berkas, 'id' | 'status'>): Promise<
 export async function updateBerkasStatus(id: string, status: BerkasStatus, catatan?: string, validatorId?: string) {
   const updates: any = { status };
   if (catatan !== undefined) updates.catatan_penolakan = catatan;
+
+  // If rejecting, store the current status so resubmission returns to the correct stage
+  if (status === 'Ditolak') {
+    const { data: current } = await supabase.from('berkas').select('status').eq('id', id).single();
+    if (current) {
+      updates.rejected_from_status = current.status;
+    }
+  }
+
   if (validatorId) {
     updates.validated_by = validatorId;
     updates.validated_at = new Date().toISOString();
