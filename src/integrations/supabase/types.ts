@@ -30,6 +30,7 @@ export type Database = {
           no_hak: string
           no_su_tahun: string
           no_telepon: string
+          rejected_from_status: string | null
           status: Database["public"]["Enums"]["berkas_status"]
           tanggal_pengajuan: string
           updated_at: string
@@ -52,6 +53,7 @@ export type Database = {
           no_hak: string
           no_su_tahun: string
           no_telepon: string
+          rejected_from_status?: string | null
           status?: Database["public"]["Enums"]["berkas_status"]
           tanggal_pengajuan?: string
           updated_at?: string
@@ -74,6 +76,7 @@ export type Database = {
           no_hak?: string
           no_su_tahun?: string
           no_telepon?: string
+          rejected_from_status?: string | null
           status?: Database["public"]["Enums"]["berkas_status"]
           tanggal_pengajuan?: string
           updated_at?: string
