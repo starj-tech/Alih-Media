@@ -35,7 +35,8 @@ export default function ArsipVerifikasi() {
   const handleTolak = async () => {
     if (!tolakId) return;
     if (!catatan.trim()) { toast.error('Masukkan catatan penolakan'); return; }
-    await updateBerkasStatus(tolakId, 'Ditolak', catatan.trim(), user?.id);
+    const currentStatus = berkas.find(b => b.id === tolakId)?.status;
+    await updateBerkasStatus(tolakId, 'Ditolak', catatan.trim(), user?.id, currentStatus);
     toast.success('Berkas ditolak');
     setTolakId(null);
     setCatatan('');

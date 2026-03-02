@@ -115,6 +115,12 @@ export default function PengajuanAlihmedia() {
       return;
     }
 
+    const noSuNumber = sanitized.noSuTahun.split('/')[0]?.replace(/\D/g, '') || '';
+    if (noSuNumber.length < 5) {
+      toast.error('No SU harus minimal 5 digit');
+      return;
+    }
+
     if (sanitized.noHak.length < 5) {
       toast.error('No Hak harus minimal 5 digit');
       return;
@@ -226,8 +232,12 @@ export default function PengajuanAlihmedia() {
                 onChange={e => setForm(f => ({ ...f, noSuTahun: e.target.value }))}
                 placeholder="Contoh: 03360/2026"
                 className="mt-1 h-8 text-sm"
+                minLength={5}
                 maxLength={50}
               />
+              {(form.noSuTahun.split('/')[0]?.replace(/\D/g, '') || '').length > 0 && (form.noSuTahun.split('/')[0]?.replace(/\D/g, '') || '').length < 5 && (
+                <p className="text-xs text-destructive mt-1">No SU harus minimal 5 digit</p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">

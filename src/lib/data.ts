@@ -132,16 +132,37 @@ export async function addBerkas(berkas: Omit<Berkas, 'id' | 'status'>): Promise<
   return mapRow(data);
 }
 
-export async function updateBerkasStatus(id: string, status: BerkasStatus, catatan?: string, validatorId?: string) {
-  const updates: any = { status };
+export async function updateBerkasStatus(
+  id: string,
+  status: BerkasStatus,
+  catatan?: string,
+  validatorId?: string,
+  currentStatus?: BerkasStatus,
+) {
+  const updates: Record<string, any> = { status };
   if (catatan !== undefined) updates.catatan_penolakan = catatan;
 
-  // If rejecting, store the current status so resubmission returns to the correct stage
+  // If rejecting, persist stage origin so user resubmission goes back to rejecting stage
   if (status === 'Ditolak') {
-    const { data: current } = await supabase.from('berkas').select('status').eq('id', id).single();
-    if (current) {
-      updates.rejected_from_status = current.status;
+    let rejectedFrom: string | null = null;
+
+    if (currentStatus && currentStatus !== 'Ditolak') {
+      rejectedFrom = currentStatus;
+    } else {
+      const { data: current } = await supabase
+        .from('berkas')
+        .select('status, rejected_from_status')
+        .eq('id', id)
+        .single();
+
+      if (current?.status && current.status !== 'Ditolak') {
+        rejectedFrom = current.status;
+      } else if (current?.rejected_from_status) {
+        rejectedFrom = current.rejected_from_status;
+      }
     }
+
+    updates.rejected_from_status = rejectedFrom || 'Proses';
   }
 
   if (validatorId) {
@@ -152,6 +173,7 @@ export async function updateBerkasStatus(id: string, status: BerkasStatus, catat
       body: { berkas_id: id, action: status },
     });
   }
+
   await supabase.from('berkas').update(updates).eq('id', id);
 }
 

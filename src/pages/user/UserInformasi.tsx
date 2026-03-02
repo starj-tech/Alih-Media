@@ -73,6 +73,12 @@ export default function UserInformasi() {
     if (!editId || !user) return;
     setSubmitting(true);
     try {
+      const noSuNumber = editForm.noSuTahun.split('/')[0]?.replace(/\D/g, '') || '';
+      if (noSuNumber.length < 5) {
+        toast.error('No SU harus minimal 5 digit');
+        return;
+      }
+
       if (editForm.noHak.length < 5) {
         toast.error('No Hak harus minimal 5 digit');
         return;
@@ -202,7 +208,10 @@ export default function UserInformasi() {
             )}
             <div>
               <Label className="text-xs">No.SU/Tahun</Label>
-              <Input value={editForm.noSuTahun} onChange={e => setEditForm(f => ({ ...f, noSuTahun: e.target.value }))} className="mt-1 h-8 text-sm" />
+              <Input value={editForm.noSuTahun} onChange={e => setEditForm(f => ({ ...f, noSuTahun: e.target.value }))} className="mt-1 h-8 text-sm" minLength={5} maxLength={50} />
+              {(editForm.noSuTahun.split('/')[0]?.replace(/\D/g, '') || '').length > 0 && (editForm.noSuTahun.split('/')[0]?.replace(/\D/g, '') || '').length < 5 && (
+                <p className="text-xs text-destructive mt-1">No SU harus minimal 5 digit</p>
+              )}
             </div>
             <div>
               <Label className="text-xs">No Hak</Label>
