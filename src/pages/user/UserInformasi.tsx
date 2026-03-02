@@ -79,30 +79,10 @@ export default function UserInformasi() {
         link_shareloc: editForm.linkShareloc || null,
       };
 
-      // If currently Ditolak, return to the stage that rejected it
+      // Only reset status to Proses if currently Ditolak
       const currentBerkas = berkas.find(b => b.id === editId);
       if (currentBerkas?.status === 'Ditolak') {
-        // Find which stage rejected by checking the log entry before 'Ditolak'
-        let returnStatus: BerkasStatus = 'Proses';
-        try {
-          // Get the last 2 logs: the Ditolak entry and the one before it (the stage)
-          const { data: logs } = await supabase
-            .from('validation_logs')
-            .select('action')
-            .eq('berkas_id', editId)
-            .order('created_at', { ascending: false })
-            .limit(2);
-          if (logs && logs.length >= 2) {
-            // logs[0] = 'Ditolak', logs[1] = the stage it was at before rejection
-            const previousStage = logs[1].action as BerkasStatus;
-            if (['Validasi SU & Bidang', 'Validasi BT', 'Proses'].includes(previousStage)) {
-              returnStatus = previousStage;
-            }
-          }
-        } catch {
-          // Fallback to Proses
-        }
-        updates.status = returnStatus;
+        updates.status = 'Proses' as BerkasStatus;
         updates.catatan_penolakan = null;
       }
 
