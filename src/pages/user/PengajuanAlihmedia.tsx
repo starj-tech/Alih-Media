@@ -115,6 +115,11 @@ export default function PengajuanAlihmedia() {
       return;
     }
 
+    if (sanitized.noHak.length < 5) {
+      toast.error('No Hak harus minimal 5 digit');
+      return;
+    }
+
     // Super User doesn't need to upload files
     if (!isSU) {
       if (!fileSertifikat || !fileKtp) {
@@ -233,8 +238,12 @@ export default function PengajuanAlihmedia() {
                   onChange={e => setForm(f => ({ ...f, noHak: e.target.value }))}
                   placeholder="Contoh: 00455"
                   className="mt-1 h-8 text-sm"
+                  minLength={5}
                   maxLength={50}
                 />
+                {form.noHak.length > 0 && form.noHak.length < 5 && (
+                  <p className="text-xs text-destructive mt-1">No Hak harus minimal 5 digit</p>
+                )}
               </div>
               <div>
                 <Label className="text-xs">Pilih Jenis Hak <span className="text-destructive">*</span></Label>
