@@ -6,8 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Mail, Lock, LogIn, UserPlus, User, Phone, Building2 } from 'lucide-react';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { Mail, Lock, LogIn, UserPlus, User, Phone, Building2, KeyRound, ArrowLeft, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import logoBpn from '@/assets/logo-bpn.png';
 import loginBg from '@/assets/login-bg.jpeg';
 
@@ -20,6 +22,8 @@ const penggunaOptions = [
 ] as const;
 
 const needsInstansi = (val: string) => ['Staf PPAT', 'Bank', 'PT/Badan Hukum'].includes(val);
+
+type ForgotStep = 'choose' | 'email-sent' | 'otp-send' | 'otp-verify' | 'reset-password';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -34,6 +38,16 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { login, register } = useAuth();
   const navigate = useNavigate();
+
+  // Forgot password state
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotStep, setForgotStep] = useState<ForgotStep>('choose');
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [maskedPhone, setMaskedPhone] = useState('');
+  const [otpValue, setOtpValue] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +100,87 @@ export default function LoginPage() {
     setRegPengguna(''); setRegNamaInstansi(''); setRegPassword('');
   };
 
+  const openForgot = () => {
+    setForgotEmail('');
+    setOtpValue('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setMaskedPhone('');
+    setForgotStep('choose');
+    setShowForgot(true);
+  };
+
+  // Email reset
+  const handleEmailReset = async () => {
+    if (!forgotEmail.trim()) { toast.error('Email harus diisi'); return; }
+    setForgotLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+      redirectTo: `${window.location.origin}/#/reset-password`,
+    });
+    setForgotLoading(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      setForgotStep('email-sent');
+    }
+  };
+
+  // WhatsApp OTP send
+  const handleSendOtp = async () => {
+    if (!forgotEmail.trim()) { toast.error('Email harus diisi'); return; }
+    setForgotLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('password-reset-otp', {
+        body: { action: 'send-otp', email: forgotEmail },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); setForgotLoading(false); return; }
+      setMaskedPhone(data.maskedPhone || '');
+      toast.success('Kode OTP telah dikirim via WhatsApp');
+      setForgotStep('otp-verify');
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal mengirim OTP');
+    }
+    setForgotLoading(false);
+  };
+
+  // Verify OTP
+  const handleVerifyOtp = async () => {
+    if (otpValue.length !== 6) { toast.error('Masukkan 6 digit kode OTP'); return; }
+    setForgotLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('password-reset-otp', {
+        body: { action: 'verify-otp', email: forgotEmail, otp: otpValue },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); setForgotLoading(false); return; }
+      toast.success('OTP terverifikasi!');
+      setForgotStep('reset-password');
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal verifikasi OTP');
+    }
+    setForgotLoading(false);
+  };
+
+  // Reset password via OTP
+  const handleResetPassword = async () => {
+    if (newPassword.length < 6) { toast.error('Password minimal 6 karakter'); return; }
+    if (newPassword !== confirmPassword) { toast.error('Konfirmasi password tidak cocok'); return; }
+    setForgotLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('password-reset-otp', {
+        body: { action: 'reset-password', email: forgotEmail, otp: otpValue, newPassword },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); setForgotLoading(false); return; }
+      toast.success('Password berhasil diubah! Silakan login.');
+      setShowForgot(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal reset password');
+    }
+    setForgotLoading(false);
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
       <div className="absolute inset-0 z-0">
@@ -119,6 +214,12 @@ export default function LoginPage() {
               </div>
             </div>
 
+            <div className="text-right">
+              <button type="button" onClick={openForgot} className="text-sm text-primary hover:underline">
+                Lupa Password?
+              </button>
+            </div>
+
             <div className="flex gap-3 pt-2">
               <Button type="submit" variant="secondary" className="flex-1 gap-2 bg-muted-foreground text-white hover:bg-muted-foreground/80" disabled={loading}>
                 <LogIn className="w-4 h-4" />
@@ -133,6 +234,7 @@ export default function LoginPage() {
         </div>
       </div>
 
+      {/* Registration Dialog */}
       <Dialog open={showRegister} onOpenChange={setShowRegister}>
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -200,6 +302,121 @@ export default function LoginPage() {
               {loading ? 'Memproses...' : 'Daftar'}
             </Button>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Forgot Password Dialog */}
+      <Dialog open={showForgot} onOpenChange={setShowForgot}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="w-5 h-5" />
+              Lupa Password
+            </DialogTitle>
+          </DialogHeader>
+
+          {/* Step: Choose method */}
+          {forgotStep === 'choose' && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Masukkan email akun Anda, lalu pilih metode verifikasi untuk reset password.
+              </p>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input type="email" placeholder="Masukkan email akun" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} className="pl-10" maxLength={255} />
+                </div>
+              </div>
+              <div className="grid gap-3">
+                <Button onClick={handleEmailReset} disabled={forgotLoading} variant="outline" className="w-full gap-2 justify-start h-auto py-3">
+                  <Mail className="w-5 h-5 text-primary shrink-0" />
+                  <div className="text-left">
+                    <div className="font-medium">Reset via Email</div>
+                    <div className="text-xs text-muted-foreground">Link reset dikirim ke email Anda</div>
+                  </div>
+                </Button>
+                <Button onClick={handleSendOtp} disabled={forgotLoading} variant="outline" className="w-full gap-2 justify-start h-auto py-3">
+                  <MessageCircle className="w-5 h-5 text-green-600 shrink-0" />
+                  <div className="text-left">
+                    <div className="font-medium">Reset via WhatsApp OTP</div>
+                    <div className="text-xs text-muted-foreground">Kode OTP dikirim ke nomor terdaftar</div>
+                  </div>
+                </Button>
+              </div>
+              {forgotLoading && <p className="text-sm text-center text-muted-foreground">Memproses...</p>}
+            </div>
+          )}
+
+          {/* Step: Email sent */}
+          {forgotStep === 'email-sent' && (
+            <div className="space-y-4 text-center py-4">
+              <Mail className="w-12 h-12 mx-auto text-primary" />
+              <div>
+                <p className="font-medium">Link Reset Terkirim!</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Silakan cek email <strong>{forgotEmail}</strong> untuk link reset password.
+                </p>
+              </div>
+              <Button onClick={() => setShowForgot(false)} className="w-full">Kembali ke Login</Button>
+            </div>
+          )}
+
+          {/* Step: OTP verify */}
+          {forgotStep === 'otp-verify' && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Kode OTP 6 digit telah dikirim ke WhatsApp <strong>{maskedPhone}</strong>. Kode berlaku 5 menit.
+              </p>
+              <div className="flex justify-center">
+                <InputOTP maxLength={6} value={otpValue} onChange={setOtpValue}>
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+              <Button onClick={handleVerifyOtp} disabled={forgotLoading || otpValue.length !== 6} className="w-full">
+                {forgotLoading ? 'Memverifikasi...' : 'Verifikasi OTP'}
+              </Button>
+              <div className="flex items-center justify-between">
+                <button type="button" onClick={() => setForgotStep('choose')} className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1">
+                  <ArrowLeft className="w-3 h-3" /> Kembali
+                </button>
+                <button type="button" onClick={handleSendOtp} className="text-sm text-primary hover:underline" disabled={forgotLoading}>
+                  Kirim Ulang OTP
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step: Set new password */}
+          {forgotStep === 'reset-password' && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">Masukkan password baru Anda.</p>
+              <div className="space-y-2">
+                <Label>Password Baru (min. 6 karakter)</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input type="password" placeholder="Masukkan password baru" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="pl-10" minLength={6} maxLength={128} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Konfirmasi Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input type="password" placeholder="Ulangi password baru" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="pl-10" maxLength={128} />
+                </div>
+              </div>
+              <Button onClick={handleResetPassword} disabled={forgotLoading} className="w-full">
+                {forgotLoading ? 'Memproses...' : 'Ubah Password'}
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
