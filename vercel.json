@@ -3,6 +3,10 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "redirects": [
+    { "source": "/admin/:path*", "destination": "/#/admin/:path*", "permanent": false },
+    { "source": "/user/:path*", "destination": "/#/user/:path*", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
