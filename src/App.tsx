@@ -21,6 +21,7 @@ import KelolaUser from "@/pages/admin/KelolaUser";
 import UserDashboard from "@/pages/user/UserDashboard";
 import PengajuanAlihmedia from "@/pages/user/PengajuanAlihmedia";
 import UserInformasi from "@/pages/user/UserInformasi";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ function AppRoutes() {
   if (!user) {
     return (
       <Routes>
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="*" element={<LoginPage />} />
       </Routes>
     );
