@@ -27,9 +27,11 @@ export type Database = {
           kecamatan: string
           link_shareloc: string | null
           nama_pemegang_hak: string
+          nama_pemilik_sertifikat: string | null
           no_hak: string
           no_su_tahun: string
           no_telepon: string
+          no_wa_pemohon: string | null
           rejected_from_status: string | null
           status: Database["public"]["Enums"]["berkas_status"]
           tanggal_pengajuan: string
@@ -50,9 +52,11 @@ export type Database = {
           kecamatan: string
           link_shareloc?: string | null
           nama_pemegang_hak: string
+          nama_pemilik_sertifikat?: string | null
           no_hak: string
           no_su_tahun: string
           no_telepon: string
+          no_wa_pemohon?: string | null
           rejected_from_status?: string | null
           status?: Database["public"]["Enums"]["berkas_status"]
           tanggal_pengajuan?: string
@@ -73,9 +77,11 @@ export type Database = {
           kecamatan?: string
           link_shareloc?: string | null
           nama_pemegang_hak?: string
+          nama_pemilik_sertifikat?: string | null
           no_hak?: string
           no_su_tahun?: string
           no_telepon?: string
+          no_wa_pemohon?: string | null
           rejected_from_status?: string | null
           status?: Database["public"]["Enums"]["berkas_status"]
           tanggal_pengajuan?: string
