@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Send, XCircle, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -28,13 +29,6 @@ export default function ValidasiBukuTanah() {
   };
 
   useEffect(() => { loadData(); }, []);
-
-  const formatPhoneForWa = (phone: string): string => {
-    let cleaned = phone.replace(/\D/g, '');
-    if (cleaned.startsWith('0')) cleaned = '62' + cleaned.slice(1);
-    if (!cleaned.startsWith('62')) cleaned = '62' + cleaned;
-    return cleaned;
-  };
 
   const handleKirim = async (id: string) => {
     const item = berkas.find(b => b.id === id);
@@ -60,9 +54,21 @@ export default function ValidasiBukuTanah() {
       const noHak = item?.noHak || '';
       const tahun = new Date().getFullYear();
       const message = `Yth Bapak/Ibu ${namaPenerima.toUpperCase()},\n\nBerkas layanan Perubahan Hak Atas Tanah dengan nomor ${noHak} tahun ${tahun} sudah selesai, silahkan mengambil produknya di Kantor Pertanahan Kabupaten Bogor II,\n\nPertanyaan, saran dan keluhan dapat menghubungi Kantor Pertanahan Kabupaten Bogor II\nAlamat : Jl. Alternatif Cibubur no. 6 Cileungsi, Kecamatan Cileungsi, Kabupaten Bogor, Jawa Barat 16820\n\nTerima Kasih`;
-      const encoded = encodeURIComponent(message);
-      const formattedPhone = formatPhoneForWa(waNumber);
-      window.open(`https://wa.me/${formattedPhone}?text=${encoded}`, '_blank');
+
+      try {
+        const { data, error } = await supabase.functions.invoke('send-whatsapp', {
+          body: { phone: waNumber, message },
+        });
+        if (error) {
+          toast.error('Gagal mengirim notifikasi WhatsApp');
+          console.error('WA error:', error);
+        } else {
+          toast.success('Notifikasi WhatsApp berhasil dikirim');
+        }
+      } catch (e) {
+        toast.error('Gagal mengirim notifikasi WhatsApp');
+        console.error('WA error:', e);
+      }
     }
 
     loadData();
