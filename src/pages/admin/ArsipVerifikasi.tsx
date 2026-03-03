@@ -19,6 +19,7 @@ export default function ArsipVerifikasi() {
   const [tolakId, setTolakId] = useState<string | null>(null);
   const [catatan, setCatatan] = useState('');
   const [processing, setProcessing] = useState<string | null>(null);
+  const [confirmKirimId, setConfirmKirimId] = useState<string | null>(null);
   const loadData = async () => {
     const all = await getAllBerkas();
     setBerkas(all.filter(b => b.status === 'Proses'));
@@ -82,7 +83,7 @@ export default function ArsipVerifikasi() {
           { header: 'Catatan', accessor: (row) => <span className="text-xs text-muted-foreground">{row.catatanPenolakan || '-'}</span> },
           { header: 'Aksi', accessor: (row) => (
             <div className="flex gap-1">
-              <Button size="sm" className="gap-1" disabled={processing === row.id} onClick={() => handleKirim(row.id)}><Send className="w-3 h-3" /> Kirim</Button>
+              <Button size="sm" className="gap-1" disabled={processing === row.id} onClick={() => setConfirmKirimId(row.id)}><Send className="w-3 h-3" /> Kirim</Button>
               <Button size="sm" variant="destructive" className="gap-1" onClick={() => { setTolakId(row.id); setCatatan(row.catatanPenolakan || ''); }}><XCircle className="w-3 h-3" /> Tolak</Button>
             </div>
           )},
@@ -106,6 +107,17 @@ export default function ArsipVerifikasi() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setTolakId(null)}>Batal</Button>
             <Button variant="destructive" onClick={handleTolak}>Tolak Berkas</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!confirmKirimId} onOpenChange={(open) => { if (!open) setConfirmKirimId(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Konfirmasi Kirim</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Apakah Data Yang Akan di kirim sudah sesuai?</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmKirimId(null)}>Batal</Button>
+            <Button onClick={() => { if (confirmKirimId) { handleKirim(confirmKirimId); setConfirmKirimId(null); } }}>Ya, Kirim</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
