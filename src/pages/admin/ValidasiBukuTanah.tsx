@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Send, XCircle, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -55,20 +55,12 @@ export default function ValidasiBukuTanah() {
       const tahun = new Date().getFullYear();
       const message = `Yth Bapak/Ibu ${namaPenerima.toUpperCase()},\n\nBerkas layanan Perubahan Hak Atas Tanah dengan nomor ${noHak} tahun ${tahun} sudah selesai, silahkan mengambil produknya di Kantor Pertanahan Kabupaten Bogor II,\n\nPertanyaan, saran dan keluhan dapat menghubungi Kantor Pertanahan Kabupaten Bogor II\nAlamat : Jl. Alternatif Cibubur no. 6 Cileungsi, Kecamatan Cileungsi, Kabupaten Bogor, Jawa Barat 16820\n\nTerima Kasih`;
 
-      try {
-        const { data, error } = await supabase.functions.invoke('send-whatsapp', {
-          body: { phone: waNumber, message },
-        });
-        if (error) {
-          toast.error('Gagal mengirim notifikasi WhatsApp');
-          console.error('WA error:', error);
-        } else {
-          toast.success('Notifikasi WhatsApp berhasil dikirim');
-        }
-      } catch (e) {
-        toast.error('Gagal mengirim notifikasi WhatsApp');
-        console.error('WA error:', e);
-      }
+      let cleaned = waNumber.replace(/\D/g, '');
+      if (cleaned.startsWith('0')) cleaned = '62' + cleaned.slice(1);
+      if (!cleaned.startsWith('62')) cleaned = '62' + cleaned;
+
+      const waUrl = `https://wa.me/${cleaned}?text=${encodeURIComponent(message)}`;
+      window.open(waUrl, '_blank');
     }
 
     loadData();
