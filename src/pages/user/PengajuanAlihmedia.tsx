@@ -40,6 +40,8 @@ export default function PengajuanAlihmedia() {
     desa: '',
     kecamatan: '',
     linkShareloc: '',
+    namaPemilikSertifikat: '',
+    noWaPemohon: '',
   });
 
   const [fileSertifikat, setFileSertifikat] = useState<File | null>(null);
@@ -115,6 +117,11 @@ export default function PengajuanAlihmedia() {
       return;
     }
 
+    if (isSU && (!form.namaPemilikSertifikat.trim() || !form.noWaPemohon.trim())) {
+      toast.error('Nama Pemilik Sertipikat dan Nomor WhatsApp wajib diisi');
+      return;
+    }
+
     const noSuNumber = sanitized.noSuTahun.split('/')[0]?.replace(/\D/g, '') || '';
     if (noSuNumber.length < 5) {
       toast.error('No SU harus minimal 5 digit');
@@ -167,10 +174,12 @@ export default function PengajuanAlihmedia() {
         fileSertifikatUrl: sertifikatUrl || undefined,
         fileKtpUrl: ktpUrl || undefined,
         fileFotoBangunanUrl: fotoBangunanUrl || undefined,
-      });
+        namaPemilikSertifikat: isSU ? sanitizeString(form.namaPemilikSertifikat) : undefined,
+        noWaPemohon: isSU ? sanitizeString(form.noWaPemohon) : undefined,
+      } as any);
       if (result) {
         toast.success('Pengajuan berhasil dikirim!');
-        setForm({ noSuTahun: '', jenisHak: '', noHak: '', desa: '', kecamatan: '', linkShareloc: '' });
+        setForm({ noSuTahun: '', jenisHak: '', noHak: '', desa: '', kecamatan: '', linkShareloc: '', namaPemilikSertifikat: '', noWaPemohon: '' });
         setFileSertifikat(null);
         setFileKtp(null);
         setFileFotoBangunan(null);
@@ -224,6 +233,31 @@ export default function PengajuanAlihmedia() {
               <Label className="text-xs">Nama Pemohon</Label>
               <Input value={user?.name || ''} disabled className="bg-muted/50 mt-1 h-8 text-sm" />
             </div>
+
+            {isSU && (
+              <>
+                <div>
+                  <Label className="text-xs">Nama Pemilik Sertipikat <span className="text-destructive">*</span></Label>
+                  <Input
+                    value={form.namaPemilikSertifikat}
+                    onChange={e => setForm(f => ({ ...f, namaPemilikSertifikat: e.target.value }))}
+                    placeholder="Masukkan nama pemilik sertipikat"
+                    className="mt-1 h-8 text-sm"
+                    maxLength={100}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Nomor WhatsApp Pemohon <span className="text-destructive">*</span></Label>
+                  <Input
+                    value={form.noWaPemohon}
+                    onChange={e => setForm(f => ({ ...f, noWaPemohon: e.target.value }))}
+                    placeholder="Contoh: 08123456789"
+                    className="mt-1 h-8 text-sm"
+                    maxLength={20}
+                  />
+                </div>
+              </>
+            )}
 
             <div>
               <Label className="text-xs">No.SU/Tahun <span className="text-destructive">*</span></Label>
