@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mengalihkan...</title>
+    <script>
+      (function () {
+        var path = window.location.pathname;
+        var search = window.location.search || "";
+
+        if (path === "/" || path === "/index.html") return;
+
+        var normalizedPath = path.endsWith("/") ? path.slice(0, -1) : path;
+        window.location.replace("/#" + normalizedPath + search);
+      })();
+    </script>
+  </head>
+  <body>
+    <p>Sedang mengalihkan ke aplikasi...</p>
+  </body>
+</html>
