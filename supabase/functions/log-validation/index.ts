@@ -45,6 +45,22 @@ Deno.serve(async (req) => {
     || req.headers.get('cf-connecting-ip')
     || 'unknown';
 
+  // Prevent duplicate logs (same berkas, admin, action within 10 seconds)
+  const { data: recentLog } = await supabase
+    .from('validation_logs')
+    .select('id')
+    .eq('berkas_id', berkas_id)
+    .eq('admin_id', caller.id)
+    .eq('action', action)
+    .gte('created_at', new Date(Date.now() - 10000).toISOString())
+    .limit(1);
+
+  if (recentLog && recentLog.length > 0) {
+    return new Response(JSON.stringify({ success: true, deduplicated: true }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   const { error } = await supabase.from('validation_logs').insert({
     berkas_id,
     admin_id: caller.id,

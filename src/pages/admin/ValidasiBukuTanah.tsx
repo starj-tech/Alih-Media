@@ -21,6 +21,7 @@ export default function ValidasiBukuTanah() {
   const [tolakId, setTolakId] = useState<string | null>(null);
   const [catatan, setCatatan] = useState('');
   const [kembalikanId, setKembalikanId] = useState<string | null>(null);
+  const [processing, setProcessing] = useState<string | null>(null);
 
   const loadData = async () => {
     const [all, allUsers] = await Promise.all([getAllBerkas(), getUsers()]);
@@ -31,8 +32,12 @@ export default function ValidasiBukuTanah() {
   useEffect(() => { loadData(); }, []);
 
   const handleKirim = async (id: string) => {
+    if (processing) return;
+    setProcessing(id);
+    try {
     const item = berkas.find(b => b.id === id);
     await updateBerkasStatus(id, 'Selesai', undefined, user?.id);
+    toast.success('Berkas selesai divalidasi');
     toast.success('Berkas selesai divalidasi');
 
     // Determine WhatsApp number and name
@@ -52,8 +57,10 @@ export default function ValidasiBukuTanah() {
 
     if (waNumber) {
       const noHak = item?.noHak || '';
-      const tahun = new Date().getFullYear();
-      const message = `Yth Bapak/Ibu ${namaPenerima.toUpperCase()},\n\nBerkas layanan Perubahan Hak Atas Tanah dengan nomor ${noHak} tahun ${tahun} sudah selesai, silahkan mengambil produknya di Kantor Pertanahan Kabupaten Bogor II,\n\nPertanyaan, saran dan keluhan dapat menghubungi Kantor Pertanahan Kabupaten Bogor II\nAlamat : Jl. Alternatif Cibubur no. 6 Cileungsi, Kecamatan Cileungsi, Kabupaten Bogor, Jawa Barat 16820\n\nTerima Kasih`;
+      // Extract year from noSuTahun (format: XXXXX/YYYY)
+      const suParts = (item?.noSuTahun || '').split('/');
+      const tahun = suParts.length > 1 ? suParts[1] : String(new Date().getFullYear());
+      const message = `Yth Bapak/Ibu ${namaPenerima.toUpperCase()},\n\nBerkas layanan Perubahan Hak Atas Tanah dengan nomor ${noHak} tahun ${tahun} sudah selesai, silahkan mengambil produknya  di Kantor Pertanahan Kabupaten Bogor II,\n\nPertanyaan, saran dan keluhan dapat menghubungi Kantor Pertanahan Kabupaten Bogor II\n\nAlamat : Jl. Alternatif Cibubur no. 6 Cileungsi, Kecamatan Cileungsi, Kabupaten Bogor, Jawa Barat 16820\n\nTerima Kasih`;
 
       let cleaned = waNumber.replace(/\D/g, '');
       if (cleaned.startsWith('0')) cleaned = '62' + cleaned.slice(1);
@@ -64,6 +71,9 @@ export default function ValidasiBukuTanah() {
     }
 
     loadData();
+    } finally {
+      setProcessing(null);
+    }
   };
 
   const handleTolak = async () => {
@@ -117,7 +127,7 @@ export default function ValidasiBukuTanah() {
           { header: 'Catatan', accessor: (row) => <span className="text-xs text-muted-foreground">{row.catatanPenolakan || '-'}</span> },
           { header: 'Aksi', accessor: (row) => (
             <div className="flex gap-1">
-              <Button size="sm" className="gap-1" onClick={() => handleKirim(row.id)}><Send className="w-3 h-3" /> Kirim</Button>
+              <Button size="sm" className="gap-1" disabled={processing === row.id} onClick={() => handleKirim(row.id)}><Send className="w-3 h-3" /> Kirim</Button>
               <Button size="sm" variant="destructive" className="gap-1" onClick={() => { setTolakId(row.id); setCatatan(row.catatanPenolakan || ''); }}><XCircle className="w-3 h-3" /> Tolak</Button>
               <Button size="sm" variant="outline" className="gap-1" onClick={() => setKembalikanId(row.id)}><Undo2 className="w-3 h-3" /></Button>
             </div>
