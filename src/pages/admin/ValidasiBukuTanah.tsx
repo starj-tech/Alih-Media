@@ -4,7 +4,7 @@ import StatusBadge from '@/components/StatusBadge';
 import FileDownloadCell from '@/components/FileDownloadCell';
 import ExternalLinkCell from '@/components/ExternalLinkCell';
 import ExportExcelButton from '@/components/ExportExcelButton';
-import { getAllBerkas, updateBerkasStatus, isDueDateOverdue, Berkas } from '@/lib/data';
+import { getAllBerkas, updateBerkasStatus, isDueDateOverdue, Berkas, getUsers, ManagedUser } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Send, XCircle, Undo2 } from 'lucide-react';
@@ -16,20 +16,55 @@ import { Label } from '@/components/ui/label';
 export default function ValidasiBukuTanah() {
   const { user } = useAuth();
   const [berkas, setBerkas] = useState<Berkas[]>([]);
+  const [users, setUsers] = useState<ManagedUser[]>([]);
   const [tolakId, setTolakId] = useState<string | null>(null);
   const [catatan, setCatatan] = useState('');
   const [kembalikanId, setKembalikanId] = useState<string | null>(null);
 
   const loadData = async () => {
-    const all = await getAllBerkas();
+    const [all, allUsers] = await Promise.all([getAllBerkas(), getUsers()]);
     setBerkas(all.filter(b => b.status === 'Validasi BT'));
+    setUsers(allUsers);
   };
 
   useEffect(() => { loadData(); }, []);
 
+  const formatPhoneForWa = (phone: string): string => {
+    let cleaned = phone.replace(/\D/g, '');
+    if (cleaned.startsWith('0')) cleaned = '62' + cleaned.slice(1);
+    if (!cleaned.startsWith('62')) cleaned = '62' + cleaned;
+    return cleaned;
+  };
+
   const handleKirim = async (id: string) => {
+    const item = berkas.find(b => b.id === id);
     await updateBerkasStatus(id, 'Selesai', undefined, user?.id);
     toast.success('Berkas selesai divalidasi');
+
+    // Determine WhatsApp number and name
+    let waNumber = '';
+    let namaPenerima = '';
+    
+    if (item?.noWaPemohon) {
+      // Super User submission - use WA number from berkas
+      waNumber = item.noWaPemohon;
+      namaPenerima = item.namaPemilikSertifikat || item.namaPemegangHak;
+    } else if (item) {
+      // Regular user - use registered phone number
+      const submitter = users.find(u => u.id === item.userId);
+      waNumber = submitter?.noTelepon || '';
+      namaPenerima = item.namaPemegangHak;
+    }
+
+    if (waNumber) {
+      const noHak = item?.noHak || '';
+      const tahun = new Date().getFullYear();
+      const message = `Yth Bapak/Ibu ${namaPenerima.toUpperCase()},\n\nBerkas layanan Perubahan Hak Atas Tanah dengan nomor ${noHak} tahun ${tahun} sudah selesai, silahkan mengambil produknya di Kantor Pertanahan Kabupaten Bogor II,\n\nPertanyaan, saran dan keluhan dapat menghubungi Kantor Pertanahan Kabupaten Bogor II\nAlamat : Jl. Alternatif Cibubur no. 6 Cileungsi, Kecamatan Cileungsi, Kabupaten Bogor, Jawa Barat 16820\n\nTerima Kasih`;
+      const encoded = encodeURIComponent(message);
+      const formattedPhone = formatPhoneForWa(waNumber);
+      window.open(`https://wa.me/${formattedPhone}?text=${encoded}`, '_blank');
+    }
+
     loadData();
   };
 

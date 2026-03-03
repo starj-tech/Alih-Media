@@ -23,6 +23,8 @@ export interface Berkas {
   fileFotoBangunanUrl?: string;
   validatedBy?: string;
   validatedAt?: string;
+  namaPemilikSertifikat?: string;
+  noWaPemohon?: string;
 }
 
 export interface ManagedUser {
@@ -58,6 +60,8 @@ function mapRow(row: any): Berkas {
     fileFotoBangunanUrl: row.file_foto_bangunan_url || undefined,
     validatedBy: row.validated_by || undefined,
     validatedAt: row.validated_at || undefined,
+    namaPemilikSertifikat: row.nama_pemilik_sertifikat || undefined,
+    noWaPemohon: row.no_wa_pemohon || undefined,
   };
 }
 
@@ -126,6 +130,8 @@ export async function addBerkas(berkas: Omit<Berkas, 'id' | 'status'>): Promise<
     file_sertifikat_url: berkas.fileSertifikatUrl || null,
     file_ktp_url: berkas.fileKtpUrl || null,
     file_foto_bangunan_url: berkas.fileFotoBangunanUrl || null,
+    nama_pemilik_sertifikat: (berkas as any).namaPemilikSertifikat || null,
+    no_wa_pemohon: (berkas as any).noWaPemohon || null,
   }).select().single();
 
   if (error || !data) return null;
