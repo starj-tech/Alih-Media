@@ -12,7 +12,7 @@ export default function RekapKinerja() {
     getUsers().then(setUsers);
   }, []);
 
-  const adminUsers = users.filter(u => ['admin_arsip', 'admin_validasi_su', 'admin_validasi_bt', 'admin'].includes(u.role));
+  const adminUsers = users.filter(u => ['super_admin', 'admin_arsip', 'admin_validasi_su', 'admin_validasi_bt', 'admin'].includes(u.role));
   const adminPerformance = adminUsers.map(admin => ({
     name: admin.name,
     email: admin.email,

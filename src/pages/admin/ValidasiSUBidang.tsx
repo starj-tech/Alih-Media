@@ -19,6 +19,7 @@ export default function ValidasiSUBidang() {
   const [tolakId, setTolakId] = useState<string | null>(null);
   const [catatan, setCatatan] = useState('');
   const [kembalikanId, setKembalikanId] = useState<string | null>(null);
+  const [processing, setProcessing] = useState<string | null>(null);
 
   const loadData = async () => {
     const all = await getAllBerkas();
@@ -28,9 +29,15 @@ export default function ValidasiSUBidang() {
   useEffect(() => { loadData(); }, []);
 
   const handleKirim = async (id: string) => {
-    await updateBerkasStatus(id, 'Validasi BT', undefined, user?.id);
-    toast.success('Berkas diteruskan ke Validasi Buku Tanah');
-    loadData();
+    if (processing) return;
+    setProcessing(id);
+    try {
+      await updateBerkasStatus(id, 'Validasi BT', undefined, user?.id);
+      toast.success('Berkas diteruskan ke Validasi Buku Tanah');
+      loadData();
+    } finally {
+      setProcessing(null);
+    }
   };
 
   const handleTolak = async () => {
@@ -84,7 +91,7 @@ export default function ValidasiSUBidang() {
           { header: 'Catatan', accessor: (row) => <span className="text-xs text-muted-foreground">{row.catatanPenolakan || '-'}</span> },
           { header: 'Aksi', accessor: (row) => (
             <div className="flex gap-1">
-              <Button size="sm" className="gap-1" onClick={() => handleKirim(row.id)}><Send className="w-3 h-3" /> Kirim</Button>
+              <Button size="sm" className="gap-1" disabled={processing === row.id} onClick={() => handleKirim(row.id)}><Send className="w-3 h-3" /> Kirim</Button>
               <Button size="sm" variant="destructive" className="gap-1" onClick={() => { setTolakId(row.id); setCatatan(row.catatanPenolakan || ''); }}><XCircle className="w-3 h-3" /> Tolak</Button>
               <Button size="sm" variant="outline" className="gap-1" onClick={() => setKembalikanId(row.id)}><Undo2 className="w-3 h-3" /></Button>
             </div>

@@ -18,7 +18,7 @@ export default function ArsipVerifikasi() {
   const [berkas, setBerkas] = useState<Berkas[]>([]);
   const [tolakId, setTolakId] = useState<string | null>(null);
   const [catatan, setCatatan] = useState('');
-
+  const [processing, setProcessing] = useState<string | null>(null);
   const loadData = async () => {
     const all = await getAllBerkas();
     setBerkas(all.filter(b => b.status === 'Proses'));
@@ -27,9 +27,15 @@ export default function ArsipVerifikasi() {
   useEffect(() => { loadData(); }, []);
 
   const handleKirim = async (id: string) => {
-    await updateBerkasStatus(id, 'Validasi SU & Bidang', undefined, user?.id);
-    toast.success('Berkas diteruskan ke Validasi SU & Bidang');
-    loadData();
+    if (processing) return;
+    setProcessing(id);
+    try {
+      await updateBerkasStatus(id, 'Validasi SU & Bidang', undefined, user?.id);
+      toast.success('Berkas diteruskan ke Validasi SU & Bidang');
+      loadData();
+    } finally {
+      setProcessing(null);
+    }
   };
 
   const handleTolak = async () => {
@@ -76,7 +82,7 @@ export default function ArsipVerifikasi() {
           { header: 'Catatan', accessor: (row) => <span className="text-xs text-muted-foreground">{row.catatanPenolakan || '-'}</span> },
           { header: 'Aksi', accessor: (row) => (
             <div className="flex gap-1">
-              <Button size="sm" className="gap-1" onClick={() => handleKirim(row.id)}><Send className="w-3 h-3" /> Kirim</Button>
+              <Button size="sm" className="gap-1" disabled={processing === row.id} onClick={() => handleKirim(row.id)}><Send className="w-3 h-3" /> Kirim</Button>
               <Button size="sm" variant="destructive" className="gap-1" onClick={() => { setTolakId(row.id); setCatatan(row.catatanPenolakan || ''); }}><XCircle className="w-3 h-3" /> Tolak</Button>
             </div>
           )},
