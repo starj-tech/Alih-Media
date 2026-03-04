@@ -133,7 +133,17 @@ export default function LoginPage() {
       const { data, error } = await supabase.functions.invoke('password-reset-otp', {
         body: { action: 'send-otp', email: forgotEmail },
       });
-      if (error) throw error;
+      if (error) {
+        // Try to extract error message from response context
+        const ctx = (error as any)?.context;
+        if (ctx && typeof ctx.json === 'function') {
+          try {
+            const body = await ctx.json();
+            if (body?.error) { toast.error(body.error); setForgotLoading(false); return; }
+          } catch {}
+        }
+        throw error;
+      }
       if (data?.error) { toast.error(data.error); setForgotLoading(false); return; }
       setMaskedPhone(data.maskedPhone || '');
       toast.success('Kode OTP telah dikirim via WhatsApp');
@@ -152,7 +162,13 @@ export default function LoginPage() {
       const { data, error } = await supabase.functions.invoke('password-reset-otp', {
         body: { action: 'verify-otp', email: forgotEmail, otp: otpValue },
       });
-      if (error) throw error;
+      if (error) {
+        const ctx = (error as any)?.context;
+        if (ctx && typeof ctx.json === 'function') {
+          try { const body = await ctx.json(); if (body?.error) { toast.error(body.error); setForgotLoading(false); return; } } catch {}
+        }
+        throw error;
+      }
       if (data?.error) { toast.error(data.error); setForgotLoading(false); return; }
       toast.success('OTP terverifikasi!');
       setForgotStep('reset-password');
@@ -171,7 +187,13 @@ export default function LoginPage() {
       const { data, error } = await supabase.functions.invoke('password-reset-otp', {
         body: { action: 'reset-password', email: forgotEmail, otp: otpValue, newPassword },
       });
-      if (error) throw error;
+      if (error) {
+        const ctx = (error as any)?.context;
+        if (ctx && typeof ctx.json === 'function') {
+          try { const body = await ctx.json(); if (body?.error) { toast.error(body.error); setForgotLoading(false); return; } } catch {}
+        }
+        throw error;
+      }
       if (data?.error) { toast.error(data.error); setForgotLoading(false); return; }
       toast.success('Password berhasil diubah! Silakan login.');
       setShowForgot(false);
