@@ -57,10 +57,10 @@ export default function ValidasiBukuTanah() {
 
     if (waNumber) {
       const noHak = item?.noHak || '';
-      // Extract year from noSuTahun (format: XXXXX/YYYY)
-      const suParts = (item?.noSuTahun || '').split('/');
-      const tahun = suParts.length > 1 ? suParts[1] : String(new Date().getFullYear());
-      const message = `Yth Bapak/Ibu ${namaPenerima.toUpperCase()},\n\nBerkas layanan Perubahan Hak Atas Tanah dengan nomor ${noHak} tahun ${tahun} sudah selesai, silahkan mengambil produknya  di Kantor Pertanahan Kabupaten Bogor II,\n\nPertanyaan, saran dan keluhan dapat menghubungi Kantor Pertanahan Kabupaten Bogor II\n\nAlamat : Jl. Alternatif Cibubur no. 6 Cileungsi, Kecamatan Cileungsi, Kabupaten Bogor, Jawa Barat 16820\n\nTerima Kasih`;
+      const jenisHak = item?.jenisHak || '';
+      const desa = item?.desa || '';
+      const kecamatan = item?.kecamatan || '';
+      const message = `Yth Bapak/Ibu ${namaPenerima.toUpperCase()},\n\nBerkas Pengajuan Validasi Alihmedia dengan nomor hak ${noHak} jenis hak ${jenisHak} desa ${desa} kecamatan ${kecamatan} sudah selesai, silahkan untuk melakukan pendaftaran Pelayanan di Kantor Pertanahan Kabupaten Bogor II,\n\nPertanyaan, saran dan keluhan dapat menghubungi Kantor Pertanahan Kabupaten Bogor II\n\nAlamat : Jl. Alternatif Cibubur no. 6 Cileungsi, Kecamatan Cileungsi, Kabupaten Bogor , Jawa Barat 16820\n\nTerima Kasih`;
 
       let cleaned = waNumber.replace(/\D/g, '');
       if (cleaned.startsWith('0')) cleaned = '62' + cleaned.slice(1);
