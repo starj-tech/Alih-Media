@@ -39,7 +39,6 @@ export default function ValidasiBukuTanah() {
     const item = berkas.find(b => b.id === id);
     await updateBerkasStatus(id, 'Selesai', undefined, user?.id);
     toast.success('Berkas selesai divalidasi');
-    toast.success('Berkas selesai divalidasi');
 
     // Determine WhatsApp number and name
     let waNumber = '';
