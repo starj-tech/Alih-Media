@@ -2,8 +2,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
+
+const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' };
 
 function generateOTP(): string {
   const digits = '0123456789';
@@ -25,14 +27,11 @@ Deno.serve(async (req) => {
   );
 
   try {
-    const { action, email, phone, otp, newPassword } = await req.json();
+    const { action, email, otp, newPassword } = await req.json();
 
     if (action === 'send-otp') {
-      // Find user by email
       if (!email) {
-        return new Response(JSON.stringify({ error: 'Email harus diisi' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return new Response(JSON.stringify({ error: 'Email harus diisi' }), { headers: jsonHeaders });
       }
 
       const { data: profile } = await supabase
@@ -42,28 +41,18 @@ Deno.serve(async (req) => {
         .single();
 
       if (!profile) {
-        return new Response(JSON.stringify({ error: 'Akun dengan email tersebut tidak ditemukan' }), {
-          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return new Response(JSON.stringify({ error: 'Akun dengan email tersebut tidak ditemukan' }), { headers: jsonHeaders });
       }
 
       if (!profile.no_telepon || profile.no_telepon.replace(/\D/g, '').length < 10) {
-        return new Response(JSON.stringify({ error: 'Nomor telepon tidak terdaftar pada akun ini' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return new Response(JSON.stringify({ error: 'Nomor telepon tidak terdaftar pada akun ini' }), { headers: jsonHeaders });
       }
 
-      // Generate OTP
       const otpCode = generateOTP();
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-      // Delete existing OTPs for this user
-      await supabase
-        .from('password_reset_otps')
-        .delete()
-        .eq('user_id', profile.user_id);
+      await supabase.from('password_reset_otps').delete().eq('user_id', profile.user_id);
 
-      // Store OTP
       await supabase.from('password_reset_otps').insert({
         user_id: profile.user_id,
         otp_code: otpCode,
@@ -71,12 +60,9 @@ Deno.serve(async (req) => {
         expires_at: expiresAt.toISOString(),
       });
 
-      // Send OTP via WhatsApp (Fonnte)
       const fonntToken = Deno.env.get('FONNTE_TOKEN');
       if (!fonntToken) {
-        return new Response(JSON.stringify({ error: 'WhatsApp service not configured' }), {
-          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return new Response(JSON.stringify({ error: 'WhatsApp service not configured' }), { headers: jsonHeaders });
       }
 
       let cleaned = profile.no_telepon.replace(/\D/g, '');
@@ -95,35 +81,19 @@ Deno.serve(async (req) => {
         body: formData,
       });
 
-      // Mask phone for display
       const maskedPhone = cleaned.slice(0, 4) + '****' + cleaned.slice(-4);
 
-      return new Response(JSON.stringify({ 
-        success: true, 
-        maskedPhone,
-        message: 'Kode OTP telah dikirim via WhatsApp' 
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return new Response(JSON.stringify({ success: true, maskedPhone, message: 'Kode OTP telah dikirim via WhatsApp' }), { headers: jsonHeaders });
     }
 
     if (action === 'verify-otp') {
       if (!email || !otp) {
-        return new Response(JSON.stringify({ error: 'Email dan OTP harus diisi' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return new Response(JSON.stringify({ error: 'Email dan OTP harus diisi' }), { headers: jsonHeaders });
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .eq('email', email)
-        .single();
-
+      const { data: profile } = await supabase.from('profiles').select('user_id').eq('email', email).single();
       if (!profile) {
-        return new Response(JSON.stringify({ error: 'Akun tidak ditemukan' }), {
-          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return new Response(JSON.stringify({ error: 'Akun tidak ditemukan' }), { headers: jsonHeaders });
       }
 
       const { data: otpRecord } = await supabase
@@ -135,48 +105,28 @@ Deno.serve(async (req) => {
         .single();
 
       if (!otpRecord) {
-        return new Response(JSON.stringify({ error: 'Kode OTP tidak valid atau sudah kadaluarsa' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return new Response(JSON.stringify({ error: 'Kode OTP tidak valid atau sudah kadaluarsa' }), { headers: jsonHeaders });
       }
 
-      // Mark as verified
-      await supabase
-        .from('password_reset_otps')
-        .update({ verified: true })
-        .eq('id', otpRecord.id);
+      await supabase.from('password_reset_otps').update({ verified: true }).eq('id', otpRecord.id);
 
-      return new Response(JSON.stringify({ success: true, message: 'OTP terverifikasi' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return new Response(JSON.stringify({ success: true, message: 'OTP terverifikasi' }), { headers: jsonHeaders });
     }
 
     if (action === 'reset-password') {
       if (!email || !otp || !newPassword) {
-        return new Response(JSON.stringify({ error: 'Semua field harus diisi' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return new Response(JSON.stringify({ error: 'Semua field harus diisi' }), { headers: jsonHeaders });
       }
 
       if (newPassword.length < 6) {
-        return new Response(JSON.stringify({ error: 'Password minimal 6 karakter' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return new Response(JSON.stringify({ error: 'Password minimal 6 karakter' }), { headers: jsonHeaders });
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .eq('email', email)
-        .single();
-
+      const { data: profile } = await supabase.from('profiles').select('user_id').eq('email', email).single();
       if (!profile) {
-        return new Response(JSON.stringify({ error: 'Akun tidak ditemukan' }), {
-          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return new Response(JSON.stringify({ error: 'Akun tidak ditemukan' }), { headers: jsonHeaders });
       }
 
-      // Check verified OTP
       const { data: otpRecord } = await supabase
         .from('password_reset_otps')
         .select('*')
@@ -187,36 +137,19 @@ Deno.serve(async (req) => {
         .single();
 
       if (!otpRecord) {
-        return new Response(JSON.stringify({ error: 'OTP belum diverifikasi atau sudah kadaluarsa' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return new Response(JSON.stringify({ error: 'OTP belum diverifikasi atau sudah kadaluarsa' }), { headers: jsonHeaders });
       }
 
-      // Reset password
-      const { error: pwError } = await supabase.auth.admin.updateUserById(
-        profile.user_id,
-        { password: newPassword }
-      );
-
+      const { error: pwError } = await supabase.auth.admin.updateUserById(profile.user_id, { password: newPassword });
       if (pwError) throw pwError;
 
-      // Clean up OTPs
-      await supabase
-        .from('password_reset_otps')
-        .delete()
-        .eq('user_id', profile.user_id);
+      await supabase.from('password_reset_otps').delete().eq('user_id', profile.user_id);
 
-      return new Response(JSON.stringify({ success: true, message: 'Password berhasil diubah' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return new Response(JSON.stringify({ success: true, message: 'Password berhasil diubah' }), { headers: jsonHeaders });
     }
 
-    return new Response(JSON.stringify({ error: 'Invalid action' }), {
-      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(JSON.stringify({ error: 'Invalid action' }), { headers: jsonHeaders });
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message || 'Internal error' }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(JSON.stringify({ error: err.message || 'Internal error' }), { headers: jsonHeaders });
   }
 });
