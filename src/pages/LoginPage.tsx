@@ -106,7 +106,7 @@ export default function LoginPage() {
     if (!forgotEmail.trim()) { toast.error('Email harus diisi'); return; }
     setForgotLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-      redirectTo: `${window.location.origin}/#/reset-password`,
+      redirectTo: 'https://alihmedia.kantahkabbogor.id',
     });
     setForgotLoading(false);
     if (error) {
