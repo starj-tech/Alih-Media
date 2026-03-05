@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -9,30 +9,16 @@ import { toast } from 'sonner';
 import logoBpn from '@/assets/logo-bpn.png';
 import loginBg from '@/assets/login-bg.jpeg';
 
-export default function ResetPassword() {
+interface ResetPasswordProps {
+  onComplete?: () => void;
+}
+
+export default function ResetPassword({ onComplete }: ResetPasswordProps) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [isRecovery, setIsRecovery] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    // Listen for PASSWORD_RECOVERY event
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setIsRecovery(true);
-      }
-    });
-
-    // Check hash for recovery type
-    const hash = window.location.hash;
-    if (hash.includes('type=recovery')) {
-      setIsRecovery(true);
-    }
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,28 +34,13 @@ export default function ResetPassword() {
     } else {
       setSuccess(true);
       toast.success('Password berhasil diubah!');
-      // Sign out so user logs in with new password
       await supabase.auth.signOut();
-      setTimeout(() => navigate('/'), 2000);
+      setTimeout(() => {
+        onComplete?.();
+        navigate('/');
+      }, 2000);
     }
   };
-
-  if (!isRecovery && !success) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <img src={loginBg} alt="" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-black/40" />
-        </div>
-        <div className="w-full max-w-md relative z-10 text-center">
-          <div className="glass-card rounded-2xl p-8 shadow-xl">
-            <p className="text-foreground">Link reset tidak valid atau sudah kadaluarsa.</p>
-            <Button onClick={() => navigate('/')} className="mt-4">Kembali ke Login</Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
