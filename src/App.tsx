@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,46 +24,11 @@ import PengajuanAlihmedia from "@/pages/user/PengajuanAlihmedia";
 import UserInformasi from "@/pages/user/UserInformasi";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
-import { supabase } from "@/integrations/supabase/client";
 
 const queryClient = new QueryClient();
 
 function AppRoutes() {
   const { user, loading, logout } = useAuth();
-  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
-
-  useEffect(() => {
-    // Detect Supabase recovery tokens in the URL hash (conflicts with HashRouter)
-    const hash = window.location.hash;
-    if (hash.includes('access_token') && hash.includes('type=recovery')) {
-      // Extract the token params before HashRouter consumes them
-      const params = new URLSearchParams(hash.substring(1));
-      const accessToken = params.get('access_token');
-      const refreshToken = params.get('refresh_token');
-      if (accessToken && refreshToken) {
-        supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-          .then(() => {
-            setIsRecoveryMode(true);
-            // Clean the URL
-            window.location.hash = '/reset-password';
-          });
-        return;
-      }
-    }
-
-    // Also listen for PASSWORD_RECOVERY event
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setIsRecoveryMode(true);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // Show reset password page when in recovery mode
-  if (isRecoveryMode) {
-    return <ResetPassword onComplete={() => setIsRecoveryMode(false)} />;
-  }
 
   if (loading) {
     return (

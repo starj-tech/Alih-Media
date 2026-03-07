@@ -5,7 +5,7 @@ import ExternalLinkCell from '@/components/ExternalLinkCell';
 import FileDownloadCell from '@/components/FileDownloadCell';
 import ExportExcelButton from '@/components/ExportExcelButton';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
-import { getBerkasByUser, uploadFile, deleteBerkas, Berkas, BerkasStatus } from '@/lib/data';
+import { getBerkasByUser, uploadFile, deleteBerkas, updateBerkas, getBerkasById, Berkas, BerkasStatus } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2 } from 'lucide-react';
@@ -13,7 +13,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const statusOptions: { value: string; label: string }[] = [
@@ -85,36 +84,35 @@ export default function UserInformasi() {
       }
 
       const updates: Record<string, unknown> = {
-        no_su_tahun: editForm.noSuTahun,
-        no_hak: editForm.noHak,
-        link_shareloc: editForm.linkShareloc || null,
+        noSuTahun: editForm.noSuTahun,
+        noHak: editForm.noHak,
+        linkShareloc: editForm.linkShareloc || null,
       };
 
       // If currently Ditolak, restore to the stage that rejected it
       const currentBerkas = berkas.find(b => b.id === editId);
       if (currentBerkas?.status === 'Ditolak') {
-        // Fetch the rejected_from_status from DB
-        const { data: berkasRow } = await supabase.from('berkas').select('rejected_from_status').eq('id', editId).single();
-        const restoreStatus = berkasRow?.rejected_from_status || 'Proses';
+        const berkasRow = await getBerkasById(editId);
+        const restoreStatus = berkasRow?.rejectedFromStatus || berkasRow?.rejected_from_status || 'Proses';
         updates.status = restoreStatus as BerkasStatus;
-        updates.catatan_penolakan = null;
-        updates.rejected_from_status = null;
+        updates.catatanPenolakan = null;
+        updates.rejectedFromStatus = null;
       }
 
       if (fileSertifikat) {
         const url = await uploadFile(fileSertifikat, user.id, 'sertifikat');
-        if (url) updates.file_sertifikat_url = url;
+        if (url) updates.fileSertifikatUrl = url;
       }
       if (fileKtp) {
         const url = await uploadFile(fileKtp, user.id, 'ktp');
-        if (url) updates.file_ktp_url = url;
+        if (url) updates.fileKtpUrl = url;
       }
       if (fileFotoBangunan) {
         const url = await uploadFile(fileFotoBangunan, user.id, 'foto-bangunan');
-        if (url) updates.file_foto_bangunan_url = url;
+        if (url) updates.fileFotoBangunanUrl = url;
       }
 
-      const { error } = await supabase.from('berkas').update(updates).eq('id', editId);
+      const { error } = await updateBerkas(editId, updates);
       if (error) { toast.error('Gagal mengupdate berkas'); return; }
       toast.success(currentBerkas?.status === 'Ditolak' ? 'Berkas diajukan kembali' : 'Berkas berhasil diupdate');
       setEditId(null);
