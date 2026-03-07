@@ -1,5 +1,5 @@
-// Auth utilities using Lovable Cloud
-import { supabase } from '@/integrations/supabase/client';
+// Auth utilities using Custom REST API
+import { api } from '@/lib/api';
 
 export type UserRole = 'admin' | 'user' | 'super_admin' | 'super_user' | 'admin_arsip' | 'admin_validasi_su' | 'admin_validasi_bt';
 
@@ -48,25 +48,8 @@ export function getRoleLabel(role: UserRole): string {
   }
 }
 
-export async function getUserProfile(userId: string): Promise<User | null> {
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('user_id', userId)
-    .single();
-
-  if (!profile) return null;
-
-  const { data: roleData } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', userId)
-    .single();
-
-  return {
-    id: userId,
-    email: profile.email,
-    name: profile.name,
-    role: (roleData?.role as UserRole) || 'user',
-  };
+export async function getUserProfile(): Promise<User | null> {
+  const { data, error } = await api.get<User>('/auth/profile');
+  if (error || !data) return null;
+  return data;
 }

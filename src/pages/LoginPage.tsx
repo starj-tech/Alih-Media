@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Mail, Lock, LogIn, UserPlus, User, Phone, Building2, KeyRound, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import logoBpn from '@/assets/logo-bpn.png';
 import loginBg from '@/assets/login-bg.jpeg';
 
@@ -105,12 +105,10 @@ export default function LoginPage() {
   const handleEmailReset = async () => {
     if (!forgotEmail.trim()) { toast.error('Email harus diisi'); return; }
     setForgotLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-      redirectTo: 'https://alihmedia.kantahkabbogor.id',
-    });
+    const { error } = await api.post('/auth/reset-password', { email: forgotEmail });
     setForgotLoading(false);
     if (error) {
-      toast.error(error.message);
+      toast.error(error);
     } else {
       setForgotSent(true);
     }

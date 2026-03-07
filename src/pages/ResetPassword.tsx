@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { api, clearToken } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +19,7 @@ export default function ResetPassword({ onComplete }: ResetPasswordProps) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,15 +27,16 @@ export default function ResetPassword({ onComplete }: ResetPasswordProps) {
     if (newPassword !== confirmPassword) { toast.error('Konfirmasi password tidak cocok'); return; }
 
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    const token = searchParams.get('token');
+    const { error } = await api.post('/auth/update-password', { password: newPassword, token });
     setLoading(false);
 
     if (error) {
-      toast.error(error.message);
+      toast.error(error);
     } else {
       setSuccess(true);
       toast.success('Password berhasil diubah!');
-      await supabase.auth.signOut();
+      clearToken();
       setTimeout(() => {
         onComplete?.();
         navigate('/');
