@@ -6,12 +6,15 @@ use App\Models\User;
 use App\Models\Profile;
 use App\Models\UserRole;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Http\JsonResponse;
 
 class UserController extends Controller
 {
-    // GET /api/users
-    public function index(Request $request)
+    /**
+     * GET /api/users
+     * List semua user (admin/super_admin only)
+     */
+    public function index(Request $request): JsonResponse
     {
         if (!$request->user()->isSuperAdmin()) {
             return response()->json(['error' => 'Forbidden'], 403);
@@ -32,8 +35,11 @@ class UserController extends Controller
         return response()->json($users);
     }
 
-    // POST /api/users
-    public function store(Request $request)
+    /**
+     * POST /api/users
+     * Buat user baru (oleh admin)
+     */
+    public function store(Request $request): JsonResponse
     {
         if (!$request->user()->isSuperAdmin()) {
             return response()->json(['error' => 'Forbidden'], 403);
@@ -41,15 +47,19 @@ class UserController extends Controller
 
         $request->validate([
             'name' => 'required|string|min:2|max:100',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|min:6',
-            'role' => 'nullable|in:admin,user,super_admin,super_user,admin_arsip,admin_validasi_su,admin_validasi_bt',
+            'email' => 'required|email|max:255|unique:users,email',
+            'password' => 'required|string|min:6|max:128',
+            'role' => 'nullable|in:' . implode(',', UserRole::ROLES),
+            'no_telepon' => 'nullable|string|max:20',
+            'pengguna' => 'nullable|in:' . implode(',', Profile::PENGGUNA_TYPES),
+            'nama_instansi' => 'nullable|string|max:200',
         ]);
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => $request->password,
+            'email_verified_at' => now(),
         ]);
 
         Profile::create([
@@ -69,8 +79,11 @@ class UserController extends Controller
         return response()->json(['success' => true, 'id' => $user->id], 201);
     }
 
-    // PUT /api/users/{id}
-    public function update(Request $request, int $id)
+    /**
+     * PUT /api/users/{id}
+     * Update user (profil, role, password)
+     */
+    public function update(Request $request, int $id): JsonResponse
     {
         if (!$request->user()->isSuperAdmin()) {
             return response()->json(['error' => 'Forbidden'], 403);
@@ -78,15 +91,23 @@ class UserController extends Controller
 
         $user = User::findOrFail($id);
 
+        $request->validate([
+            'name' => 'nullable|string|min:2|max:100',
+            'role' => 'nullable|in:' . implode(',', UserRole::ROLES),
+            'no_telepon' => 'nullable|string|max:20',
+            'pengguna' => 'nullable|in:' . implode(',', Profile::PENGGUNA_TYPES),
+            'nama_instansi' => 'nullable|string|max:200',
+            'password' => 'nullable|string|min:6|max:128',
+        ]);
+
         // Update profile
         $profile = $user->profile;
         if ($profile) {
-            $profileUpdates = array_filter([
-                'name' => $request->name,
-                'no_telepon' => $request->no_telepon,
-                'pengguna' => $request->pengguna,
-                'nama_instansi' => $request->nama_instansi,
-            ], fn($v) => $v !== null);
+            $profileUpdates = [];
+            if ($request->has('name')) $profileUpdates['name'] = $request->name;
+            if ($request->has('no_telepon')) $profileUpdates['no_telepon'] = $request->no_telepon;
+            if ($request->has('pengguna')) $profileUpdates['pengguna'] = $request->pengguna;
+            if ($request->has('nama_instansi')) $profileUpdates['nama_instansi'] = $request->nama_instansi;
 
             if (!empty($profileUpdates)) {
                 $profile->update($profileUpdates);
@@ -94,28 +115,74 @@ class UserController extends Controller
         }
 
         // Update role
-        if ($request->role) {
-            $user->userRole?->update(['role' => $request->role]);
+        if ($request->has('role') && $request->role) {
+            $userRole = $user->userRole;
+            if ($userRole) {
+                $userRole->update(['role' => $request->role]);
+            } else {
+                UserRole::create([
+                    'user_id' => $user->id,
+                    'role' => $request->role,
+                ]);
+            }
         }
 
         // Update password
-        if ($request->password) {
+        if ($request->has('password') && $request->password) {
             $user->update(['password' => $request->password]);
+        }
+
+        // Update user name
+        if ($request->has('name')) {
+            $user->update(['name' => $request->name]);
         }
 
         return response()->json(['success' => true]);
     }
 
-    // DELETE /api/users/{id}
-    public function destroy(Request $request, int $id)
+    /**
+     * DELETE /api/users/{id}
+     * Hapus user (cascade: profile, role, berkas)
+     */
+    public function destroy(Request $request, int $id): JsonResponse
     {
         if (!$request->user()->isSuperAdmin()) {
             return response()->json(['error' => 'Forbidden'], 403);
         }
 
         $user = User::findOrFail($id);
-        $user->delete(); // Cascade deletes profile & role
+
+        // Prevent deleting yourself
+        if ($user->id === $request->user()->id) {
+            return response()->json(['error' => 'Tidak bisa menghapus akun sendiri'], 400);
+        }
+
+        $user->delete(); // Cascade deletes profile, role, berkas
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * GET /api/users/{id}
+     * Detail satu user
+     */
+    public function show(Request $request, int $id): JsonResponse
+    {
+        if (!$request->user()->isSuperAdmin()) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+
+        $user = User::with(['profile', 'userRole'])->findOrFail($id);
+
+        return response()->json([
+            'id' => $user->id,
+            'email' => $user->email,
+            'name' => $user->profile?->name ?? $user->name,
+            'no_telepon' => $user->profile?->no_telepon ?? '',
+            'pengguna' => $user->profile?->pengguna ?? 'Perorangan',
+            'nama_instansi' => $user->profile?->nama_instansi,
+            'role' => $user->getRole(),
+            'created_at' => $user->created_at,
+        ]);
     }
 }

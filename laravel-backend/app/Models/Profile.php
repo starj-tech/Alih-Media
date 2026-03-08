@@ -10,7 +10,23 @@ class Profile extends Model
     use HasUuids;
 
     protected $fillable = [
-        'user_id', 'name', 'email', 'no_telepon', 'pengguna', 'nama_instansi',
+        'user_id',
+        'name',
+        'email',
+        'no_telepon',
+        'pengguna',
+        'nama_instansi',
+    ];
+
+    /**
+     * Valid pengguna types
+     */
+    public const PENGGUNA_TYPES = [
+        'Perorangan',
+        'Staf PPAT',
+        'Notaris/PPAT',
+        'Bank',
+        'PT/Badan Hukum',
     ];
 
     public function user()
