@@ -1,5 +1,5 @@
-// Data layer using Supabase SDK
-import { supabase } from '@/integrations/supabase/client';
+// Data layer using Laravel REST API
+import { apiFetch, apiUpload } from '@/lib/api-client';
 
 export type BerkasStatus = 'Proses' | 'Validasi SU & Bidang' | 'Validasi BT' | 'Selesai' | 'Ditolak';
 export type JenisHak = 'HM' | 'HGB' | 'HP' | 'HGU' | 'HMSRS' | 'HPL' | 'HW';
@@ -40,7 +40,6 @@ export interface ManagedUser {
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return '';
-  // If already in DD/MM/YYYY format
   if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) return dateStr;
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
@@ -50,76 +49,72 @@ function formatDate(dateStr: string): string {
 function mapBerkasRow(row: any): Berkas {
   return {
     id: row.id,
-    tanggalPengajuan: formatDate(row.tanggal_pengajuan),
-    namaPemegangHak: row.nama_pemegang_hak,
-    noTelepon: row.no_telepon,
-    noSuTahun: row.no_su_tahun,
-    jenisHak: row.jenis_hak,
-    noHak: row.no_hak,
+    tanggalPengajuan: formatDate(row.tanggal_pengajuan || row.tanggalPengajuan),
+    namaPemegangHak: row.nama_pemegang_hak || row.namaPemegangHak,
+    noTelepon: row.no_telepon || row.noTelepon || '',
+    noSuTahun: row.no_su_tahun || row.noSuTahun,
+    jenisHak: row.jenis_hak || row.jenisHak,
+    noHak: row.no_hak || row.noHak,
     desa: row.desa,
     kecamatan: row.kecamatan,
     status: row.status,
-    userId: row.user_id,
-    linkShareloc: row.link_shareloc || undefined,
-    catatanPenolakan: row.catatan_penolakan || undefined,
-    fileSertifikatUrl: row.file_sertifikat_url || undefined,
-    fileKtpUrl: row.file_ktp_url || undefined,
-    fileFotoBangunanUrl: row.file_foto_bangunan_url || undefined,
-    validatedBy: row.validated_by || undefined,
-    validatedAt: row.validated_at || undefined,
-    namaPemilikSertifikat: row.nama_pemilik_sertifikat || undefined,
-    noWaPemohon: row.no_wa_pemohon || undefined,
-    rejectedFromStatus: row.rejected_from_status || undefined,
+    userId: row.user_id || row.userId,
+    linkShareloc: row.link_shareloc || row.linkShareloc || undefined,
+    catatanPenolakan: row.catatan_penolakan || row.catatanPenolakan || undefined,
+    fileSertifikatUrl: row.file_sertifikat_url || row.fileSertifikatUrl || undefined,
+    fileKtpUrl: row.file_ktp_url || row.fileKtpUrl || undefined,
+    fileFotoBangunanUrl: row.file_foto_bangunan_url || row.fileFotoBangunanUrl || undefined,
+    validatedBy: row.validated_by || row.validatedBy || undefined,
+    validatedAt: row.validated_at || row.validatedAt || undefined,
+    namaPemilikSertifikat: row.nama_pemilik_sertifikat || row.namaPemilikSertifikat || undefined,
+    noWaPemohon: row.no_wa_pemohon || row.noWaPemohon || undefined,
+    rejectedFromStatus: row.rejected_from_status || row.rejectedFromStatus || undefined,
   };
 }
 
 export async function getAllBerkas(): Promise<Berkas[]> {
-  const { data, error } = await supabase
-    .from('berkas')
-    .select('*')
-    .order('created_at', { ascending: false });
-  if (error || !data) return [];
-  return data.map(mapBerkasRow);
+  try {
+    const data = await apiFetch<any[]>('/berkas');
+    return (Array.isArray(data) ? data : (data as any)?.data || []).map(mapBerkasRow);
+  } catch {
+    return [];
+  }
 }
 
 export async function getBerkasByUser(userId: string): Promise<Berkas[]> {
-  const { data, error } = await supabase
-    .from('berkas')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
-  if (error || !data) return [];
-  return data.map(mapBerkasRow);
+  try {
+    const data = await apiFetch<any[]>('/berkas');
+    const all = (Array.isArray(data) ? data : (data as any)?.data || []).map(mapBerkasRow);
+    return all.filter(b => b.userId === userId);
+  } catch {
+    return [];
+  }
 }
 
 export async function uploadFile(file: File, userId: string, type: 'sertifikat' | 'ktp' | 'foto-bangunan'): Promise<string | null> {
-  const timestamp = Date.now();
-  const ext = file.name.split('.').pop();
-  const filePath = `${userId}/${type}/${timestamp}.${ext}`;
-
-  const { error } = await supabase.storage
-    .from('berkas-files')
-    .upload(filePath, file);
-
-  if (error) {
-    console.error('Upload error:', error);
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', type);
+    const data = await apiUpload('/files/upload', formData);
+    return data.path || data.url || null;
+  } catch (err) {
+    console.error('Upload error:', err);
     return null;
   }
-
-  return filePath;
 }
 
 export async function getSignedFileUrl(filePath: string): Promise<string | null> {
   if (!filePath) return null;
-  const { data, error } = await supabase.storage
-    .from('berkas-files')
-    .createSignedUrl(filePath, 3600); // 1 hour
-  if (error || !data) return null;
-  return data.signedUrl;
+  try {
+    const data = await apiFetch<{ url: string }>(`/files/url/${encodeURIComponent(filePath)}`);
+    return data.url || null;
+  } catch {
+    return null;
+  }
 }
 
 function parseDateDDMMYYYY(dateStr: string): string {
-  // Convert DD/MM/YYYY to YYYY-MM-DD for DB
   const parts = dateStr.split('/');
   if (parts.length === 3) {
     return `${parts[2]}-${parts[1]}-${parts[0]}`;
@@ -128,33 +123,32 @@ function parseDateDDMMYYYY(dateStr: string): string {
 }
 
 export async function addBerkas(berkas: Omit<Berkas, 'id' | 'status'>): Promise<Berkas | null> {
-  const { data, error } = await supabase
-    .from('berkas')
-    .insert({
-      tanggal_pengajuan: parseDateDDMMYYYY(berkas.tanggalPengajuan),
-      nama_pemegang_hak: berkas.namaPemegangHak,
-      no_telepon: berkas.noTelepon,
-      no_su_tahun: berkas.noSuTahun,
-      jenis_hak: berkas.jenisHak as any,
-      no_hak: berkas.noHak,
-      desa: berkas.desa,
-      kecamatan: berkas.kecamatan,
-      user_id: berkas.userId,
-      link_shareloc: berkas.linkShareloc || null,
-      file_sertifikat_url: berkas.fileSertifikatUrl || null,
-      file_ktp_url: berkas.fileKtpUrl || null,
-      file_foto_bangunan_url: berkas.fileFotoBangunanUrl || null,
-      nama_pemilik_sertifikat: berkas.namaPemilikSertifikat || null,
-      no_wa_pemohon: berkas.noWaPemohon || null,
-    })
-    .select()
-    .single();
-
-  if (error || !data) {
-    console.error('addBerkas error:', error);
+  try {
+    const data = await apiFetch('/berkas', {
+      method: 'POST',
+      body: JSON.stringify({
+        tanggal_pengajuan: parseDateDDMMYYYY(berkas.tanggalPengajuan),
+        nama_pemegang_hak: berkas.namaPemegangHak,
+        no_telepon: berkas.noTelepon,
+        no_su_tahun: berkas.noSuTahun,
+        jenis_hak: berkas.jenisHak,
+        no_hak: berkas.noHak,
+        desa: berkas.desa,
+        kecamatan: berkas.kecamatan,
+        user_id: berkas.userId,
+        link_shareloc: berkas.linkShareloc || null,
+        file_sertifikat_url: berkas.fileSertifikatUrl || null,
+        file_ktp_url: berkas.fileKtpUrl || null,
+        file_foto_bangunan_url: berkas.fileFotoBangunanUrl || null,
+        nama_pemilik_sertifikat: berkas.namaPemilikSertifikat || null,
+        no_wa_pemohon: berkas.noWaPemohon || null,
+      }),
+    });
+    return mapBerkasRow(data.data || data);
+  } catch (err) {
+    console.error('addBerkas error:', err);
     return null;
   }
-  return mapBerkasRow(data);
 }
 
 export async function updateBerkasStatus(
@@ -164,31 +158,17 @@ export async function updateBerkasStatus(
   validatorId?: string,
   currentStatus?: BerkasStatus,
 ) {
-  const updates: Record<string, any> = { status };
-  if (catatan !== undefined) updates.catatan_penolakan = catatan;
-  if (validatorId) {
-    updates.validated_by = validatorId;
-    updates.validated_at = new Date().toISOString();
-  }
-  if (status === 'Ditolak' && currentStatus) {
-    updates.rejected_from_status = currentStatus;
-  }
-
-  const { error } = await supabase
-    .from('berkas')
-    .update(updates)
-    .eq('id', id);
-
-  if (error) console.error('updateBerkasStatus error:', error);
-
-  // Log the validation action
-  if (validatorId) {
-    await supabase.from('validation_logs').insert({
-      berkas_id: id,
-      admin_id: validatorId,
-      action: status,
-      ip_address: null,
+  try {
+    await apiFetch(`/berkas/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        status,
+        catatan_penolakan: catatan || undefined,
+        current_status: currentStatus || undefined,
+      }),
     });
+  } catch (err) {
+    console.error('updateBerkasStatus error:', err);
   }
 }
 
@@ -201,141 +181,124 @@ export interface TimelineEntry {
 }
 
 export async function getBerkasTimeline(berkasId: string): Promise<TimelineEntry[]> {
-  const { data, error } = await supabase
-    .from('validation_logs')
-    .select('action, admin_id, created_at, ip_address')
-    .eq('berkas_id', berkasId)
-    .order('created_at', { ascending: true });
-
-  if (error || !data) return [];
-
-  // Get admin profiles
-  const adminIds = [...new Set(data.map(d => d.admin_id))];
-  const { data: profiles } = await supabase
-    .from('profiles')
-    .select('user_id, name, email')
-    .in('user_id', adminIds);
-
-  const profileMap: Record<string, { name: string; email: string }> = {};
-  profiles?.forEach(p => {
-    profileMap[p.user_id] = { name: p.name, email: p.email };
-  });
-
-  return data.map(entry => ({
-    action: entry.action,
-    adminName: profileMap[entry.admin_id]?.name || 'Unknown',
-    adminEmail: profileMap[entry.admin_id]?.email || '',
-    timestamp: entry.created_at,
-    ipAddress: entry.ip_address || '',
-  }));
+  try {
+    const data = await apiFetch<any[]>(`/berkas/${berkasId}/timeline`);
+    const entries = Array.isArray(data) ? data : (data as any)?.data || [];
+    return entries.map((entry: any) => ({
+      action: entry.action,
+      adminName: entry.admin_name || entry.adminName || 'Unknown',
+      adminEmail: entry.admin_email || entry.adminEmail || '',
+      timestamp: entry.created_at || entry.timestamp,
+      ipAddress: entry.ip_address || entry.ipAddress || '',
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export async function deleteUploadedFiles(berkasId: string): Promise<boolean> {
-  // Get the berkas to find file paths
-  const { data: berkas } = await supabase
-    .from('berkas')
-    .select('file_sertifikat_url, file_ktp_url, file_foto_bangunan_url')
-    .eq('id', berkasId)
-    .single();
-
-  if (!berkas) return false;
-
-  const filePaths = [
-    berkas.file_sertifikat_url,
-    berkas.file_ktp_url,
-    berkas.file_foto_bangunan_url,
-  ].filter(Boolean) as string[];
-
-  if (filePaths.length > 0) {
-    await supabase.storage.from('berkas-files').remove(filePaths);
+  try {
+    await apiFetch(`/berkas/${berkasId}/files`, { method: 'DELETE' });
+    return true;
+  } catch {
+    return false;
   }
-
-  // Clear file URLs in the berkas record
-  await supabase.from('berkas').update({
-    file_sertifikat_url: null,
-    file_ktp_url: null,
-    file_foto_bangunan_url: null,
-  }).eq('id', berkasId);
-
-  return true;
 }
 
 export async function deleteBerkas(id: string) {
-  await supabase.from('berkas').delete().eq('id', id);
+  await apiFetch(`/berkas/${id}`, { method: 'DELETE' });
 }
 
 export async function getStats() {
-  const { data } = await supabase.from('berkas').select('status');
-  if (!data) return { total: 0, selesai: 0, ditolak: 0 };
-  return {
-    total: data.length,
-    selesai: data.filter(b => b.status === 'Selesai').length,
-    ditolak: data.filter(b => b.status === 'Ditolak').length,
-  };
+  try {
+    const data = await apiFetch<any>('/berkas/stats');
+    return {
+      total: data.total || 0,
+      selesai: data.selesai || 0,
+      ditolak: data.ditolak || 0,
+    };
+  } catch {
+    return { total: 0, selesai: 0, ditolak: 0 };
+  }
 }
 
 export async function getAdminStats() {
-  const { data: berkasData } = await supabase.from('berkas').select('status');
-  const { data: logsData } = await supabase.from('validation_logs').select('admin_id');
-
-  const all = berkasData || [];
-  const adminCounts: Record<string, number> = {};
-  logsData?.forEach(log => {
-    adminCounts[log.admin_id] = (adminCounts[log.admin_id] || 0) + 1;
-  });
-
-  return {
-    total: all.length,
-    proses: all.filter(b => b.status === 'Proses').length,
-    validasiSu: all.filter(b => b.status === 'Validasi SU & Bidang').length,
-    validasiBt: all.filter(b => b.status === 'Validasi BT').length,
-    selesai: all.filter(b => b.status === 'Selesai').length,
-    ditolak: all.filter(b => b.status === 'Ditolak').length,
-    adminCounts,
-  };
+  try {
+    const data = await apiFetch<any>('/berkas/stats');
+    return {
+      total: data.total || 0,
+      proses: data.proses || 0,
+      validasiSu: data.validasi_su || data.validasiSu || 0,
+      validasiBt: data.validasi_bt || data.validasiBt || 0,
+      selesai: data.selesai || 0,
+      ditolak: data.ditolak || 0,
+      adminCounts: data.admin_counts || data.adminCounts || {},
+    };
+  } catch {
+    return { total: 0, proses: 0, validasiSu: 0, validasiBt: 0, selesai: 0, ditolak: 0, adminCounts: {} };
+  }
 }
 
 export async function getTodaySubmissionCount(userId: string): Promise<number> {
-  const { data, error } = await supabase.rpc('get_today_submission_count', { _user_id: userId });
-  if (error) return 0;
-  return data || 0;
+  try {
+    const data = await apiFetch<{ count: number }>('/berkas/today-count');
+    return data.count || 0;
+  } catch {
+    return 0;
+  }
 }
 
 export async function getUsers(): Promise<ManagedUser[]> {
-  const { data: profiles } = await supabase.from('profiles').select('*');
-  const { data: roles } = await supabase.from('user_roles').select('user_id, role');
-
-  if (!profiles) return [];
-
-  const roleMap: Record<string, string> = {};
-  roles?.forEach(r => { roleMap[r.user_id] = r.role; });
-
-  return profiles.map(p => ({
-    id: p.user_id,
-    email: p.email,
-    name: p.name,
-    noTelepon: p.no_telepon,
-    pengguna: p.pengguna,
-    namaInstansi: p.nama_instansi,
-    role: (roleMap[p.user_id] || 'user') as ManagedUser['role'],
-  }));
+  try {
+    const data = await apiFetch<any[]>('/users');
+    const users = Array.isArray(data) ? data : (data as any)?.data || [];
+    return users.map((u: any) => ({
+      id: u.id,
+      email: u.email,
+      name: u.name,
+      noTelepon: u.no_telepon || u.noTelepon || '',
+      pengguna: u.pengguna || 'Perorangan',
+      namaInstansi: u.nama_instansi || u.namaInstansi || null,
+      role: u.role || 'user',
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export async function manageUser(action: string, body: Record<string, any>): Promise<{ success?: boolean; error?: string; id?: string }> {
-  const { data, error } = await supabase.functions.invoke('manage-users', {
-    body: { action, ...body },
-  });
-  if (error) return { error: error.message };
-  return data || { error: 'Unknown error' };
+  try {
+    switch (action) {
+      case 'create':
+        const createRes = await apiFetch('/users', {
+          method: 'POST',
+          body: JSON.stringify(body),
+        });
+        return { success: true, id: createRes.id || createRes.data?.id };
+      case 'update':
+        await apiFetch(`/users/${body.userId}`, {
+          method: 'PUT',
+          body: JSON.stringify(body),
+        });
+        return { success: true };
+      case 'delete':
+        await apiFetch(`/users/${body.userId}`, { method: 'DELETE' });
+        return { success: true };
+      default:
+        return { error: `Unknown action: ${action}` };
+    }
+  } catch (err: any) {
+    return { error: err.message };
+  }
 }
 
 export async function getMyValidationCount(userId: string): Promise<number> {
-  const { count, error } = await supabase
-    .from('validation_logs')
-    .select('*', { count: 'exact', head: true })
-    .eq('admin_id', userId);
-  if (error) return 0;
-  return count || 0;
+  try {
+    const data = await apiFetch<{ count: number }>('/validation-logs/my-count');
+    return data.count || 0;
+  } catch {
+    return 0;
+  }
 }
 
 export function isDueDateOverdue(dateStr: string): boolean {
@@ -346,35 +309,45 @@ export function isDueDateOverdue(dateStr: string): boolean {
 }
 
 export async function updateBerkas(id: string, updates: Record<string, any>): Promise<{ error?: string }> {
-  // Map camelCase to snake_case
-  const dbUpdates: Record<string, any> = {};
-  const keyMap: Record<string, string> = {
-    noSuTahun: 'no_su_tahun',
-    noHak: 'no_hak',
-    linkShareloc: 'link_shareloc',
-    status: 'status',
-    catatanPenolakan: 'catatan_penolakan',
-    rejectedFromStatus: 'rejected_from_status',
-    fileSertifikatUrl: 'file_sertifikat_url',
-    fileKtpUrl: 'file_ktp_url',
-    fileFotoBangunanUrl: 'file_foto_bangunan_url',
-  };
+  try {
+    const dbUpdates: Record<string, any> = {};
+    const keyMap: Record<string, string> = {
+      noSuTahun: 'no_su_tahun',
+      noHak: 'no_hak',
+      linkShareloc: 'link_shareloc',
+      status: 'status',
+      catatanPenolakan: 'catatan_penolakan',
+      rejectedFromStatus: 'rejected_from_status',
+      fileSertifikatUrl: 'file_sertifikat_url',
+      fileKtpUrl: 'file_ktp_url',
+      fileFotoBangunanUrl: 'file_foto_bangunan_url',
+    };
 
-  for (const [key, value] of Object.entries(updates)) {
-    const dbKey = keyMap[key] || key;
-    dbUpdates[dbKey] = value;
+    for (const [key, value] of Object.entries(updates)) {
+      const dbKey = keyMap[key] || key;
+      dbUpdates[dbKey] = value;
+    }
+
+    await apiFetch(`/berkas/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(dbUpdates),
+    });
+    return {};
+  } catch (err: any) {
+    return { error: err.message };
   }
-
-  const { error } = await supabase.from('berkas').update(dbUpdates).eq('id', id);
-  return { error: error?.message };
 }
 
 export async function getBerkasById(id: string): Promise<any | null> {
-  const { data } = await supabase.from('berkas').select('*').eq('id', id).single();
-  if (!data) return null;
-  return {
-    ...data,
-    rejectedFromStatus: data.rejected_from_status,
-    rejected_from_status: data.rejected_from_status,
-  };
+  try {
+    const data = await apiFetch(`/berkas/${id}`);
+    const row = (data as any)?.data || data;
+    return {
+      ...row,
+      rejectedFromStatus: row.rejected_from_status,
+      rejected_from_status: row.rejected_from_status,
+    };
+  } catch {
+    return null;
+  }
 }
