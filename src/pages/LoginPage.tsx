@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Mail, Lock, LogIn, UserPlus, User, Phone, Building2, KeyRound, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { api } from '@/lib/api';
 import logoBpn from '@/assets/logo-bpn.png';
 import loginBg from '@/assets/login-bg.jpeg';
 
@@ -84,7 +84,11 @@ export default function LoginPage() {
     setRegLoading(false);
 
     if (typeof result === 'string') {
-      toast.error(result);
+      if (result.includes('berhasil')) {
+        setRegSuccess(true);
+      } else {
+        toast.error(result);
+      }
     } else {
       setRegSuccess(true);
     }
@@ -105,10 +109,12 @@ export default function LoginPage() {
   const handleEmailReset = async () => {
     if (!forgotEmail.trim()) { toast.error('Email harus diisi'); return; }
     setForgotLoading(true);
-    const { error } = await api.post('/auth/reset-password', { email: forgotEmail });
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
     setForgotLoading(false);
     if (error) {
-      toast.error(error);
+      toast.error(error.message);
     } else {
       setForgotSent(true);
     }

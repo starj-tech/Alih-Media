@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { api, getToken, setToken, clearToken } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
 import { User, UserRole, getUserProfile } from '@/lib/auth';
 
 export function useAuth() {
@@ -7,26 +7,42 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check existing token on mount
-    const token = getToken();
-    if (token) {
-      getUserProfile().then(profile => {
-        setUser(profile);
-        if (!profile) clearToken(); // Token invalid
+    // Listen for auth state changes FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        // Use setTimeout to avoid potential deadlock with Supabase auth
+        setTimeout(async () => {
+          const profile = await getUserProfile();
+          setUser(profile);
+          setLoading(false);
+        }, 0);
+      } else {
+        setUser(null);
         setLoading(false);
-      });
-    } else {
+      }
+    });
+
+    // Then check existing session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const profile = await getUserProfile();
+        setUser(profile);
+      }
       setLoading(false);
-    }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = useCallback(async (email: string, password: string): Promise<User | { error: string }> => {
-    const { data, error } = await api.post<{ token: string; user: User }>('/auth/login', { email, password });
-    if (error || !data) return { error: error || 'Login gagal' };
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { error: error.message };
+    if (!data.user) return { error: 'Login gagal' };
 
-    setToken(data.token);
-    setUser(data.user);
-    return data.user;
+    const profile = await getUserProfile();
+    if (!profile) return { error: 'Profil tidak ditemukan' };
+    setUser(profile);
+    return profile;
   }, []);
 
   const register = useCallback(async (
@@ -35,25 +51,42 @@ export function useAuth() {
     password: string,
     extra?: { no_telepon?: string; pengguna?: string; nama_instansi?: string }
   ): Promise<User | string> => {
-    const { data, error } = await api.post<{ token?: string; user?: User; message?: string }>('/auth/register', {
-      name, email, password, ...extra,
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name,
+          no_telepon: extra?.no_telepon || '',
+          pengguna: extra?.pengguna || 'Perorangan',
+          nama_instansi: extra?.nama_instansi || null,
+        },
+        emailRedirectTo: window.location.origin,
+      },
     });
-    if (error || !data) return error || 'Registrasi gagal';
 
-    // If backend returns token directly (auto-login after register)
-    if (data.token && data.user) {
-      setToken(data.token);
-      setUser(data.user);
-      return data.user;
+    if (error) return error.message;
+    if (!data.user) return 'Registrasi gagal';
+
+    // If email confirmation is required (user exists but not confirmed)
+    if (data.user.identities?.length === 0) {
+      return 'Email sudah terdaftar';
     }
 
-    // If backend requires email verification (no token returned)
-    return data.message || 'Registrasi berhasil, silakan cek email';
+    // If session exists (auto-confirmed), set the user
+    if (data.session) {
+      const profile = await getUserProfile();
+      if (profile) {
+        setUser(profile);
+        return profile;
+      }
+    }
+
+    return 'Registrasi berhasil, silakan cek email untuk konfirmasi';
   }, []);
 
   const logout = useCallback(async () => {
-    await api.post('/auth/logout').catch(() => {});
-    clearToken();
+    await supabase.auth.signOut();
     setUser(null);
   }, []);
 
