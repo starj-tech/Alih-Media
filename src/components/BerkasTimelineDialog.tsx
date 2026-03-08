@@ -63,6 +63,8 @@ export default function BerkasTimelineDialog({ berkas, open, onOpenChange }: Pro
             <p><span className="text-muted-foreground">No Hak:</span> <span className="font-medium">{berkas.noHak}</span> <span className="text-muted-foreground ml-2">Jenis Hak:</span> <span className="font-medium">{berkas.jenisHak}</span></p>
             <p><span className="text-muted-foreground">No.SU/Tahun:</span> <span className="font-medium">{berkas.noSuTahun}</span></p>
             <p><span className="text-muted-foreground">Desa:</span> <span className="font-medium">{berkas.desa}</span></p>
+            <p><span className="text-muted-foreground">No HP Pemohon (Online):</span> <span className="font-medium">{berkas.noWaPemohon || berkas.noTelepon || '-'}</span></p>
+            <p><span className="text-muted-foreground">No HP Pemilik Sertifikat (Offline):</span> <span className="font-medium">{berkas.noTelepon || '-'}</span></p>
           </div>
         )}
 
