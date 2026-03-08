@@ -9,7 +9,12 @@ class ValidationLog extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['berkas_id', 'admin_id', 'action', 'ip_address'];
+    protected $fillable = [
+        'berkas_id',
+        'admin_id',
+        'action',
+        'ip_address',
+    ];
 
     public function berkas()
     {
