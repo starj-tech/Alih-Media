@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { apiFetch } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -109,15 +109,16 @@ export default function LoginPage() {
   const handleEmailReset = async () => {
     if (!forgotEmail.trim()) { toast.error('Email harus diisi'); return; }
     setForgotLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    setForgotLoading(false);
-    if (error) {
-      toast.error(error.message);
-    } else {
+    try {
+      await apiFetch('/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ email: forgotEmail }),
+      });
       setForgotSent(true);
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal mengirim link reset');
     }
+    setForgotLoading(false);
   };
 
   return (
@@ -186,8 +187,7 @@ export default function LoginPage() {
               <div>
                 <p className="font-medium text-lg">Registrasi Berhasil!</p>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Link konfirmasi telah dikirim ke email <strong>{regEmail}</strong>.
-                  Silakan cek inbox (atau folder spam) dan klik link konfirmasi untuk mengaktifkan akun Anda.
+                  Akun Anda telah berhasil didaftarkan. Silakan login dengan email <strong>{regEmail}</strong>.
                 </p>
               </div>
               <Button onClick={() => { setShowRegister(false); setRegSuccess(false); }} className="w-full">
@@ -213,7 +213,7 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="reg-email">Email (untuk verifikasi)</Label>
+                <Label htmlFor="reg-email">Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input id="reg-email" type="email" placeholder="Masukkan email" value={regEmail} onChange={e => setRegEmail(e.target.value)} className="pl-10" required maxLength={255} autoComplete="email" />
@@ -256,10 +256,6 @@ export default function LoginPage() {
                 <UserPlus className="w-4 h-4" />
                 {regLoading ? 'Mendaftarkan...' : 'Daftar'}
               </Button>
-
-              <p className="text-xs text-muted-foreground text-center">
-                Link konfirmasi akan dikirim ke email Anda untuk mengaktifkan akun
-              </p>
             </form>
           )}
         </DialogContent>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiFetch, setToken, removeToken, getToken } from '@/lib/api-client';
 import { User, UserRole, getUserProfile } from '@/lib/auth';
 
 export function useAuth() {
@@ -7,42 +7,33 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Listen for auth state changes FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        // Use setTimeout to avoid potential deadlock with Supabase auth
-        setTimeout(async () => {
-          const profile = await getUserProfile();
-          setUser(profile);
-          setLoading(false);
-        }, 0);
-      } else {
-        setUser(null);
-        setLoading(false);
-      }
-    });
-
-    // Then check existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const profile = await getUserProfile();
+    // Check if we have a stored token and validate it
+    const token = getToken();
+    if (token) {
+      getUserProfile().then(profile => {
         setUser(profile);
-      }
+        if (!profile) removeToken(); // Token invalid, clear it
+        setLoading(false);
+      });
+    } else {
       setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    }
   }, []);
 
   const login = useCallback(async (email: string, password: string): Promise<User | { error: string }> => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: error.message };
-    if (!data.user) return { error: 'Login gagal' };
-
-    const profile = await getUserProfile();
-    if (!profile) return { error: 'Profil tidak ditemukan' };
-    setUser(profile);
-    return profile;
+    try {
+      const data = await apiFetch<{ token: string; user: any }>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      setToken(data.token);
+      const profile = await getUserProfile();
+      if (!profile) return { error: 'Profil tidak ditemukan' };
+      setUser(profile);
+      return profile;
+    } catch (err: any) {
+      return { error: err.message || 'Login gagal' };
+    }
   }, []);
 
   const register = useCallback(async (
@@ -51,42 +42,42 @@ export function useAuth() {
     password: string,
     extra?: { no_telepon?: string; pengguna?: string; nama_instansi?: string }
   ): Promise<User | string> => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
+    try {
+      const data = await apiFetch<{ token?: string; message?: string; user?: any }>('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
           name,
+          email,
+          password,
+          password_confirmation: password,
           no_telepon: extra?.no_telepon || '',
           pengguna: extra?.pengguna || 'Perorangan',
           nama_instansi: extra?.nama_instansi || null,
-        },
-        emailRedirectTo: window.location.origin,
-      },
-    });
+        }),
+      });
 
-    if (error) return error.message;
-    if (!data.user) return 'Registrasi gagal';
-
-    // If email confirmation is required (user exists but not confirmed)
-    if (data.user.identities?.length === 0) {
-      return 'Email sudah terdaftar';
-    }
-
-    // If session exists (auto-confirmed), set the user
-    if (data.session) {
-      const profile = await getUserProfile();
-      if (profile) {
-        setUser(profile);
-        return profile;
+      if (data.token) {
+        setToken(data.token);
+        const profile = await getUserProfile();
+        if (profile) {
+          setUser(profile);
+          return profile;
+        }
       }
-    }
 
-    return 'Registrasi berhasil, silakan cek email untuk konfirmasi';
+      return data.message || 'Registrasi berhasil';
+    } catch (err: any) {
+      return err.message || 'Registrasi gagal';
+    }
   }, []);
 
   const logout = useCallback(async () => {
-    await supabase.auth.signOut();
+    try {
+      await apiFetch('/auth/logout', { method: 'POST' });
+    } catch {
+      // Ignore logout errors
+    }
+    removeToken();
     setUser(null);
   }, []);
 

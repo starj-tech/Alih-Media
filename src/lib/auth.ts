@@ -1,5 +1,5 @@
-// Auth utilities using Supabase SDK
-import { supabase } from '@/integrations/supabase/client';
+// Auth utilities - Laravel backend
+import { apiFetch } from '@/lib/api-client';
 
 export type UserRole = 'admin' | 'user' | 'super_admin' | 'super_user' | 'admin_arsip' | 'admin_validasi_su' | 'admin_validasi_bt';
 
@@ -49,27 +49,16 @@ export function getRoleLabel(role: UserRole): string {
 }
 
 export async function getUserProfile(): Promise<User | null> {
-  const { data: { user: authUser } } = await supabase.auth.getUser();
-  if (!authUser) return null;
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('name, email')
-    .eq('user_id', authUser.id)
-    .single();
-
-  const { data: roleData } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', authUser.id)
-    .single();
-
-  if (!profile) return null;
-
-  return {
-    id: authUser.id,
-    email: profile.email || authUser.email || '',
-    name: profile.name,
-    role: (roleData?.role as UserRole) || 'user',
-  };
+  try {
+    const data = await apiFetch<{ user: any }>('/auth/me');
+    if (!data?.user) return null;
+    return {
+      id: data.user.id,
+      email: data.user.email,
+      name: data.user.name,
+      role: data.user.role || 'user',
+    };
+  } catch {
+    return null;
+  }
 }
