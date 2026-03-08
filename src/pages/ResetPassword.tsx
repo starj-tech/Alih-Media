@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { api, clearToken } from '@/lib/api';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,8 +18,26 @@ export default function ResetPassword({ onComplete }: ResetPasswordProps) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [isRecovery, setIsRecovery] = useState(false);
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    // Check for recovery event from URL hash
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const type = hashParams.get('type');
+    if (type === 'recovery') {
+      setIsRecovery(true);
+    }
+
+    // Listen for PASSWORD_RECOVERY event
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsRecovery(true);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,16 +45,15 @@ export default function ResetPassword({ onComplete }: ResetPasswordProps) {
     if (newPassword !== confirmPassword) { toast.error('Konfirmasi password tidak cocok'); return; }
 
     setLoading(true);
-    const token = searchParams.get('token');
-    const { error } = await api.post('/auth/update-password', { password: newPassword, token });
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
     setLoading(false);
 
     if (error) {
-      toast.error(error);
+      toast.error(error.message);
     } else {
       setSuccess(true);
       toast.success('Password berhasil diubah!');
-      clearToken();
+      await supabase.auth.signOut();
       setTimeout(() => {
         onComplete?.();
         navigate('/');

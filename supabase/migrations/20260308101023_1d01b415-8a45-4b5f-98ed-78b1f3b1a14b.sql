@@ -1,0 +1,1 @@
+CREATE POLICY "Admins can delete files" ON storage.objects FOR DELETE USING (bucket_id = 'berkas-files' AND is_admin(auth.uid()))

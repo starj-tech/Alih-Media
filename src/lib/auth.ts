@@ -1,5 +1,5 @@
-// Auth utilities using Custom REST API
-import { api } from '@/lib/api';
+// Auth utilities using Supabase SDK
+import { supabase } from '@/integrations/supabase/client';
 
 export type UserRole = 'admin' | 'user' | 'super_admin' | 'super_user' | 'admin_arsip' | 'admin_validasi_su' | 'admin_validasi_bt';
 
@@ -49,7 +49,27 @@ export function getRoleLabel(role: UserRole): string {
 }
 
 export async function getUserProfile(): Promise<User | null> {
-  const { data, error } = await api.get<User>('/auth/profile');
-  if (error || !data) return null;
-  return data;
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+  if (!authUser) return null;
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('name, email')
+    .eq('user_id', authUser.id)
+    .single();
+
+  const { data: roleData } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', authUser.id)
+    .single();
+
+  if (!profile) return null;
+
+  return {
+    id: authUser.id,
+    email: profile.email || authUser.email || '',
+    name: profile.name,
+    role: (roleData?.role as UserRole) || 'user',
+  };
 }
