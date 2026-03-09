@@ -6,21 +6,22 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function up()
     {
         Schema::create('profiles', function (Blueprint $table) {
-            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
+            $table->uuid('id')->primary();
             $table->foreignId('user_id')->unique()->constrained('users')->cascadeOnDelete();
             $table->string('name');
             $table->string('email');
             $table->string('no_telepon')->default('');
-            $table->enum('pengguna', ['Perorangan', 'Staf PPAT', 'Notaris/PPAT', 'Bank', 'PT/Badan Hukum'])->default('Perorangan');
+            $table->string('pengguna')->default('Perorangan');
+            // Valid: Perorangan, Staf PPAT, Notaris/PPAT, Bank, PT/Badan Hukum
             $table->string('nama_instansi')->nullable();
             $table->timestamps();
         });
     }
 
-    public function down(): void
+    public function down()
     {
         Schema::dropIfExists('profiles');
     }

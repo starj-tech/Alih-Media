@@ -6,23 +6,25 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function up()
     {
         Schema::create('berkas', function (Blueprint $table) {
-            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
+            $table->uuid('id')->primary();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->date('tanggal_pengajuan')->default(DB::raw('CURRENT_DATE'));
+            $table->date('tanggal_pengajuan')->nullable();
             $table->string('nama_pemegang_hak');
             $table->string('nama_pemilik_sertifikat')->nullable();
             $table->string('no_hak');
             $table->string('no_su_tahun');
-            $table->enum('jenis_hak', ['HM', 'HGB', 'HP', 'HGU', 'HMSRS', 'HPL', 'HW']);
+            $table->string('jenis_hak');
+            // Valid: HM, HGB, HP, HGU, HMSRS, HPL, HW
             $table->string('kecamatan');
             $table->string('desa');
-            $table->string('no_telepon');
+            $table->string('no_telepon')->default('');
             $table->string('no_wa_pemohon')->nullable();
-            $table->string('link_shareloc')->nullable();
-            $table->enum('status', ['Proses', 'Validasi SU & Bidang', 'Validasi BT', 'Selesai', 'Ditolak'])->default('Proses');
+            $table->text('link_shareloc')->nullable();
+            $table->string('status')->default('Proses');
+            // Valid: Proses, Validasi SU & Bidang, Validasi BT, Selesai, Ditolak
             $table->string('file_sertifikat_url')->nullable();
             $table->string('file_ktp_url')->nullable();
             $table->string('file_foto_bangunan_url')->nullable();
@@ -36,7 +38,7 @@ return new class extends Migration
         });
     }
 
-    public function down(): void
+    public function down()
     {
         Schema::dropIfExists('berkas');
     }
