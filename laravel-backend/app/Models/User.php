@@ -11,7 +11,7 @@ class User extends Authenticatable
 {
     use HasApiTokens, Notifiable;
 
-    protected $fillable = ['name', 'email', 'password'];
+    protected $fillable = ['name', 'email', 'password', 'email_verified_at'];
 
     protected $hidden = ['password', 'remember_token'];
 
@@ -57,7 +57,8 @@ class User extends Authenticatable
 
     public function getRole()
     {
-        return $this->userRole ? $this->userRole->role : 'user';
+        $role = $this->userRole;
+        return $role ? $role->role : 'user';
     }
 
     public function isAdmin()
@@ -97,6 +98,7 @@ class User extends Authenticatable
             'user' => 'User',
         ];
 
-        return $labels[$this->getRole()] ?? 'User';
+        $role = $this->getRole();
+        return isset($labels[$role]) ? $labels[$role] : 'User';
     }
 }

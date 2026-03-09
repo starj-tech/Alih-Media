@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Support\Str;
 
 class PasswordResetOtp extends Model
 {
-    use HasUuids;
-
     protected $table = 'password_reset_otps';
+
+    protected $keyType = 'string';
+    public $incrementing = false;
 
     protected $fillable = [
         'user_id',
@@ -24,12 +25,23 @@ class PasswordResetOtp extends Model
         'expires_at' => 'datetime',
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->{$model->getKeyName()})) {
+                $model->{$model->getKeyName()} = (string) Str::uuid();
+            }
+        });
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    public function isExpired(): bool
+    public function isExpired()
     {
         return $this->expires_at->isPast();
     }
@@ -37,7 +49,7 @@ class PasswordResetOtp extends Model
     /**
      * Cleanup expired OTPs
      */
-    public static function cleanupExpired(): int
+    public static function cleanupExpired()
     {
         return static::where('expires_at', '<', now())->delete();
     }

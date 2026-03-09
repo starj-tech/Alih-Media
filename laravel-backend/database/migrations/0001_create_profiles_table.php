@@ -4,13 +4,13 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
+class CreateProfilesTable extends Migration
 {
     public function up()
     {
         Schema::create('profiles', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignId('user_id')->unique()->constrained('users')->cascadeOnDelete();
+            $table->unsignedBigInteger('user_id')->unique();
             $table->string('name');
             $table->string('email');
             $table->string('no_telepon')->default('');
@@ -18,6 +18,8 @@ return new class extends Migration
             // Valid: Perorangan, Staf PPAT, Notaris/PPAT, Bank, PT/Badan Hukum
             $table->string('nama_instansi')->nullable();
             $table->timestamps();
+
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
 
@@ -25,4 +27,4 @@ return new class extends Migration
     {
         Schema::dropIfExists('profiles');
     }
-};
+}
