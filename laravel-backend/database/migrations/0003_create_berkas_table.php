@@ -4,13 +4,13 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
+class CreateBerkasTable extends Migration
 {
     public function up()
     {
         Schema::create('berkas', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->unsignedBigInteger('user_id');
             $table->date('tanggal_pengajuan')->nullable();
             $table->string('nama_pemegang_hak');
             $table->string('nama_pemilik_sertifikat')->nullable();
@@ -34,7 +34,8 @@ return new class extends Migration
             $table->string('rejected_from_status')->nullable();
             $table->timestamps();
 
-            $table->foreign('validated_by')->references('id')->on('users')->nullOnDelete();
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('validated_by')->references('id')->on('users')->onDelete('set null');
         });
     }
 
@@ -42,4 +43,4 @@ return new class extends Migration
     {
         Schema::dropIfExists('berkas');
     }
-};
+}

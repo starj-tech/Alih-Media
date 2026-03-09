@@ -6,7 +6,7 @@ use App\Models\User;
 use App\Models\Profile;
 use App\Models\UserRole;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -161,7 +161,7 @@ class AuthController extends Controller
 
         $token = bin2hex(random_bytes(32));
 
-        \DB::table('password_reset_tokens')->updateOrInsert(
+        DB::table('password_resets')->updateOrInsert(
             ['email' => $request->email],
             ['token' => Hash::make($token), 'created_at' => now()]
         );
@@ -183,7 +183,7 @@ class AuthController extends Controller
             'password' => 'required|string|min:6|max:128',
         ]);
 
-        $record = \DB::table('password_reset_tokens')
+        $record = DB::table('password_resets')
             ->where('email', $request->email)
             ->first();
 
@@ -202,7 +202,7 @@ class AuthController extends Controller
 
         $user->update(['password' => $request->password]);
 
-        \DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+        DB::table('password_resets')->where('email', $request->email)->delete();
 
         return response()->json(['message' => 'Password berhasil direset']);
     }

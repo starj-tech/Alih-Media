@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
+class CreateValidationLogsTable extends Migration
 {
     public function up()
     {
@@ -16,8 +16,8 @@ return new class extends Migration
             $table->string('ip_address')->nullable();
             $table->timestamps();
 
-            $table->foreign('berkas_id')->references('id')->on('berkas')->cascadeOnDelete();
-            $table->foreign('admin_id')->references('id')->on('users')->cascadeOnDelete();
+            $table->foreign('berkas_id')->references('id')->on('berkas')->onDelete('cascade');
+            $table->foreign('admin_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
 
@@ -25,4 +25,4 @@ return new class extends Migration
     {
         Schema::dropIfExists('validation_logs');
     }
-};
+}
