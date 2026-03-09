@@ -1,7 +1,7 @@
 // Laravel API Client - Core HTTP utilities
 // Configure LARAVEL_API_URL to point to your Laravel server
 
-export const LARAVEL_API_URL = 'http://localhost:8000/api';
+export const LARAVEL_API_URL = 'https://api-alihmedia.kantahkabbogor.id/api';
 
 export function getToken(): string | null {
   return localStorage.getItem('auth_token');
