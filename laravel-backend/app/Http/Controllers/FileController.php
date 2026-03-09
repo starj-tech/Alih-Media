@@ -3,23 +3,14 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
 
 class FileController extends Controller
 {
-    /**
-     * POST /api/files/upload
-     * Upload file ke storage lokal
-     * 
-     * Request: multipart/form-data
-     * - file: File (max 5MB)
-     * - type: sertifikat | ktp | foto-bangunan
-     */
-    public function upload(Request $request): JsonResponse
+    public function upload(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|max:5120', // 5MB
+            'file' => 'required|file|max:5120',
             'type' => 'required|in:sertifikat,ktp,foto-bangunan',
         ]);
 
@@ -27,7 +18,6 @@ class FileController extends Controller
         $file = $request->file('file');
         $type = $request->type;
 
-        // Validate file type based on type
         if ($type === 'sertifikat') {
             if ($file->getMimeType() !== 'application/pdf') {
                 return response()->json(['error' => 'File sertifikat harus berformat PDF'], 422);
@@ -40,7 +30,7 @@ class FileController extends Controller
 
         $timestamp = time();
         $ext = $file->getClientOriginalExtension();
-        $path = "{$user->id}/{$type}/{$timestamp}.{$ext}";
+        $path = $user->id . '/' . $type . '/' . $timestamp . '.' . $ext;
 
         Storage::disk('public')->putFileAs('', $file, $path);
 
@@ -50,11 +40,7 @@ class FileController extends Controller
         ]);
     }
 
-    /**
-     * GET /api/files/download/{path}
-     * Download file langsung (binary response)
-     */
-    public function download(Request $request, string $path)
+    public function download(Request $request, $path)
     {
         $fullPath = urldecode($path);
 
@@ -65,11 +51,7 @@ class FileController extends Controller
         return Storage::disk('public')->download($fullPath);
     }
 
-    /**
-     * GET /api/files/url/{path}
-     * Dapatkan URL file untuk preview/download
-     */
-    public function getUrl(Request $request, string $path): JsonResponse
+    public function getUrl(Request $request, $path)
     {
         $fullPath = urldecode($path);
 
@@ -82,11 +64,7 @@ class FileController extends Controller
         return response()->json(['url' => $url]);
     }
 
-    /**
-     * DELETE /api/files/{path}
-     * Hapus file dari storage
-     */
-    public function destroy(Request $request, string $path): JsonResponse
+    public function destroy(Request $request, $path)
     {
         $fullPath = urldecode($path);
 

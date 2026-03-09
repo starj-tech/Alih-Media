@@ -6,28 +6,24 @@ use App\Models\User;
 use App\Models\Profile;
 use App\Models\UserRole;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 
 class UserController extends Controller
 {
-    /**
-     * GET /api/users
-     * List semua user (admin/super_admin only)
-     */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
         if (!$request->user()->isSuperAdmin()) {
             return response()->json(['error' => 'Forbidden'], 403);
         }
 
         $users = User::with(['profile', 'userRole'])->get()->map(function ($user) {
+            $profile = $user->profile;
             return [
                 'id' => $user->id,
                 'email' => $user->email,
-                'name' => $user->profile?->name ?? $user->name,
-                'no_telepon' => $user->profile?->no_telepon ?? '',
-                'pengguna' => $user->profile?->pengguna ?? 'Perorangan',
-                'nama_instansi' => $user->profile?->nama_instansi,
+                'name' => $profile ? $profile->name : $user->name,
+                'no_telepon' => $profile ? $profile->no_telepon : '',
+                'pengguna' => $profile ? $profile->pengguna : 'Perorangan',
+                'nama_instansi' => $profile ? $profile->nama_instansi : null,
                 'role' => $user->getRole(),
             ];
         });
@@ -35,11 +31,7 @@ class UserController extends Controller
         return response()->json($users);
     }
 
-    /**
-     * POST /api/users
-     * Buat user baru (oleh admin)
-     */
-    public function store(Request $request): JsonResponse
+    public function store(Request $request)
     {
         if (!$request->user()->isSuperAdmin()) {
             return response()->json(['error' => 'Forbidden'], 403);
@@ -66,24 +58,20 @@ class UserController extends Controller
             'user_id' => $user->id,
             'name' => $request->name,
             'email' => $request->email,
-            'no_telepon' => $request->no_telepon ?? '',
-            'pengguna' => $request->pengguna ?? 'Perorangan',
+            'no_telepon' => $request->no_telepon ? $request->no_telepon : '',
+            'pengguna' => $request->pengguna ? $request->pengguna : 'Perorangan',
             'nama_instansi' => $request->nama_instansi,
         ]);
 
         UserRole::create([
             'user_id' => $user->id,
-            'role' => $request->role ?? 'user',
+            'role' => $request->role ? $request->role : 'user',
         ]);
 
         return response()->json(['success' => true, 'id' => $user->id], 201);
     }
 
-    /**
-     * PUT /api/users/{id}
-     * Update user (profil, role, password)
-     */
-    public function update(Request $request, int $id): JsonResponse
+    public function update(Request $request, $id)
     {
         if (!$request->user()->isSuperAdmin()) {
             return response()->json(['error' => 'Forbidden'], 403);
@@ -100,7 +88,6 @@ class UserController extends Controller
             'password' => 'nullable|string|min:6|max:128',
         ]);
 
-        // Update profile
         $profile = $user->profile;
         if ($profile) {
             $profileUpdates = [];
@@ -114,7 +101,6 @@ class UserController extends Controller
             }
         }
 
-        // Update role
         if ($request->has('role') && $request->role) {
             $userRole = $user->userRole;
             if ($userRole) {
@@ -127,12 +113,10 @@ class UserController extends Controller
             }
         }
 
-        // Update password
         if ($request->has('password') && $request->password) {
             $user->update(['password' => $request->password]);
         }
 
-        // Update user name
         if ($request->has('name')) {
             $user->update(['name' => $request->name]);
         }
@@ -140,11 +124,7 @@ class UserController extends Controller
         return response()->json(['success' => true]);
     }
 
-    /**
-     * DELETE /api/users/{id}
-     * Hapus user (cascade: profile, role, berkas)
-     */
-    public function destroy(Request $request, int $id): JsonResponse
+    public function destroy(Request $request, $id)
     {
         if (!$request->user()->isSuperAdmin()) {
             return response()->json(['error' => 'Forbidden'], 403);
@@ -152,35 +132,31 @@ class UserController extends Controller
 
         $user = User::findOrFail($id);
 
-        // Prevent deleting yourself
         if ($user->id === $request->user()->id) {
             return response()->json(['error' => 'Tidak bisa menghapus akun sendiri'], 400);
         }
 
-        $user->delete(); // Cascade deletes profile, role, berkas
+        $user->delete();
 
         return response()->json(['success' => true]);
     }
 
-    /**
-     * GET /api/users/{id}
-     * Detail satu user
-     */
-    public function show(Request $request, int $id): JsonResponse
+    public function show(Request $request, $id)
     {
         if (!$request->user()->isSuperAdmin()) {
             return response()->json(['error' => 'Forbidden'], 403);
         }
 
         $user = User::with(['profile', 'userRole'])->findOrFail($id);
+        $profile = $user->profile;
 
         return response()->json([
             'id' => $user->id,
             'email' => $user->email,
-            'name' => $user->profile?->name ?? $user->name,
-            'no_telepon' => $user->profile?->no_telepon ?? '',
-            'pengguna' => $user->profile?->pengguna ?? 'Perorangan',
-            'nama_instansi' => $user->profile?->nama_instansi,
+            'name' => $profile ? $profile->name : $user->name,
+            'no_telepon' => $profile ? $profile->no_telepon : '',
+            'pengguna' => $profile ? $profile->pengguna : 'Perorangan',
+            'nama_instansi' => $profile ? $profile->nama_instansi : null,
             'role' => $user->getRole(),
             'created_at' => $user->created_at,
         ]);
