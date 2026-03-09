@@ -184,17 +184,17 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- Password: admin123 (BCrypt hash)
 -- ==========================================
 
-INSERT INTO `users` (`id`, `name`, `email`, `email_verified_at`, `password`, `created_at`, `updated_at`)
+INSERT IGNORE INTO `users` (`id`, `name`, `email`, `email_verified_at`, `password`, `created_at`, `updated_at`)
 VALUES (1, 'Super Admin', 'admin@bpn.go.id', NOW(), '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', NOW(), NOW());
 
-INSERT INTO `profiles` (`id`, `user_id`, `name`, `email`, `no_telepon`, `pengguna`, `created_at`, `updated_at`)
+INSERT IGNORE INTO `profiles` (`id`, `user_id`, `name`, `email`, `no_telepon`, `pengguna`, `created_at`, `updated_at`)
 VALUES (UUID(), 1, 'Super Admin', 'admin@bpn.go.id', '', 'Perorangan', NOW(), NOW());
 
-INSERT INTO `user_roles` (`id`, `user_id`, `role`, `created_at`, `updated_at`)
+INSERT IGNORE INTO `user_roles` (`id`, `user_id`, `role`, `created_at`, `updated_at`)
 VALUES (UUID(), 1, 'super_admin', NOW(), NOW());
 
 -- Record migrations as done
-INSERT INTO `migrations` (`migration`, `batch`) VALUES
+INSERT IGNORE INTO `migrations` (`migration`, `batch`) VALUES
 ('0000_create_users_table', 1),
 ('0000_create_personal_access_tokens_table', 1),
 ('0001_create_profiles_table', 1),
