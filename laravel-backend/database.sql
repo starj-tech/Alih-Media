@@ -12,7 +12,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 CREATE TABLE IF NOT EXISTS `users` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(255) NOT NULL,
-  `email` VARCHAR(255) NOT NULL,
+  `email` VARCHAR(191) NOT NULL,
   `email_verified_at` TIMESTAMP NULL DEFAULT NULL,
   `password` VARCHAR(255) NOT NULL,
   `remember_token` VARCHAR(100) NULL DEFAULT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 -- 2. TABEL PASSWORD_RESETS
 -- ==========================================
 CREATE TABLE IF NOT EXISTS `password_resets` (
-  `email` VARCHAR(255) NOT NULL,
+  `email` VARCHAR(191) NOT NULL,
   `token` VARCHAR(255) NOT NULL,
   `created_at` TIMESTAMP NULL DEFAULT NULL,
   KEY `password_resets_email_index` (`email`)
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS `password_resets` (
 -- 3. TABEL SESSIONS
 -- ==========================================
 CREATE TABLE IF NOT EXISTS `sessions` (
-  `id` VARCHAR(255) NOT NULL,
+  `id` VARCHAR(191) NOT NULL,
   `user_id` BIGINT UNSIGNED NULL DEFAULT NULL,
   `ip_address` VARCHAR(45) NULL DEFAULT NULL,
   `user_agent` TEXT NULL DEFAULT NULL,
@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS `sessions` (
 -- ==========================================
 CREATE TABLE IF NOT EXISTS `personal_access_tokens` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `tokenable_type` VARCHAR(255) NOT NULL,
+  `tokenable_type` VARCHAR(191) NOT NULL,
   `tokenable_id` BIGINT UNSIGNED NOT NULL,
   `name` VARCHAR(255) NOT NULL,
   `token` VARCHAR(64) NOT NULL,
