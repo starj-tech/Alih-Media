@@ -1,1 +1,0 @@
-ALTER TABLE public.berkas ADD COLUMN IF NOT EXISTS file_foto_bangunan_url text DEFAULT NULL;

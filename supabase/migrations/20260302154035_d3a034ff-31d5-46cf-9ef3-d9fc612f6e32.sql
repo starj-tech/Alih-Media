@@ -1,1 +1,0 @@
-ALTER TABLE public.berkas ADD COLUMN rejected_from_status text NULL;
