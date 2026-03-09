@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS `password_resets` (
 -- 3. TABEL SESSIONS
 -- ==========================================
 CREATE TABLE IF NOT EXISTS `sessions` (
-  `id` VARCHAR(255) NOT NULL,
+  `id` VARCHAR(191) NOT NULL,
   `user_id` BIGINT UNSIGNED NULL DEFAULT NULL,
   `ip_address` VARCHAR(45) NULL DEFAULT NULL,
   `user_agent` TEXT NULL DEFAULT NULL,
