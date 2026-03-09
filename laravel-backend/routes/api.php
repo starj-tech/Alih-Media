@@ -22,6 +22,15 @@ use Illuminate\Support\Facades\Route;
 // PUBLIC ROUTES (tanpa autentikasi)
 // ==========================================
 
+// Health check endpoint
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'ok',
+        'message' => 'API Alihmedia BPN berjalan normal',
+        'timestamp' => now()->toIso8601String(),
+    ]);
+});
+
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/register', [AuthController::class, 'register']);
