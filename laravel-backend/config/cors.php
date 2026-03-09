@@ -10,6 +10,8 @@ return [
         env('FRONTEND_URL', 'http://localhost:5173'),
         'http://localhost:3000',
         'http://localhost:5173',
+        'https://alih-media.lovable.app',
+        'https://alihmedia.kantahkabbogor.id',
     ],
 
     'allowed_origins_patterns' => [],
