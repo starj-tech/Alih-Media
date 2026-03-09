@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
+    public function up()
     {
         Schema::create('password_reset_otps', function (Blueprint $table) {
             $table->uuid('id')->primary();
@@ -19,7 +19,7 @@ return new class extends Migration
         });
     }
 
-    public function down(): void
+    public function down()
     {
         Schema::dropIfExists('password_reset_otps');
     }

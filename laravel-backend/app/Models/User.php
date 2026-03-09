@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Facades\Hash;
 
 class User extends Authenticatable
 {
@@ -14,12 +15,16 @@ class User extends Authenticatable
 
     protected $hidden = ['password', 'remember_token'];
 
-    protected function casts(): array
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+    ];
+
+    /**
+     * Hash password automatically on set
+     */
+    public function setPasswordAttribute($value)
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        $this->attributes['password'] = Hash::make($value);
     }
 
     // ==========================================
@@ -50,29 +55,29 @@ class User extends Authenticatable
     // ROLE HELPERS
     // ==========================================
 
-    public function getRole(): string
+    public function getRole()
     {
-        return $this->userRole?->role ?? 'user';
+        return $this->userRole ? $this->userRole->role : 'user';
     }
 
-    public function isAdmin(): bool
+    public function isAdmin()
     {
         return in_array($this->getRole(), [
             'admin', 'super_admin', 'admin_arsip', 'admin_validasi_su', 'admin_validasi_bt'
         ]);
     }
 
-    public function isSuperAdmin(): bool
+    public function isSuperAdmin()
     {
         return in_array($this->getRole(), ['super_admin', 'admin']);
     }
 
-    public function isSuperUser(): bool
+    public function isSuperUser()
     {
         return $this->getRole() === 'super_user';
     }
 
-    public function hasRole(string $role): bool
+    public function hasRole($role)
     {
         return $this->getRole() === $role;
     }
@@ -80,16 +85,18 @@ class User extends Authenticatable
     /**
      * Get role label in Indonesian
      */
-    public function getRoleLabel(): string
+    public function getRoleLabel()
     {
-        return match ($this->getRole()) {
+        $labels = [
             'super_admin' => 'Super Admin',
             'admin' => 'Admin',
             'admin_arsip' => 'Admin Arsip BT/SU',
             'admin_validasi_su' => 'Admin Validasi SU & Bidang',
             'admin_validasi_bt' => 'Admin Validasi BT',
             'super_user' => 'Super User',
-            default => 'User',
-        };
+            'user' => 'User',
+        ];
+
+        return $labels[$this->getRole()] ?? 'User';
     }
 }

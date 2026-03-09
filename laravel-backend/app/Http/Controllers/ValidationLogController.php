@@ -4,15 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\ValidationLog;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 
 class ValidationLogController extends Controller
 {
-    /**
-     * GET /api/validation-logs
-     * Semua log validasi (admin only)
-     */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
         if (!$request->user()->isAdmin()) {
             return response()->json(['error' => 'Forbidden'], 403);
@@ -23,12 +18,14 @@ class ValidationLogController extends Controller
             ->limit(1000)
             ->get()
             ->map(function ($log) {
+                $admin = $log->admin;
+                $profile = $admin ? $admin->profile : null;
                 return [
                     'id' => $log->id,
                     'berkas_id' => $log->berkas_id,
                     'admin_id' => $log->admin_id,
-                    'admin_name' => $log->admin?->profile?->name ?? 'Unknown',
-                    'admin_email' => $log->admin?->email ?? '',
+                    'admin_name' => $profile ? $profile->name : 'Unknown',
+                    'admin_email' => $admin ? $admin->email : '',
                     'action' => $log->action,
                     'ip_address' => $log->ip_address,
                     'created_at' => $log->created_at->toISOString(),
@@ -38,22 +35,13 @@ class ValidationLogController extends Controller
         return response()->json($logs);
     }
 
-    /**
-     * GET /api/validation-logs/my-count
-     * Jumlah validasi oleh admin yang login
-     */
-    public function myCount(Request $request): JsonResponse
+    public function myCount(Request $request)
     {
         $count = ValidationLog::where('admin_id', $request->user()->id)->count();
-
         return response()->json(['count' => $count]);
     }
 
-    /**
-     * GET /api/validation-logs/admin-counts
-     * Jumlah validasi per admin
-     */
-    public function adminCounts(Request $request): JsonResponse
+    public function adminCounts(Request $request)
     {
         if (!$request->user()->isAdmin()) {
             return response()->json(['error' => 'Forbidden'], 403);
@@ -66,11 +54,7 @@ class ValidationLogController extends Controller
         return response()->json($counts);
     }
 
-    /**
-     * GET /api/validation-logs/berkas/{berkasId}
-     * Log validasi untuk satu berkas tertentu
-     */
-    public function byBerkas(Request $request, string $berkasId): JsonResponse
+    public function byBerkas(Request $request, $berkasId)
     {
         if (!$request->user()->isAdmin()) {
             return response()->json(['error' => 'Forbidden'], 403);
@@ -81,13 +65,15 @@ class ValidationLogController extends Controller
             ->orderBy('created_at', 'asc')
             ->get()
             ->map(function ($log) {
+                $admin = $log->admin;
+                $profile = $admin ? $admin->profile : null;
                 return [
                     'id' => $log->id,
                     'action' => $log->action,
-                    'admin_name' => $log->admin?->profile?->name ?? 'Unknown',
-                    'admin_email' => $log->admin?->email ?? '',
+                    'admin_name' => $profile ? $profile->name : 'Unknown',
+                    'admin_email' => $admin ? $admin->email : '',
                     'timestamp' => $log->created_at->toISOString(),
-                    'ip_address' => $log->ip_address ?? '',
+                    'ip_address' => $log->ip_address ? $log->ip_address : '',
                 ];
             });
 

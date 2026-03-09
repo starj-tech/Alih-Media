@@ -5,26 +5,19 @@ namespace App\Http\Controllers;
 use App\Models\Berkas;
 use App\Models\ValidationLog;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
 
 class BerkasController extends Controller
 {
-    /**
-     * GET /api/berkas
-     * Ambil semua berkas. Admin = semua, User = milik sendiri.
-     */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
         $user = $request->user();
-
         $query = Berkas::query()->orderBy('created_at', 'desc');
 
         if (!$user->isAdmin()) {
             $query->where('user_id', $user->id);
         }
 
-        // Optional filters
         if ($request->has('status')) {
             $query->where('status', $request->status);
         }
@@ -35,15 +28,10 @@ class BerkasController extends Controller
             $query->where('jenis_hak', $request->jenis_hak);
         }
 
-        $berkas = $query->get();
-
-        return response()->json($berkas);
+        return response()->json($query->get());
     }
 
-    /**
-     * GET /api/berkas/{id}
-     */
-    public function show(Request $request, string $id): JsonResponse
+    public function show(Request $request, $id)
     {
         $user = $request->user();
         $berkas = Berkas::findOrFail($id);
@@ -55,11 +43,7 @@ class BerkasController extends Controller
         return response()->json($berkas);
     }
 
-    /**
-     * POST /api/berkas
-     * Buat berkas baru
-     */
-    public function store(Request $request): JsonResponse
+    public function store(Request $request)
     {
         $request->validate([
             'nama_pemegang_hak' => 'required|string|max:255',
@@ -79,16 +63,13 @@ class BerkasController extends Controller
 
         $user = $request->user();
 
-        // Validate no_su_tahun: first part must have at least 5 digits
-        $noSuNumber = preg_replace('/\D/', '', explode('/', $request->no_su_tahun)[0] ?? '');
+        $noSuNumber = preg_replace('/\D/', '', explode('/', $request->no_su_tahun)[0]);
         if (strlen($noSuNumber) < 5) {
             return response()->json(['error' => 'No SU harus minimal 5 digit'], 422);
         }
 
-        // Check daily limit (5/day for regular users)
         if (!$user->isSuperUser()) {
             $todayCount = Berkas::byUser($user->id)->createdToday()->count();
-
             if ($todayCount >= Berkas::DAILY_LIMIT) {
                 return response()->json([
                     'error' => 'Kuota harian sudah habis (maks ' . Berkas::DAILY_LIMIT . ')',
@@ -106,7 +87,7 @@ class BerkasController extends Controller
             'jenis_hak' => $request->jenis_hak,
             'kecamatan' => $request->kecamatan,
             'desa' => $request->desa,
-            'no_telepon' => $request->no_telepon ?? '',
+            'no_telepon' => $request->no_telepon ? $request->no_telepon : '',
             'no_wa_pemohon' => $request->no_wa_pemohon,
             'link_shareloc' => $request->link_shareloc,
             'file_sertifikat_url' => $request->file_sertifikat_url,
@@ -117,11 +98,7 @@ class BerkasController extends Controller
         return response()->json($berkas, 201);
     }
 
-    /**
-     * PUT /api/berkas/{id}
-     * Update data berkas
-     */
-    public function update(Request $request, string $id): JsonResponse
+    public function update(Request $request, $id)
     {
         $user = $request->user();
         $berkas = Berkas::findOrFail($id);
@@ -141,11 +118,7 @@ class BerkasController extends Controller
         return response()->json($berkas);
     }
 
-    /**
-     * PUT /api/berkas/{id}/status
-     * Update status berkas (admin only)
-     */
-    public function updateStatus(Request $request, string $id): JsonResponse
+    public function updateStatus(Request $request, $id)
     {
         $request->validate([
             'status' => 'required|in:' . implode(',', Berkas::STATUSES),
@@ -174,7 +147,6 @@ class BerkasController extends Controller
             $updates['rejected_from_status'] = $berkas->status;
         }
 
-        // Clear rejection notes when moving to non-rejected status
         if ($request->status !== 'Ditolak') {
             $updates['catatan_penolakan'] = null;
             $updates['rejected_from_status'] = null;
@@ -182,7 +154,6 @@ class BerkasController extends Controller
 
         $berkas->update($updates);
 
-        // Log validation action
         ValidationLog::create([
             'berkas_id' => $id,
             'admin_id' => $user->id,
@@ -193,10 +164,7 @@ class BerkasController extends Controller
         return response()->json($berkas->fresh());
     }
 
-    /**
-     * DELETE /api/berkas/{id}
-     */
-    public function destroy(Request $request, string $id): JsonResponse
+    public function destroy(Request $request, $id)
     {
         $user = $request->user();
         $berkas = Berkas::findOrFail($id);
@@ -205,7 +173,6 @@ class BerkasController extends Controller
             return response()->json(['error' => 'Forbidden'], 403);
         }
 
-        // Delete associated files from storage
         foreach (['file_sertifikat_url', 'file_ktp_url', 'file_foto_bangunan_url'] as $field) {
             if ($berkas->$field && Storage::disk('public')->exists($berkas->$field)) {
                 Storage::disk('public')->delete($berkas->$field);
@@ -217,15 +184,11 @@ class BerkasController extends Controller
         return response()->json(['message' => 'Berkas berhasil dihapus']);
     }
 
-    /**
-     * GET /api/berkas/stats
-     * Statistik berkas
-     */
-    public function stats(Request $request): JsonResponse
+    public function stats(Request $request)
     {
         $user = $request->user();
-
         $query = Berkas::query();
+
         if (!$user->isAdmin()) {
             $query->where('user_id', $user->id);
         }
@@ -241,7 +204,6 @@ class BerkasController extends Controller
             'ditolak' => $all->where('status', 'Ditolak')->count(),
         ];
 
-        // Admin stats: include admin validation counts
         if ($user->isAdmin()) {
             $adminCounts = ValidationLog::selectRaw('admin_id, count(*) as total')
                 ->groupBy('admin_id')
@@ -253,11 +215,7 @@ class BerkasController extends Controller
         return response()->json($stats);
     }
 
-    /**
-     * GET /api/berkas/today-count
-     * Jumlah berkas yang disubmit hari ini oleh user yang login
-     */
-    public function todayCount(Request $request): JsonResponse
+    public function todayCount(Request $request)
     {
         $count = Berkas::byUser($request->user()->id)
             ->createdToday()
@@ -266,34 +224,28 @@ class BerkasController extends Controller
         return response()->json(['count' => $count]);
     }
 
-    /**
-     * GET /api/berkas/{id}/timeline
-     * Timeline validasi berkas
-     */
-    public function timeline(string $id): JsonResponse
+    public function timeline($id)
     {
         $logs = ValidationLog::where('berkas_id', $id)
             ->with('admin.profile')
             ->orderBy('created_at', 'asc')
             ->get()
             ->map(function ($log) {
+                $admin = $log->admin;
+                $profile = $admin ? $admin->profile : null;
                 return [
                     'action' => $log->action,
-                    'admin_name' => $log->admin?->profile?->name ?? 'Unknown',
-                    'admin_email' => $log->admin?->email ?? '',
+                    'admin_name' => $profile ? $profile->name : 'Unknown',
+                    'admin_email' => $admin ? $admin->email : '',
                     'timestamp' => $log->created_at->toISOString(),
-                    'ip_address' => $log->ip_address ?? '',
+                    'ip_address' => $log->ip_address ? $log->ip_address : '',
                 ];
             });
 
         return response()->json($logs);
     }
 
-    /**
-     * DELETE /api/berkas/{id}/files
-     * Hapus semua file terkait berkas
-     */
-    public function deleteFiles(Request $request, string $id): JsonResponse
+    public function deleteFiles(Request $request, $id)
     {
         $user = $request->user();
         $berkas = Berkas::findOrFail($id);

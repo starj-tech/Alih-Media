@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Support\Str;
 
 class Berkas extends Model
 {
-    use HasUuids;
-
     protected $table = 'berkas';
+
+    protected $keyType = 'string';
+    public $incrementing = false;
 
     protected $fillable = [
         'user_id',
@@ -38,6 +39,20 @@ class Berkas extends Model
         'tanggal_pengajuan' => 'date',
         'validated_at' => 'datetime',
     ];
+
+    /**
+     * Auto-generate UUID on create
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->{$model->getKeyName()})) {
+                $model->{$model->getKeyName()} = (string) Str::uuid();
+            }
+        });
+    }
 
     /**
      * Valid jenis hak values
@@ -83,12 +98,12 @@ class Berkas extends Model
     // SCOPES
     // ==========================================
 
-    public function scopeByStatus($query, string $status)
+    public function scopeByStatus($query, $status)
     {
         return $query->where('status', $status);
     }
 
-    public function scopeByUser($query, int $userId)
+    public function scopeByUser($query, $userId)
     {
         return $query->where('user_id', $userId);
     }

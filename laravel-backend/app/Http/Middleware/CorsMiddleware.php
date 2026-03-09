@@ -4,14 +4,10 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 
 class CorsMiddleware
 {
-    /**
-     * Handle CORS headers for API requests
-     */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next)
     {
         if ($request->method() === 'OPTIONS') {
             return response('', 200)
@@ -30,7 +26,7 @@ class CorsMiddleware
         return $response;
     }
 
-    private function getAllowedOrigin(Request $request): string
+    private function getAllowedOrigin(Request $request)
     {
         $allowed = [
             config('app.frontend_url', 'http://localhost:5173'),

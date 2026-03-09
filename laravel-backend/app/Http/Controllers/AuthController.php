@@ -14,9 +14,8 @@ class AuthController extends Controller
 {
     /**
      * POST /api/auth/login
-     * Login dan mendapatkan token Sanctum
      */
-    public function login(Request $request): JsonResponse
+    public function login(Request $request)
     {
         $request->validate([
             'email' => 'required|email|max:255',
@@ -31,7 +30,7 @@ class AuthController extends Controller
             ]);
         }
 
-        // Revoke old tokens (single device login)
+        // Revoke old tokens
         $user->tokens()->delete();
 
         $token = $user->createToken('auth-token')->plainTextToken;
@@ -42,7 +41,7 @@ class AuthController extends Controller
             'user' => [
                 'id' => $user->id,
                 'email' => $user->email,
-                'name' => $profile?->name ?? $user->name,
+                'name' => $profile ? $profile->name : $user->name,
                 'role' => $user->getRole(),
             ],
         ]);
@@ -50,9 +49,8 @@ class AuthController extends Controller
 
     /**
      * POST /api/auth/register
-     * Registrasi user baru
      */
-    public function register(Request $request): JsonResponse
+    public function register(Request $request)
     {
         $request->validate([
             'name' => 'required|string|min:2|max:100',
@@ -66,21 +64,19 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => $request->password, // auto-hashed via cast
-            'email_verified_at' => now(), // auto-verify for simplicity
+            'password' => $request->password, // auto-hashed via mutator
+            'email_verified_at' => now(),
         ]);
 
-        // Create profile
         Profile::create([
             'user_id' => $user->id,
             'name' => $request->name,
             'email' => $request->email,
-            'no_telepon' => $request->no_telepon ?? '',
-            'pengguna' => $request->pengguna ?? 'Perorangan',
+            'no_telepon' => $request->no_telepon ? $request->no_telepon : '',
+            'pengguna' => $request->pengguna ? $request->pengguna : 'Perorangan',
             'nama_instansi' => $request->nama_instansi,
         ]);
 
-        // Assign default role
         UserRole::create([
             'user_id' => $user->id,
             'role' => 'user',
@@ -101,9 +97,8 @@ class AuthController extends Controller
 
     /**
      * GET /api/auth/me
-     * Ambil profil user yang sedang login
      */
-    public function me(Request $request): JsonResponse
+    public function me(Request $request)
     {
         $user = $request->user();
         $user->load('profile');
@@ -111,16 +106,15 @@ class AuthController extends Controller
         return response()->json([
             'id' => $user->id,
             'email' => $user->email,
-            'name' => $user->profile?->name ?? $user->name,
+            'name' => $user->profile ? $user->profile->name : $user->name,
             'role' => $user->getRole(),
         ]);
     }
 
     /**
      * POST /api/auth/logout
-     * Hapus token saat ini
      */
-    public function logout(Request $request): JsonResponse
+    public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
 
@@ -129,9 +123,8 @@ class AuthController extends Controller
 
     /**
      * POST /api/auth/change-password
-     * Ganti password
      */
-    public function changePassword(Request $request): JsonResponse
+    public function changePassword(Request $request)
     {
         $request->validate([
             'current_password' => 'required|string',
@@ -153,9 +146,8 @@ class AuthController extends Controller
 
     /**
      * POST /api/auth/reset-password
-     * Reset password via email (simplified - kirim link reset)
      */
-    public function resetPassword(Request $request): JsonResponse
+    public function resetPassword(Request $request)
     {
         $request->validate([
             'email' => 'required|email|max:255',
@@ -164,33 +156,26 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user) {
-            // Return success anyway to prevent email enumeration
             return response()->json(['message' => 'Jika email terdaftar, link reset telah dikirim']);
         }
 
-        // Generate token for password reset
         $token = bin2hex(random_bytes(32));
-        
+
         \DB::table('password_reset_tokens')->updateOrInsert(
             ['email' => $request->email],
             ['token' => Hash::make($token), 'created_at' => now()]
         );
 
-        // TODO: Send email with reset link
-        // Mail::to($user->email)->send(new PasswordResetMail($token));
-
         return response()->json([
             'message' => 'Link reset password telah dikirim ke email',
-            // Remove this in production:
-            'debug_token' => $token, 
+            'debug_token' => $token,
         ]);
     }
 
     /**
      * POST /api/auth/reset-password/confirm
-     * Konfirmasi reset password dengan token
      */
-    public function confirmResetPassword(Request $request): JsonResponse
+    public function confirmResetPassword(Request $request)
     {
         $request->validate([
             'email' => 'required|email',
@@ -206,7 +191,6 @@ class AuthController extends Controller
             return response()->json(['error' => 'Token tidak valid'], 400);
         }
 
-        // Check if token is expired (60 minutes)
         if (now()->diffInMinutes($record->created_at) > 60) {
             return response()->json(['error' => 'Token sudah kedaluwarsa'], 400);
         }
@@ -218,7 +202,6 @@ class AuthController extends Controller
 
         $user->update(['password' => $request->password]);
 
-        // Delete used token
         \DB::table('password_reset_tokens')->where('email', $request->email)->delete();
 
         return response()->json(['message' => 'Password berhasil direset']);
