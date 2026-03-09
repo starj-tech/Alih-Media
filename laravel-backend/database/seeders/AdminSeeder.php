@@ -16,9 +16,8 @@ class AdminSeeder extends Seeder
      * 
      * ⚠️ GANTI PASSWORD SEGERA setelah login pertama!
      */
-    public function run(): void
+    public function run()
     {
-        // Cek apakah admin sudah ada
         $existing = User::where('email', 'admin@bpn.go.id')->first();
         if ($existing) {
             $this->command->warn('Admin sudah ada, skip.');
@@ -28,7 +27,7 @@ class AdminSeeder extends Seeder
         $admin = User::create([
             'name' => 'Super Admin',
             'email' => 'admin@bpn.go.id',
-            'password' => 'admin123', // ⚠️ GANTI SEGERA!
+            'password' => 'admin123', // auto-hashed via mutator
             'email_verified_at' => now(),
         ]);
 
@@ -45,9 +44,9 @@ class AdminSeeder extends Seeder
             'role' => 'super_admin',
         ]);
 
-        $this->command->info('✅ Super Admin created:');
+        $this->command->info('Super Admin created:');
         $this->command->info('   Email: admin@bpn.go.id');
         $this->command->info('   Password: admin123');
-        $this->command->warn('⚠️  GANTI PASSWORD SEGERA setelah login pertama!');
+        $this->command->warn('GANTI PASSWORD SEGERA setelah login pertama!');
     }
 }
