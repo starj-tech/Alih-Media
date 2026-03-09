@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 -- 2. TABEL PASSWORD_RESETS
 -- ==========================================
 CREATE TABLE IF NOT EXISTS `password_resets` (
-  `email` VARCHAR(255) NOT NULL,
+  `email` VARCHAR(191) NOT NULL,
   `token` VARCHAR(255) NOT NULL,
   `created_at` TIMESTAMP NULL DEFAULT NULL,
   KEY `password_resets_email_index` (`email`)
