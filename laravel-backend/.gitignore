@@ -11,3 +11,4 @@ npm-debug.log
 yarn-error.log
 /.idea
 /.vscode
+# /vendor  ← DIHAPUS agar vendor ikut ke Git (tidak perlu composer install di server)
