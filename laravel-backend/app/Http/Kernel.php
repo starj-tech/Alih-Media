@@ -33,6 +33,7 @@ class Kernel extends HttpKernel
         'api' => [
             // API ini memakai Bearer token murni, bukan stateful cookie auth
             // CORS ditangani sepenuhnya oleh Apache .htaccess
+            \App\Http\Middleware\TrustAuthorizationHeader::class,
             'throttle:api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
@@ -54,3 +55,4 @@ class Kernel extends HttpKernel
         'role' => \App\Http\Middleware\RoleMiddleware::class,
     ];
 }
+
