@@ -11,7 +11,8 @@ class Kernel extends HttpKernel
      */
     protected $middleware = [
         // \App\Http\Middleware\TrustProxies::class,
-        \Fruitcake\Cors\HandleCors::class,
+        // CORS ditangani sepenuhnya oleh Apache .htaccess
+        // \Fruitcake\Cors\HandleCors::class,
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \Illuminate\Foundation\Http\Middleware\TrimStrings::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
@@ -30,7 +31,8 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
-            \App\Http\Middleware\CorsMiddleware::class,
+            // CORS ditangani sepenuhnya oleh Apache .htaccess
+            // \App\Http\Middleware\CorsMiddleware::class,
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             'throttle:api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
