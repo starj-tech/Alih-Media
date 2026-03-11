@@ -36,6 +36,16 @@ export async function apiFetch<T = any>(endpoint: string, options: RequestInit =
     throw new Error('Tidak dapat terhubung ke server. Periksa koneksi internet atau hubungi admin.');
   }
 
+  // Detect HTML responses (e.g. Ignition error pages, redirect pages)
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('text/html')) {
+    console.error('[API] Received HTML instead of JSON from:', endpoint, 'Status:', res.status);
+    if (res.status === 401 || res.status === 403) {
+      throw new Error('Sesi tidak valid. Silakan login kembali.');
+    }
+    throw new Error('Server mengembalikan respons tidak valid. Hubungi admin untuk membersihkan cache server.');
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     const msg = err.error || err.message || err.errors?.[Object.keys(err.errors || {})[0]]?.[0] || `Request failed (${res.status})`;
@@ -58,6 +68,13 @@ export async function apiUpload(endpoint: string, formData: FormData): Promise<a
     },
     body: formData,
   });
+
+  // Detect HTML responses on upload too
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('text/html')) {
+    console.error('[API] Upload received HTML instead of JSON from:', endpoint);
+    throw new Error('Server mengembalikan respons tidak valid. Hubungi admin.');
+  }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
