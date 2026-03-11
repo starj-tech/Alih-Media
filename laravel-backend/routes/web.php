@@ -9,3 +9,9 @@ Route::get('/', function () {
         'status' => 'running',
     ]);
 });
+
+// Named route 'login' — diperlukan oleh middleware auth bawaan Laravel.
+// Karena ini API murni (SPA + Bearer token), route ini mengembalikan JSON 401.
+Route::get('/login', function () {
+    return response()->json(['message' => 'Unauthenticated.'], 401);
+})->name('login');
