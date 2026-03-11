@@ -9,9 +9,9 @@
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-    # Handle CORS preflight (OPTIONS) - return 200 immediately
-    RewriteCond %{REQUEST_METHOD} OPTIONS
-    RewriteRule ^(.*)$ $1 [R=200,L]
+    # Handle CORS preflight cleanly without redirect body
+    RewriteCond %{REQUEST_METHOD} =OPTIONS
+    RewriteRule ^ - [R=204,L]
 
     # Redirect Trailing Slashes If Not A Folder...
     RewriteCond %{REQUEST_FILENAME} !-d
@@ -31,9 +31,9 @@
 # ============================================
 <IfModule mod_headers.c>
     # Match allowed origins dynamically
-    SetEnvIf Origin "^https?://(dev-alihmedia\.kantahkabbogor\.id|alihmedia\.kantahkabbogor\.id|alih-media\.lovable\.app|localhost:(3000|5173))$" CORS_ORIGIN=$0
+    SetEnvIf Origin "^https?://(dev-alihmedia\.kantahkabbogor\.id|alihmedia\.kantahkabbogor\.id|alih-media\.lovable\.app|id-preview--fd14bb51-b1c6-4db0-9718-5bf0922a471c\.lovable\.app|fd14bb51-b1c6-4db0-9718-5bf0922a471c\.lovableproject\.com|localhost(:3000|:5173)?)$" CORS_ORIGIN=$0
 
-    # Set CORS headers for matched origins
+    Header always merge Vary Origin
     Header always set Access-Control-Allow-Origin "%{CORS_ORIGIN}e" env=CORS_ORIGIN
     Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" env=CORS_ORIGIN
     Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, Accept, Origin" env=CORS_ORIGIN

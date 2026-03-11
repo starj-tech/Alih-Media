@@ -31,9 +31,8 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
+            // API ini memakai Bearer token murni, bukan stateful cookie auth
             // CORS ditangani sepenuhnya oleh Apache .htaccess
-            // \App\Http\Middleware\CorsMiddleware::class,
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             'throttle:api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
