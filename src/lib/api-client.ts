@@ -25,14 +25,21 @@ function authHeaders(): Record<string, string> {
 }
 
 export async function apiFetch<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${LARAVEL_API_URL}${endpoint}`, {
-    ...options,
-    headers: { ...authHeaders(), ...(options.headers as Record<string, string> || {}) },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${LARAVEL_API_URL}${endpoint}`, {
+      ...options,
+      headers: { ...authHeaders(), ...(options.headers as Record<string, string> || {}) },
+    });
+  } catch (networkError) {
+    console.error('[API] Network error:', endpoint, networkError);
+    throw new Error('Tidak dapat terhubung ke server. Periksa koneksi internet atau hubungi admin.');
+  }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || err.message || 'Request failed');
+    const msg = err.error || err.message || err.errors?.[Object.keys(err.errors || {})[0]]?.[0] || `Request failed (${res.status})`;
+    throw new Error(msg);
   }
 
   // Handle 204 No Content
