@@ -50,13 +50,13 @@ export function getRoleLabel(role: UserRole): string {
 
 export async function getUserProfile(): Promise<User | null> {
   try {
-    const data = await apiFetch<{ user: any }>('/auth/me');
-    if (!data?.user) return null;
+    const data = await apiFetch<any>('/auth/me');
+    if (!data?.id) return null;
     return {
-      id: data.user.id,
-      email: data.user.email,
-      name: data.user.name,
-      role: data.user.role || 'user',
+      id: data.id,
+      email: data.email,
+      name: data.name,
+      role: data.role || 'user',
     };
   } catch {
     return null;
