@@ -11,6 +11,7 @@ return [
         'http://localhost:3000',
         'http://localhost:5173',
         'http://dev-alihmedia.kantahkabbogor.id',
+        'https://dev-alihmedia.kantahkabbogor.id',
         'https://alih-media.lovable.app',
         'https://alihmedia.kantahkabbogor.id',
     ],
