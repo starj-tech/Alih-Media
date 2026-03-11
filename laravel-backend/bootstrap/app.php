@@ -6,9 +6,28 @@
 |--------------------------------------------------------------------------
 */
 
-$app = new Illuminate\Foundation\Application(
-    $_ENV['APP_BASE_PATH'] ?? dirname(__DIR__)
-);
+$basePath = $_ENV['APP_BASE_PATH'] ?? dirname(__DIR__);
+
+$requiredDirectories = [
+    $basePath . '/bootstrap/cache',
+    $basePath . '/storage/framework/cache/data',
+    $basePath . '/storage/framework/sessions',
+    $basePath . '/storage/framework/views',
+    $basePath . '/storage/logs',
+    $basePath . '/storage/app/public',
+];
+
+foreach ($requiredDirectories as $directory) {
+    if (!is_dir($directory)) {
+        @mkdir($directory, 0775, true);
+    }
+
+    if (is_dir($directory) && !is_writable($directory)) {
+        @chmod($directory, 0775);
+    }
+}
+
+$app = new Illuminate\Foundation\Application($basePath);
 
 /*
 |--------------------------------------------------------------------------
@@ -32,3 +51,4 @@ $app->singleton(
 );
 
 return $app;
+
