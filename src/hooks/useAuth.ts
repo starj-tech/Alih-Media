@@ -1,23 +1,90 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiFetch, setToken, removeToken, getToken } from '@/lib/api-client';
-import { User, UserRole, getUserProfile } from '@/lib/auth';
+import { User, UserRole } from '@/lib/auth';
+
+// Store user in localStorage for session persistence without /auth/me
+const USER_STORAGE_KEY = 'auth_user';
+
+function storeUser(user: User) {
+  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+}
+
+function loadStoredUser(): User | null {
+  try {
+    const raw = localStorage.getItem(USER_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed?.id && parsed?.email && parsed?.role) return parsed as User;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function clearStoredUser() {
+  localStorage.removeItem(USER_STORAGE_KEY);
+}
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if we have a stored token and validate it
     const token = getToken();
-    if (token) {
-      getUserProfile().then(profile => {
-        setUser(profile);
-        if (!profile) removeToken(); // Token invalid, clear it
-        setLoading(false);
-      });
-    } else {
+    if (!token) {
+      clearStoredUser();
       setLoading(false);
+      return;
     }
+
+    // First try to load from localStorage (instant, no network)
+    const stored = loadStoredUser();
+    if (stored) {
+      setUser(stored);
+      setLoading(false);
+      // Optionally validate token in background — but don't block UI
+      apiFetch<any>('/auth/me').then(data => {
+        if (data?.id) {
+          const freshUser: User = {
+            id: data.id,
+            email: data.email,
+            name: data.name,
+            role: data.role || 'user',
+          };
+          setUser(freshUser);
+          storeUser(freshUser);
+        }
+      }).catch(() => {
+        // /auth/me failed (HTML response, network error, 401, etc.)
+        // Keep using stored user — don't logout just because /auth/me is broken
+        console.warn('[Auth] /auth/me failed, using stored session');
+      });
+      return;
+    }
+
+    // No stored user but have token — try /auth/me once
+    apiFetch<any>('/auth/me').then(data => {
+      if (data?.id) {
+        const u: User = {
+          id: data.id,
+          email: data.email,
+          name: data.name,
+          role: data.role || 'user',
+        };
+        setUser(u);
+        storeUser(u);
+      } else {
+        // Invalid response — clear token
+        removeToken();
+        clearStoredUser();
+      }
+    }).catch(() => {
+      // /auth/me completely broken — clear session
+      removeToken();
+      clearStoredUser();
+    }).finally(() => {
+      setLoading(false);
+    });
   }, []);
 
   const login = useCallback(async (email: string, password: string): Promise<User | { error: string }> => {
@@ -27,9 +94,16 @@ export function useAuth() {
         body: JSON.stringify({ email, password }),
       });
       setToken(data.token);
-      const profile = await getUserProfile();
-      if (!profile) return { error: 'Profil tidak ditemukan' };
+
+      // Use user data directly from login response — NO /auth/me call needed
+      const profile: User = {
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.name,
+        role: (data.user.role as UserRole) || 'user',
+      };
       setUser(profile);
+      storeUser(profile);
       return profile;
     } catch (err: any) {
       return { error: err.message || 'Login gagal' };
@@ -56,13 +130,18 @@ export function useAuth() {
         }),
       });
 
-      if (data.token) {
+      if (data.token && data.user) {
         setToken(data.token);
-        const profile = await getUserProfile();
-        if (profile) {
-          setUser(profile);
-          return profile;
-        }
+        // Use user data directly from register response
+        const profile: User = {
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.name,
+          role: (data.user.role as UserRole) || 'user',
+        };
+        setUser(profile);
+        storeUser(profile);
+        return profile;
       }
 
       return data.message || 'Registrasi berhasil';
@@ -78,6 +157,7 @@ export function useAuth() {
       // Ignore logout errors
     }
     removeToken();
+    clearStoredUser();
     setUser(null);
   }, []);
 
