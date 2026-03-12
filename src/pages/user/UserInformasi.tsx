@@ -5,10 +5,11 @@ import ExternalLinkCell from '@/components/ExternalLinkCell';
 import FileDownloadCell from '@/components/FileDownloadCell';
 import ExportExcelButton from '@/components/ExportExcelButton';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
+import BerkasTimelineDialog from '@/components/BerkasTimelineDialog';
 import { getBerkasByUser, uploadFile, deleteBerkas, updateBerkas, getBerkasById, Berkas, BerkasStatus } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, Eye } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,6 +27,7 @@ const statusOptions: { value: string; label: string }[] = [
 
 export default function UserInformasi() {
   const { user } = useAuth();
+  const isSuperUser = user?.role === 'super_user';
   const [berkas, setBerkas] = useState<Berkas[]>([]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [editId, setEditId] = useState<string | null>(null);
@@ -36,6 +38,7 @@ export default function UserInformasi() {
   const [submitting, setSubmitting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [timelineBerkas, setTimelineBerkas] = useState<Berkas | null>(null);
   const sertifikatRef = useRef<HTMLInputElement>(null);
   const ktpRef = useRef<HTMLInputElement>(null);
   const fotoBangunanRef = useRef<HTMLInputElement>(null);
@@ -179,6 +182,11 @@ export default function UserInformasi() {
           { header: 'Catatan', accessor: (row) => <span className="text-xs text-muted-foreground">{row.catatanPenolakan || '-'}</span> },
           { header: 'Aksi', accessor: (row) => (
             <div className="flex gap-1">
+              {isSuperUser && (
+                <Button size="sm" variant="outline" className="gap-1" onClick={() => setTimelineBerkas(row)}>
+                  <Eye className="w-3 h-3" /> Detail
+                </Button>
+              )}
               <Button size="sm" variant="outline" className="gap-1" onClick={() => handleEdit(row)}>
                 <Edit className="w-3 h-3" /> Edit
               </Button>
@@ -273,6 +281,9 @@ export default function UserInformasi() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Timeline Dialog for Super User */}
+      <BerkasTimelineDialog berkas={timelineBerkas} open={!!timelineBerkas} onOpenChange={(open) => { if (!open) setTimelineBerkas(null); }} />
 
       {/* Delete Confirmation */}
       <DeleteConfirmDialog
