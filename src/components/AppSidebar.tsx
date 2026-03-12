@@ -70,7 +70,7 @@ function getMenu(role: UserRole) {
 
 export default function AppSidebar({ role, onLogout }: AppSidebarProps) {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const menu = getMenu(role);
   const [openSubs, setOpenSubs] = useState<Record<string, boolean>>({});
 

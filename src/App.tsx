@@ -1,10 +1,9 @@
-import { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { AuthProvider, useAuthContext } from "@/contexts/AuthContext";
 import { isAdminRole } from "@/lib/auth";
 import DashboardLayout from "@/components/DashboardLayout";
 import LoginPage from "@/pages/LoginPage";
@@ -28,7 +27,7 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function AppRoutes() {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout } = useAuthContext();
 
   if (loading) {
     return (
@@ -58,7 +57,6 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Navigate to={defaultRoute} />} />
       
-      {/* Admin Routes - accessible by admin roles */}
       {isAdminRole(role) && (
         <>
           <Route path="/admin/dashboard" element={
@@ -86,7 +84,6 @@ function AppRoutes() {
         </>
       )}
 
-      {/* User Routes - accessible by user and super_user */}
       {!isAdminRole(role) && (
         <>
           <Route path="/user/dashboard" element={<DashboardLayout role={role} onLogout={handleLogout}><UserDashboard /></DashboardLayout>} />
@@ -106,7 +103,9 @@ const App = () => (
       <Toaster />
       <Sonner />
       <HashRouter>
-        <AppRoutes />
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
       </HashRouter>
     </TooltipProvider>
   </QueryClientProvider>

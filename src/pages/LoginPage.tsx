@@ -110,7 +110,7 @@ export default function LoginPage() {
     if (!forgotEmail.trim()) { toast.error('Email harus diisi'); return; }
     setForgotLoading(true);
     try {
-      await apiFetch('/auth/forgot-password', {
+      await apiFetch('/auth/reset-password', {
         method: 'POST',
         body: JSON.stringify({ email: forgotEmail }),
       });
