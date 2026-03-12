@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="SAMEORIGIN" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/logo-bpn.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/logo-bpn.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/logo-bpn.png" />
+    <title>Aplikasi Alih Media - Kantah Kab. Bogor II</title>
+    <meta name="description" content="Aplikasi Alih Media Kantor Pertanahan Kabupaten Bogor II">
+    <meta name="author" content="Lovable" />
+
+    <!-- TODO: Update og:title to match your application name -->
+    
+    
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2d619da8-356c-42fd-a013-624c47b3d85b/id-preview-c24043b3--fd14bb51-b1c6-4db0-9718-5bf0922a471c.lovable.app-1772035542369.png">
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@Lovable" />
+    <meta name="twitter:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2d619da8-356c-42fd-a013-624c47b3d85b/id-preview-c24043b3--fd14bb51-b1c6-4db0-9718-5bf0922a471c.lovable.app-1772035542369.png">
+    <meta property="og:title" content="Testing">
+  <meta name="twitter:title" content="Testing">
+  <meta property="og:description" content="Demo - Company Website">
+  <meta name="twitter:description" content="Demo - Company Website">
+  <script type="module" crossorigin src="/assets/index-BlahjJb7.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-DrewZaXf.css">
+</head>
+
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

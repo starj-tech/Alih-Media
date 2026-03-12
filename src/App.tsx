@@ -22,6 +22,7 @@ import UserDashboard from "@/pages/user/UserDashboard";
 import PengajuanAlihmedia from "@/pages/user/PengajuanAlihmedia";
 import UserInformasi from "@/pages/user/UserInformasi";
 import ResetPassword from "./pages/ResetPassword";
+import AppErrorBoundary from "@/components/AppErrorBoundary";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -104,7 +105,9 @@ const App = () => (
       <Sonner />
       <HashRouter>
         <AuthProvider>
-          <AppRoutes />
+          <AppErrorBoundary>
+            <AppRoutes />
+          </AppErrorBoundary>
         </AuthProvider>
       </HashRouter>
     </TooltipProvider>
