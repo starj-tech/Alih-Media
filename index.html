@@ -10,26 +10,106 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/logo-bpn.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/logo-bpn.png" />
     <title>Aplikasi Alih Media - Kantah Kab. Bogor II</title>
-    <meta name="description" content="Aplikasi Alih Media Kantor Pertanahan Kabupaten Bogor II">
+    <meta name="description" content="Aplikasi Alih Media Kantor Pertanahan Kabupaten Bogor II" />
     <meta name="author" content="Lovable" />
 
-    <!-- TODO: Update og:title to match your application name -->
-    
-    
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2d619da8-356c-42fd-a013-624c47b3d85b/id-preview-c24043b3--fd14bb51-b1c6-4db0-9718-5bf0922a471c.lovable.app-1772035542369.png">
-
+    <meta property="og:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2d619da8-356c-42fd-a013-624c47b3d85b/id-preview-c24043b3--fd14bb51-b1c6-4db0-9718-5bf0922a471c.lovable.app-1772035542369.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@Lovable" />
-    <meta name="twitter:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2d619da8-356c-42fd-a013-624c47b3d85b/id-preview-c24043b3--fd14bb51-b1c6-4db0-9718-5bf0922a471c.lovable.app-1772035542369.png">
-    <meta property="og:title" content="Testing">
-  <meta name="twitter:title" content="Testing">
-  <meta property="og:description" content="Demo - Company Website">
-  <meta name="twitter:description" content="Demo - Company Website">
-</head>
+    <meta name="twitter:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2d619da8-356c-42fd-a013-624c47b3d85b/id-preview-c24043b3--fd14bb51-b1c6-4db0-9718-5bf0922a471c.lovable.app-1772035542369.png" />
+    <meta property="og:title" content="Aplikasi Alih Media - Kantah Kab. Bogor II" />
+    <meta name="twitter:title" content="Aplikasi Alih Media - Kantah Kab. Bogor II" />
+    <meta property="og:description" content="Aplikasi Alih Media Kantor Pertanahan Kabupaten Bogor II" />
+    <meta name="twitter:description" content="Aplikasi Alih Media Kantor Pertanahan Kabupaten Bogor II" />
+  </head>
 
   <body>
     <div id="root"></div>
+    <script>
+      (() => {
+        const BOOT_FLAG = "__alihmedia_boot_ok__";
+        const RETRY_FLAG = "__alihmedia_boot_retry__";
+        window[BOOT_FLAG] = false;
+
+        const renderFallback = (title, detail) => {
+          const root = document.getElementById("root");
+          if (!root) return;
+
+          root.innerHTML = `
+            <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;background:hsl(0 0% 96.5%);font-family:'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif;">
+              <div style="width:100%;max-width:560px;background:hsl(0 0% 100%);border:1px solid hsl(210 14% 89%);border-radius:10px;padding:20px;box-shadow:0 8px 24px hsl(210 11% 28% / 0.08);text-align:center;">
+                <h1 style="margin:0 0 8px;font-size:18px;color:hsl(210 11% 28%);">${title}</h1>
+                <p style="margin:0;color:hsl(210 8% 50%);font-size:14px;line-height:1.5;">${detail}</p>
+                <button id="boot-reload-btn" style="margin-top:14px;background:hsl(170 55% 42%);color:hsl(0 0% 100%);border:0;border-radius:8px;padding:10px 14px;cursor:pointer;">Muat Ulang</button>
+              </div>
+            </div>
+          `;
+
+          const reloadButton = document.getElementById("boot-reload-btn");
+          if (reloadButton) {
+            reloadButton.addEventListener("click", () => window.location.reload());
+          }
+        };
+
+        const attemptSingleReload = () => {
+          try {
+            if (sessionStorage.getItem(RETRY_FLAG) === "1") return false;
+            sessionStorage.setItem(RETRY_FLAG, "1");
+          } catch {
+            // Ignore sessionStorage failures in restricted browsers
+          }
+
+          const nextUrl = new URL(window.location.href);
+          nextUrl.searchParams.set("v", String(Date.now()));
+          window.location.replace(nextUrl.toString());
+          return true;
+        };
+
+        const handleBootFailure = () => {
+          if (attemptSingleReload()) return;
+          renderFallback(
+            "Aplikasi gagal dimuat",
+            "Aset aplikasi tidak valid atau cache browser/server belum sinkron. Muat ulang halaman, lalu pastikan isi folder dist ter-upload lengkap termasuk assets/app.js dan assets/app.css."
+          );
+        };
+
+        window.addEventListener(
+          "error",
+          (event) => {
+            const target = event.target;
+            if (target && target.tagName === "SCRIPT") {
+              handleBootFailure();
+            }
+          },
+          true
+        );
+
+        window.addEventListener("unhandledrejection", (event) => {
+          const reason = String((event?.reason && (event.reason.message || event.reason)) || "");
+          if (
+            reason.includes("Failed to fetch dynamically imported module") ||
+            reason.includes("Importing a module script failed")
+          ) {
+            handleBootFailure();
+          }
+        });
+
+        window.setTimeout(() => {
+          if (!window[BOOT_FLAG]) {
+            handleBootFailure();
+            return;
+          }
+
+          try {
+            sessionStorage.removeItem(RETRY_FLAG);
+          } catch {
+            // Ignore cleanup failure
+          }
+        }, 8000);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
+
