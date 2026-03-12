@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { apiFetch } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,7 +35,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [regLoading, setRegLoading] = useState(false);
   const [regSuccess, setRegSuccess] = useState(false);
-  const { login, register } = useAuth();
+  const { login, register } = useAuthContext();
   const navigate = useNavigate();
 
   // Forgot password state
@@ -110,7 +110,7 @@ export default function LoginPage() {
     if (!forgotEmail.trim()) { toast.error('Email harus diisi'); return; }
     setForgotLoading(true);
     try {
-      await apiFetch('/auth/forgot-password', {
+      await apiFetch('/auth/reset-password', {
         method: 'POST',
         body: JSON.stringify({ email: forgotEmail }),
       });
