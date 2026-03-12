@@ -307,7 +307,7 @@ export default function LoginPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Forgot Password Dialog */}
+      {/* Forgot Password (OTP) Dialog */}
       <Dialog open={showForgot} onOpenChange={setShowForgot}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -317,33 +317,72 @@ export default function LoginPage() {
             </DialogTitle>
           </DialogHeader>
 
-          {forgotSent ? (
+          {otpStep === 'done' ? (
             <div className="space-y-4 text-center py-4">
-              <Mail className="w-12 h-12 mx-auto text-primary" />
+              <CheckCircle className="w-16 h-16 mx-auto text-green-500" />
               <div>
-                <p className="font-medium">Link Reset Terkirim!</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Silakan cek email <strong>{forgotEmail}</strong> untuk link reset password.
-                  Periksa juga folder spam jika tidak ditemukan di inbox.
-                </p>
+                <p className="font-medium text-lg">Password Berhasil Direset!</p>
+                <p className="text-sm text-muted-foreground mt-1">Silakan login dengan password baru Anda.</p>
               </div>
               <Button onClick={() => setShowForgot(false)} className="w-full">Kembali ke Login</Button>
             </div>
-          ) : (
+          ) : otpStep === 'phone' ? (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Masukkan email akun Anda. Link reset password akan dikirim ke email tersebut.
+                Masukkan nomor telepon yang terdaftar pada akun Anda. Kode OTP akan dikirim untuk verifikasi.
               </p>
               <div className="space-y-2">
-                <Label>Email</Label>
+                <Label>No. Telepon</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input type="email" placeholder="Masukkan email akun" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} className="pl-10" maxLength={255} />
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input type="tel" placeholder="Masukkan nomor telepon" value={otpPhone} onChange={e => setOtpPhone(e.target.value)} className="pl-10" maxLength={20} />
                 </div>
               </div>
-              <Button onClick={handleEmailReset} disabled={forgotLoading} className="w-full gap-2">
-                <Mail className="w-4 h-4" />
-                {forgotLoading ? 'Mengirim...' : 'Kirim Link Reset'}
+              <Button onClick={handleOtpRequest} disabled={otpLoading} className="w-full gap-2">
+                <Phone className="w-4 h-4" />
+                {otpLoading ? 'Mengirim...' : 'Kirim Kode OTP'}
+              </Button>
+            </div>
+          ) : otpStep === 'otp' ? (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Masukkan kode OTP 6 digit yang telah dikirim ke nomor <strong>{otpPhone}</strong>.
+              </p>
+              <div className="space-y-2">
+                <Label>Kode OTP</Label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input type="text" placeholder="000000" value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))} className="pl-10 text-center tracking-widest text-lg font-mono" maxLength={6} />
+                </div>
+              </div>
+              <Button onClick={handleOtpVerify} disabled={otpLoading || otpCode.length !== 6} className="w-full gap-2">
+                <CheckCircle className="w-4 h-4" />
+                {otpLoading ? 'Memverifikasi...' : 'Verifikasi OTP'}
+              </Button>
+              <button type="button" onClick={() => setOtpStep('phone')} className="text-sm text-primary hover:underline w-full text-center">
+                ← Kembali
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">Masukkan password baru untuk akun Anda.</p>
+              <div className="space-y-2">
+                <Label>Password Baru (min. 6 karakter)</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input type="password" placeholder="Masukkan password baru" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="pl-10" minLength={6} maxLength={128} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Konfirmasi Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input type="password" placeholder="Ulangi password baru" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="pl-10" maxLength={128} />
+                </div>
+              </div>
+              <Button onClick={handleOtpReset} disabled={otpLoading} className="w-full gap-2">
+                <Lock className="w-4 h-4" />
+                {otpLoading ? 'Memproses...' : 'Ubah Password'}
               </Button>
             </div>
           )}
