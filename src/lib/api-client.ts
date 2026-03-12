@@ -57,7 +57,18 @@ export async function apiFetch<T = any>(endpoint: string, options: RequestInit =
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    const msg = err.error || err.message || err.errors?.[Object.keys(err.errors || {})[0]]?.[0] || `Request failed (${res.status})`;
+    // Prioritize detailed validation errors over generic "The given data was invalid"
+    let msg = '';
+    if (err.errors && typeof err.errors === 'object') {
+      const firstKey = Object.keys(err.errors)[0];
+      if (firstKey && Array.isArray(err.errors[firstKey]) && err.errors[firstKey].length > 0) {
+        msg = err.errors[firstKey][0];
+      }
+    }
+    if (!msg) {
+      msg = err.error || err.message || `Request failed (${res.status})`;
+    }
+    console.error('[API] Error:', endpoint, res.status, msg);
     throw new Error(msg);
   }
 
