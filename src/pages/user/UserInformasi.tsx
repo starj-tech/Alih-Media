@@ -182,6 +182,11 @@ export default function UserInformasi() {
           { header: 'Catatan', accessor: (row) => <span className="text-xs text-muted-foreground">{row.catatanPenolakan || '-'}</span> },
           { header: 'Aksi', accessor: (row) => (
             <div className="flex gap-1">
+              {isSuperUser && (
+                <Button size="sm" variant="outline" className="gap-1" onClick={() => setTimelineBerkas(row)}>
+                  <Eye className="w-3 h-3" /> Detail
+                </Button>
+              )}
               <Button size="sm" variant="outline" className="gap-1" onClick={() => handleEdit(row)}>
                 <Edit className="w-3 h-3" /> Edit
               </Button>
