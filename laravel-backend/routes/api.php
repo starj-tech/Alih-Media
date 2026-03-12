@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BerkasController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\PasswordResetOtpController;
+use App\Http\Controllers\RegistrationOtpController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ValidationLogController;
 use Illuminate\Support\Facades\Route;
