@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, CheckSquare, Info, Users, LogOut, Send, FileSearch, Archive, BarChart3, ChevronDown, ChevronRight } from 'lucide-react';
 import { UserRole, getRoleLabel } from '@/lib/auth';
 import logoBpn from '@/assets/logo-bpn.png';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 interface AppSidebarProps {
   role: UserRole;
