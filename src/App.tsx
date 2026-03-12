@@ -105,7 +105,9 @@ const App = () => (
       <Sonner />
       <HashRouter>
         <AuthProvider>
-          <AppRoutes />
+          <AppErrorBoundary>
+            <AppRoutes />
+          </AppErrorBoundary>
         </AuthProvider>
       </HashRouter>
     </TooltipProvider>

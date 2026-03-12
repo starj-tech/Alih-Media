@@ -3,16 +3,25 @@
 
 export const LARAVEL_API_URL = 'https://api-alihmedia.kantahkabbogor.id/api';
 
+function getBrowserStorage(): Storage | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
 export function getToken(): string | null {
-  return localStorage.getItem('auth_token');
+  return getBrowserStorage()?.getItem('auth_token') ?? null;
 }
 
 export function setToken(token: string) {
-  localStorage.setItem('auth_token', token);
+  getBrowserStorage()?.setItem('auth_token', token);
 }
 
 export function removeToken() {
-  localStorage.removeItem('auth_token');
+  getBrowserStorage()?.removeItem('auth_token');
 }
 
 function authHeaders(): Record<string, string> {

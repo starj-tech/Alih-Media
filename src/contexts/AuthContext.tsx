@@ -4,13 +4,28 @@ import { User, UserRole } from '@/lib/auth';
 
 const USER_STORAGE_KEY = 'auth_user';
 
+function getBrowserStorage(): Storage | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
 function storeUser(user: User) {
-  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+  const storage = getBrowserStorage();
+  if (!storage) return;
+  try {
+    storage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+  } catch {
+    // Ignore storage write failures (privacy mode / quota exceeded)
+  }
 }
 
 function loadStoredUser(): User | null {
   try {
-    const raw = localStorage.getItem(USER_STORAGE_KEY);
+    const raw = getBrowserStorage()?.getItem(USER_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (parsed?.id && parsed?.email && parsed?.role) return parsed as User;
@@ -21,7 +36,11 @@ function loadStoredUser(): User | null {
 }
 
 function clearStoredUser() {
-  localStorage.removeItem(USER_STORAGE_KEY);
+  try {
+    getBrowserStorage()?.removeItem(USER_STORAGE_KEY);
+  } catch {
+    // Ignore storage remove failures
+  }
 }
 
 interface AuthContextType {
