@@ -58,35 +58,40 @@ if (is_dir($cacheDataDir)) {
     echo "⏭️  Direktori cache data tidak ada\n";
 }
 
-// 4. Coba jalankan Artisan optimize:clear
-echo "\n--- Menjalankan Artisan optimize:clear ---\n";
+// 4. Artisan clear + diagnostik
+echo "\n--- Menjalankan Artisan ---\n";
 try {
     require $baseDir . '/vendor/autoload.php';
     $app = require_once $baseDir . '/bootstrap/app.php';
     $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
     $kernel->bootstrap();
     
-    Illuminate\Support\Facades\Artisan::call('optimize:clear');
-    echo "✅ Artisan optimize:clear berhasil\n";
-    echo Illuminate\Support\Facades\Artisan::output();
+    foreach (['optimize:clear', 'route:clear', 'config:clear', 'cache:clear', 'view:clear'] as $cmd) {
+        Illuminate\Support\Facades\Artisan::call($cmd);
+        echo "✅ {$cmd} berhasil\n";
+    }
     
-    // Also try route:clear and config:clear explicitly
-    Illuminate\Support\Facades\Artisan::call('route:clear');
-    echo "✅ route:clear berhasil\n";
+    // Diagnostik: cek route 'login'
+    echo "\n--- Diagnostik Route ---\n";
+    $router = app('router');
+    $routes = $router->getRoutes();
+    $loginRoute = $routes->getByName('login');
+    echo $loginRoute 
+        ? "✅ Route 'login' terdaftar: " . $loginRoute->uri() . " [" . implode(',', $loginRoute->methods()) . "]\n"
+        : "❌ Route 'login' TIDAK terdaftar — periksa routes/web.php!\n";
     
-    Illuminate\Support\Facades\Artisan::call('config:clear');
-    echo "✅ config:clear berhasil\n";
-    
-    Illuminate\Support\Facades\Artisan::call('cache:clear');
-    echo "✅ cache:clear berhasil\n";
-    
-    Illuminate\Support\Facades\Artisan::call('view:clear');
-    echo "✅ view:clear berhasil\n";
+    echo "\n--- API Auth Routes ---\n";
+    foreach ($routes as $route) {
+        $uri = $route->uri();
+        if (strpos($uri, 'api/auth') === 0) {
+            echo "  " . implode('|', $route->methods()) . " /{$uri}" . ($route->getName() ? " [{$route->getName()}]" : "") . "\n";
+        }
+    }
     
 } catch (Exception $e) {
-    echo "⚠️  Artisan gagal (manual cleanup sudah dilakukan di atas): " . $e->getMessage() . "\n";
-} catch (Error $e) {
     echo "⚠️  Artisan error: " . $e->getMessage() . "\n";
+} catch (Error $e) {
+    echo "⚠️  Fatal: " . $e->getMessage() . "\n";
 }
 
 // 5. Reset OPcache jika aktif
