@@ -2,7 +2,7 @@
 /**
  * ⚠️ HAPUS FILE INI SEGERA SETELAH DIGUNAKAN!
  * 
- * Seed data berkas sesuai data produksi.
+ * Seed data berkas lengkap dengan semua status.
  * Akses: https://api-alihmedia.kantahkabbogor.id/seed-berkas.php?key=bogor2seed
  * 
  * PENTING: Jalankan seed-users.php TERLEBIH DAHULU!
@@ -14,7 +14,7 @@ if (($_GET['key'] ?? '') !== 'bogor2seed') {
     exit;
 }
 
-echo "<pre>\n=== Seed Berkas Data (dari Produksi) ===\n\n";
+echo "<pre>\n=== Seed Berkas Data (Lengkap) ===\n\n";
 
 $baseDir = dirname(__DIR__);
 
@@ -24,7 +24,6 @@ try {
     $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
     $kernel->bootstrap();
 
-    // Helper: get user ID by email
     function getUserId($email) {
         $user = App\Models\User::where('email', $email)->first();
         if (!$user) {
@@ -34,20 +33,71 @@ try {
         return $user->id;
     }
 
-    // Data berkas dari produksi (berdasarkan screenshot)
+    // === DATA BERKAS LENGKAP ===
     $berkasData = [
+        // --- Status: Proses (baru masuk, belum diverifikasi arsip) ---
+        [
+            'user_email' => 'lestari@atrbpn.go.id',
+            'tanggal_pengajuan' => '2026-03-12',
+            'nama_pemegang_hak' => 'Suherman Wijaya',
+            'no_su_tahun' => '00234/2015',
+            'no_hak' => '08821',
+            'jenis_hak' => 'HM',
+            'desa' => 'Bojong Kulur',
+            'kecamatan' => 'Gunung Putri',
+            'no_telepon' => '081290218262',
+            'status' => 'Proses',
+        ],
+        [
+            'user_email' => 'ppat@atrbpn.go.id',
+            'tanggal_pengajuan' => '2026-03-11',
+            'nama_pemegang_hak' => 'Ahmad Fauzi',
+            'no_su_tahun' => '00078/2018',
+            'no_hak' => '03345',
+            'jenis_hak' => 'HGB',
+            'desa' => 'Cileungsi',
+            'kecamatan' => 'Cileungsi',
+            'no_telepon' => '081234567890',
+            'status' => 'Proses',
+        ],
         [
             'user_email' => 'loket3@atrbpn.go.id',
-            'tanggal_pengajuan' => '2026-03-06',
-            'nama_pemegang_hak' => 'LOKET 3',
-            'no_su_tahun' => '00012/2002',
-            'no_hak' => '05541',
+            'tanggal_pengajuan' => '2026-03-11',
+            'nama_pemegang_hak' => 'Dewi Sartika',
+            'no_su_tahun' => '00456/2020',
+            'no_hak' => '07712',
             'jenis_hak' => 'HM',
-            'desa' => 'Gunung Putri',
+            'desa' => 'Ciangsana',
             'kecamatan' => 'Gunung Putri',
-            'no_telepon' => '',
-            'status' => 'Selesai',
+            'no_telepon' => '085678901234',
+            'status' => 'Proses',
         ],
+        [
+            'user_email' => 'userppat@atrbpn.go.id',
+            'tanggal_pengajuan' => '2026-03-10',
+            'nama_pemegang_hak' => 'Budi Santoso',
+            'no_su_tahun' => '00912/2016',
+            'no_hak' => '04456',
+            'jenis_hak' => 'HP',
+            'desa' => 'Nambo',
+            'kecamatan' => 'Klapanunggal',
+            'no_telepon' => '087812345678',
+            'status' => 'Proses',
+        ],
+        [
+            'user_email' => 'lestari@atrbpn.go.id',
+            'tanggal_pengajuan' => '2026-03-10',
+            'nama_pemegang_hak' => 'Rina Marlina',
+            'no_su_tahun' => '00567/2019',
+            'no_hak' => '09901',
+            'jenis_hak' => 'HM',
+            'desa' => 'Tlajung Udik',
+            'kecamatan' => 'Gunung Putri',
+            'no_telepon' => '081290218262',
+            'status' => 'Proses',
+        ],
+
+        // --- Status: Validasi SU & Bidang ---
         [
             'user_email' => 'userppat@atrbpn.go.id',
             'tanggal_pengajuan' => '2026-03-04',
@@ -61,6 +111,70 @@ try {
             'status' => 'Validasi SU & Bidang',
         ],
         [
+            'user_email' => 'ppat@atrbpn.go.id',
+            'tanggal_pengajuan' => '2026-03-08',
+            'nama_pemegang_hak' => 'Hendra Gunawan',
+            'no_su_tahun' => '00321/2017',
+            'no_hak' => '06678',
+            'jenis_hak' => 'HM',
+            'desa' => 'Jonggol',
+            'kecamatan' => 'Jonggol',
+            'no_telepon' => '081345678901',
+            'status' => 'Validasi SU & Bidang',
+        ],
+        [
+            'user_email' => 'lestari@atrbpn.go.id',
+            'tanggal_pengajuan' => '2026-03-07',
+            'nama_pemegang_hak' => 'Sri Mulyani',
+            'no_su_tahun' => '00189/2014',
+            'no_hak' => '05523',
+            'jenis_hak' => 'HGB',
+            'desa' => 'Sukamanah',
+            'kecamatan' => 'Jonggol',
+            'no_telepon' => '081290218262',
+            'status' => 'Validasi SU & Bidang',
+        ],
+
+        // --- Status: Validasi BT ---
+        [
+            'user_email' => 'lestari@atrbpn.go.id',
+            'tanggal_pengajuan' => '2026-02-28',
+            'nama_pemegang_hak' => 'Lestari Kurnia',
+            'no_su_tahun' => '12345/2009',
+            'no_hak' => '22331',
+            'jenis_hak' => 'HM',
+            'desa' => 'Ciangsana',
+            'kecamatan' => 'Gunung Putri',
+            'no_telepon' => '081290218262',
+            'status' => 'Validasi BT',
+        ],
+        [
+            'user_email' => 'loket3@atrbpn.go.id',
+            'tanggal_pengajuan' => '2026-03-05',
+            'nama_pemegang_hak' => 'Agus Prasetyo',
+            'no_su_tahun' => '00654/2013',
+            'no_hak' => '03891',
+            'jenis_hak' => 'HM',
+            'desa' => 'Cileungsi Kidul',
+            'kecamatan' => 'Cileungsi',
+            'no_telepon' => '089876543210',
+            'status' => 'Validasi BT',
+        ],
+
+        // --- Status: Selesai ---
+        [
+            'user_email' => 'loket3@atrbpn.go.id',
+            'tanggal_pengajuan' => '2026-03-06',
+            'nama_pemegang_hak' => 'LOKET 3',
+            'no_su_tahun' => '00012/2002',
+            'no_hak' => '05541',
+            'jenis_hak' => 'HM',
+            'desa' => 'Gunung Putri',
+            'kecamatan' => 'Gunung Putri',
+            'no_telepon' => '',
+            'status' => 'Selesai',
+        ],
+        [
             'user_email' => 'lestari@atrbpn.go.id',
             'tanggal_pengajuan' => '2026-03-03',
             'nama_pemegang_hak' => 'Lestari Kurnia',
@@ -72,6 +186,44 @@ try {
             'no_telepon' => '081290218262',
             'status' => 'Selesai',
         ],
+        [
+            'user_email' => 'lestari@atrbpn.go.id',
+            'tanggal_pengajuan' => '2026-03-01',
+            'nama_pemegang_hak' => 'Lestari Kurnia',
+            'no_su_tahun' => '00110/2001',
+            'no_hak' => '00011',
+            'jenis_hak' => 'HGU',
+            'desa' => 'Klapanunggal',
+            'kecamatan' => 'Klapanunggal',
+            'no_telepon' => '081290218262',
+            'status' => 'Selesai',
+        ],
+        [
+            'user_email' => 'ppat@atrbpn.go.id',
+            'tanggal_pengajuan' => '2026-02-25',
+            'nama_pemegang_hak' => 'Yusuf Hidayat',
+            'no_su_tahun' => '00890/2010',
+            'no_hak' => '01234',
+            'jenis_hak' => 'HM',
+            'desa' => 'Sukamanah',
+            'kecamatan' => 'Jonggol',
+            'no_telepon' => '082345678901',
+            'status' => 'Selesai',
+        ],
+        [
+            'user_email' => 'userppat@atrbpn.go.id',
+            'tanggal_pengajuan' => '2026-02-20',
+            'nama_pemegang_hak' => 'Ratna Dewi',
+            'no_su_tahun' => '00445/2012',
+            'no_hak' => '07890',
+            'jenis_hak' => 'HGB',
+            'desa' => 'Bojong Kulur',
+            'kecamatan' => 'Gunung Putri',
+            'no_telepon' => '083456789012',
+            'status' => 'Selesai',
+        ],
+
+        // --- Status: Ditolak ---
         [
             'user_email' => 'ppat@atrbpn.go.id',
             'tanggal_pengajuan' => '2026-03-02',
@@ -87,32 +239,23 @@ try {
             'rejected_from_status' => 'Validasi SU & Bidang',
         ],
         [
-            'user_email' => 'lestari@atrbpn.go.id',
-            'tanggal_pengajuan' => '2026-03-01',
-            'nama_pemegang_hak' => 'Lestari Kurnia',
-            'no_su_tahun' => '00110/2001',
-            'no_hak' => '00011',
-            'jenis_hak' => 'HGU',
-            'desa' => 'Klapanunggal',
-            'kecamatan' => 'Klapanunggal',
-            'no_telepon' => '081290218262',
-            'status' => 'Selesai',
-        ],
-        [
-            'user_email' => 'lestari@atrbpn.go.id',
-            'tanggal_pengajuan' => '2026-02-28',
-            'nama_pemegang_hak' => 'Lestari Kurnia',
-            'no_su_tahun' => '12345/2009',
-            'no_hak' => '22331',
-            'jenis_hak' => 'HM',
-            'desa' => 'Ciangsana',
+            'user_email' => 'loket3@atrbpn.go.id',
+            'tanggal_pengajuan' => '2026-02-27',
+            'nama_pemegang_hak' => 'Bambang Suryadi',
+            'no_su_tahun' => '00333/2011',
+            'no_hak' => '02567',
+            'jenis_hak' => 'HP',
+            'desa' => 'Tlajung Udik',
             'kecamatan' => 'Gunung Putri',
-            'no_telepon' => '081290218262',
-            'status' => 'Validasi BT',
+            'no_telepon' => '084567890123',
+            'status' => 'Ditolak',
+            'catatan_penolakan' => 'Dokumen sertifikat tidak lengkap, mohon upload ulang',
+            'rejected_from_status' => 'Proses',
         ],
     ];
 
     $created = 0;
+    $updated = 0;
     $skipped = 0;
 
     foreach ($berkasData as $data) {
@@ -122,23 +265,22 @@ try {
             continue;
         }
 
-        // Check if berkas already exists (by no_hak + no_su_tahun)
         $exists = App\Models\Berkas::where('no_hak', $data['no_hak'])
             ->where('no_su_tahun', $data['no_su_tahun'])
             ->first();
 
         if ($exists) {
-            // Update status to match production
             $exists->update([
                 'status' => $data['status'],
                 'catatan_penolakan' => $data['catatan_penolakan'] ?? null,
                 'rejected_from_status' => $data['rejected_from_status'] ?? null,
             ]);
             echo "🔄 Updated: {$data['nama_pemegang_hak']} - {$data['no_hak']} → {$data['status']}\n";
+            $updated++;
             continue;
         }
 
-        $berkas = App\Models\Berkas::create([
+        App\Models\Berkas::create([
             'user_id' => $userId,
             'tanggal_pengajuan' => $data['tanggal_pengajuan'],
             'nama_pemegang_hak' => $data['nama_pemegang_hak'],
@@ -157,7 +299,7 @@ try {
         $created++;
     }
 
-    // Seed validation logs for completed berkas
+    // === VALIDATION LOGS ===
     echo "\n--- Seeding Validation Logs ---\n";
     
     $ergiId = getUserId('Ergi@atrbpn.go.id');
@@ -168,35 +310,41 @@ try {
     $dzakiId = getUserId('dzaki@atrbpn.go.id');
     $gustiyawanId = getUserId('gustiyawan022@gmail.com');
 
-    // Get all berkas and create appropriate validation logs
     $allBerkas = App\Models\Berkas::all();
+    $logCreated = 0;
+
     foreach ($allBerkas as $berkas) {
         $existingLogs = App\Models\ValidationLog::where('berkas_id', $berkas->id)->count();
         if ($existingLogs > 0) {
-            echo "⏭️ Logs exist for: {$berkas->nama_pemegang_hak}\n";
+            echo "⏭️ Logs exist for: {$berkas->nama_pemegang_hak} ({$berkas->no_hak})\n";
+            continue;
+        }
+
+        // Status "Proses" = no logs needed (belum diproses)
+        if ($berkas->status === 'Proses') {
+            echo "⏭️ Proses (no logs): {$berkas->nama_pemegang_hak}\n";
             continue;
         }
 
         $baseTime = \Carbon\Carbon::parse($berkas->tanggal_pengajuan);
+        $arsipAdmin = $ergiId ?: $gustiyawanId;
+        $suAdmin = $putriId ?: $ikhsanId;
+        $btAdmin = $asepId ?: $farhanId ?: $dzakiId;
 
-        // Proses → always has arsip verification
-        if (in_array($berkas->status, ['Validasi SU & Bidang', 'Validasi BT', 'Selesai', 'Ditolak'])) {
-            $arsipAdmin = $ergiId ?: $gustiyawanId;
-            if ($arsipAdmin) {
-                App\Models\ValidationLog::create([
-                    'berkas_id' => $berkas->id,
-                    'admin_id' => $arsipAdmin,
-                    'action' => 'Validasi SU & Bidang',
-                    'ip_address' => '156.67.221.195',
-                    'created_at' => $baseTime->copy()->addHours(2),
-                ]);
-                echo "   📝 Arsip log for: {$berkas->nama_pemegang_hak}\n";
-            }
+        // Arsip verification (semua status non-Proses pasti sudah melewati arsip)
+        if ($arsipAdmin) {
+            App\Models\ValidationLog::create([
+                'berkas_id' => $berkas->id,
+                'admin_id' => $arsipAdmin,
+                'action' => 'Validasi SU & Bidang',
+                'ip_address' => '156.67.221.195',
+                'created_at' => $baseTime->copy()->addHours(2),
+            ]);
+            $logCreated++;
         }
 
-        // Validasi SU & Bidang
+        // Validasi SU → BT
         if (in_array($berkas->status, ['Validasi BT', 'Selesai'])) {
-            $suAdmin = $putriId ?: $ikhsanId;
             if ($suAdmin) {
                 App\Models\ValidationLog::create([
                     'berkas_id' => $berkas->id,
@@ -205,13 +353,12 @@ try {
                     'ip_address' => '156.67.221.195',
                     'created_at' => $baseTime->copy()->addHours(4),
                 ]);
-                echo "   📝 Validasi SU log for: {$berkas->nama_pemegang_hak}\n";
+                $logCreated++;
             }
         }
 
         // Validasi BT → Selesai
         if ($berkas->status === 'Selesai') {
-            $btAdmin = $asepId ?: $farhanId ?: $dzakiId;
             if ($btAdmin) {
                 App\Models\ValidationLog::create([
                     'berkas_id' => $berkas->id,
@@ -220,13 +367,13 @@ try {
                     'ip_address' => '156.67.221.195',
                     'created_at' => $baseTime->copy()->addHours(6),
                 ]);
-                echo "   📝 Selesai log for: {$berkas->nama_pemegang_hak}\n";
+                $logCreated++;
             }
         }
 
         // Ditolak
         if ($berkas->status === 'Ditolak') {
-            $rejectAdmin = $putriId ?: $ikhsanId;
+            $rejectAdmin = $suAdmin ?: $arsipAdmin;
             if ($rejectAdmin) {
                 App\Models\ValidationLog::create([
                     'berkas_id' => $berkas->id,
@@ -235,12 +382,21 @@ try {
                     'ip_address' => '156.67.221.195',
                     'created_at' => $baseTime->copy()->addHours(3),
                 ]);
-                echo "   📝 Ditolak log for: {$berkas->nama_pemegang_hak}\n";
+                $logCreated++;
             }
         }
+
+        echo "   📝 Logs created for: {$berkas->nama_pemegang_hak} ({$berkas->status})\n";
     }
 
-    echo "\n✅ Berkas seed selesai! Created: {$created}, Skipped: {$skipped}\n";
+    echo "\n========================================\n";
+    echo "✅ Berkas: Created={$created}, Updated={$updated}, Skipped={$skipped}\n";
+    echo "✅ Validation Logs: Created={$logCreated}\n";
+    echo "\nRingkasan status:\n";
+    foreach (['Proses', 'Validasi SU & Bidang', 'Validasi BT', 'Selesai', 'Ditolak'] as $s) {
+        $count = App\Models\Berkas::where('status', $s)->count();
+        echo "  {$s}: {$count}\n";
+    }
     echo "\n⚠️ HAPUS FILE INI SEGERA SETELAH DIGUNAKAN!\n";
 
 } catch (Exception $e) {
