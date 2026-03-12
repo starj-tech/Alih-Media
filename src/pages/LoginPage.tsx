@@ -38,11 +38,15 @@ export default function LoginPage() {
   const { login, register } = useAuthContext();
   const navigate = useNavigate();
 
-  // Forgot password state
+  // Forgot password (OTP) state
   const [showForgot, setShowForgot] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotLoading, setForgotLoading] = useState(false);
-  const [forgotSent, setForgotSent] = useState(false);
+  const [otpStep, setOtpStep] = useState<'phone' | 'otp' | 'reset' | 'done'>('phone');
+  const [otpPhone, setOtpPhone] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpUserId, setOtpUserId] = useState<number | null>(null);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,24 +105,66 @@ export default function LoginPage() {
   };
 
   const openForgot = () => {
-    setForgotEmail('');
-    setForgotSent(false);
+    setOtpPhone('');
+    setOtpCode('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setOtpUserId(null);
+    setOtpStep('phone');
     setShowForgot(true);
   };
 
-  const handleEmailReset = async () => {
-    if (!forgotEmail.trim()) { toast.error('Email harus diisi'); return; }
-    setForgotLoading(true);
+  const handleOtpRequest = async () => {
+    if (!otpPhone.trim()) { toast.error('Nomor telepon harus diisi'); return; }
+    setOtpLoading(true);
     try {
-      await apiFetch('/auth/reset-password', {
+      const data = await apiFetch<{ message: string; debug_otp?: string }>('/auth/otp/request', {
         method: 'POST',
-        body: JSON.stringify({ email: forgotEmail }),
+        body: JSON.stringify({ phone: otpPhone }),
       });
-      setForgotSent(true);
+      toast.success('Kode OTP telah dikirim');
+      if (data.debug_otp) {
+        console.log('[DEBUG] OTP:', data.debug_otp);
+      }
+      setOtpStep('otp');
     } catch (err: any) {
-      toast.error(err.message || 'Gagal mengirim link reset');
+      toast.error(err.message || 'Gagal mengirim OTP');
     }
-    setForgotLoading(false);
+    setOtpLoading(false);
+  };
+
+  const handleOtpVerify = async () => {
+    if (otpCode.length !== 6) { toast.error('Kode OTP harus 6 digit'); return; }
+    setOtpLoading(true);
+    try {
+      const data = await apiFetch<{ user_id: number }>('/auth/otp/verify', {
+        method: 'POST',
+        body: JSON.stringify({ phone: otpPhone, otp_code: otpCode }),
+      });
+      setOtpUserId(data.user_id);
+      setOtpStep('reset');
+      toast.success('OTP terverifikasi');
+    } catch (err: any) {
+      toast.error(err.message || 'OTP tidak valid');
+    }
+    setOtpLoading(false);
+  };
+
+  const handleOtpReset = async () => {
+    if (newPassword.length < 6) { toast.error('Password minimal 6 karakter'); return; }
+    if (newPassword !== confirmPassword) { toast.error('Konfirmasi password tidak cocok'); return; }
+    setOtpLoading(true);
+    try {
+      await apiFetch('/auth/otp/reset', {
+        method: 'POST',
+        body: JSON.stringify({ user_id: otpUserId, password: newPassword }),
+      });
+      setOtpStep('done');
+      toast.success('Password berhasil direset!');
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal mereset password');
+    }
+    setOtpLoading(false);
   };
 
   return (
@@ -261,7 +307,7 @@ export default function LoginPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Forgot Password Dialog */}
+      {/* Forgot Password (OTP) Dialog */}
       <Dialog open={showForgot} onOpenChange={setShowForgot}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -271,33 +317,72 @@ export default function LoginPage() {
             </DialogTitle>
           </DialogHeader>
 
-          {forgotSent ? (
+          {otpStep === 'done' ? (
             <div className="space-y-4 text-center py-4">
-              <Mail className="w-12 h-12 mx-auto text-primary" />
+              <CheckCircle className="w-16 h-16 mx-auto text-green-500" />
               <div>
-                <p className="font-medium">Link Reset Terkirim!</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Silakan cek email <strong>{forgotEmail}</strong> untuk link reset password.
-                  Periksa juga folder spam jika tidak ditemukan di inbox.
-                </p>
+                <p className="font-medium text-lg">Password Berhasil Direset!</p>
+                <p className="text-sm text-muted-foreground mt-1">Silakan login dengan password baru Anda.</p>
               </div>
               <Button onClick={() => setShowForgot(false)} className="w-full">Kembali ke Login</Button>
             </div>
-          ) : (
+          ) : otpStep === 'phone' ? (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Masukkan email akun Anda. Link reset password akan dikirim ke email tersebut.
+                Masukkan nomor telepon yang terdaftar pada akun Anda. Kode OTP akan dikirim untuk verifikasi.
               </p>
               <div className="space-y-2">
-                <Label>Email</Label>
+                <Label>No. Telepon</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input type="email" placeholder="Masukkan email akun" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} className="pl-10" maxLength={255} />
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input type="tel" placeholder="Masukkan nomor telepon" value={otpPhone} onChange={e => setOtpPhone(e.target.value)} className="pl-10" maxLength={20} />
                 </div>
               </div>
-              <Button onClick={handleEmailReset} disabled={forgotLoading} className="w-full gap-2">
-                <Mail className="w-4 h-4" />
-                {forgotLoading ? 'Mengirim...' : 'Kirim Link Reset'}
+              <Button onClick={handleOtpRequest} disabled={otpLoading} className="w-full gap-2">
+                <Phone className="w-4 h-4" />
+                {otpLoading ? 'Mengirim...' : 'Kirim Kode OTP'}
+              </Button>
+            </div>
+          ) : otpStep === 'otp' ? (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Masukkan kode OTP 6 digit yang telah dikirim ke nomor <strong>{otpPhone}</strong>.
+              </p>
+              <div className="space-y-2">
+                <Label>Kode OTP</Label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input type="text" placeholder="000000" value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))} className="pl-10 text-center tracking-widest text-lg font-mono" maxLength={6} />
+                </div>
+              </div>
+              <Button onClick={handleOtpVerify} disabled={otpLoading || otpCode.length !== 6} className="w-full gap-2">
+                <CheckCircle className="w-4 h-4" />
+                {otpLoading ? 'Memverifikasi...' : 'Verifikasi OTP'}
+              </Button>
+              <button type="button" onClick={() => setOtpStep('phone')} className="text-sm text-primary hover:underline w-full text-center">
+                ← Kembali
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">Masukkan password baru untuk akun Anda.</p>
+              <div className="space-y-2">
+                <Label>Password Baru (min. 6 karakter)</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input type="password" placeholder="Masukkan password baru" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="pl-10" minLength={6} maxLength={128} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Konfirmasi Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input type="password" placeholder="Ulangi password baru" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="pl-10" maxLength={128} />
+                </div>
+              </div>
+              <Button onClick={handleOtpReset} disabled={otpLoading} className="w-full gap-2">
+                <Lock className="w-4 h-4" />
+                {otpLoading ? 'Memproses...' : 'Ubah Password'}
               </Button>
             </div>
           )}
