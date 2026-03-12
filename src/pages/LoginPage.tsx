@@ -38,11 +38,15 @@ export default function LoginPage() {
   const { login, register } = useAuthContext();
   const navigate = useNavigate();
 
-  // Forgot password state
+  // Forgot password (OTP) state
   const [showForgot, setShowForgot] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotLoading, setForgotLoading] = useState(false);
-  const [forgotSent, setForgotSent] = useState(false);
+  const [otpStep, setOtpStep] = useState<'phone' | 'otp' | 'reset' | 'done'>('phone');
+  const [otpPhone, setOtpPhone] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpUserId, setOtpUserId] = useState<number | null>(null);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
