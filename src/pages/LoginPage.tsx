@@ -35,7 +35,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [regLoading, setRegLoading] = useState(false);
   const [regSuccess, setRegSuccess] = useState(false);
-  const { login, register } = useAuth();
+  const { login, register } = useAuthContext();
   const navigate = useNavigate();
 
   // Forgot password state
