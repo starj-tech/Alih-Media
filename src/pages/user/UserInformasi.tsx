@@ -282,6 +282,9 @@ export default function UserInformasi() {
         </DialogContent>
       </Dialog>
 
+      {/* Timeline Dialog for Super User */}
+      <BerkasTimelineDialog berkas={timelineBerkas} open={!!timelineBerkas} onOpenChange={(open) => { if (!open) setTimelineBerkas(null); }} />
+
       {/* Delete Confirmation */}
       <DeleteConfirmDialog
         open={!!deleteId}
