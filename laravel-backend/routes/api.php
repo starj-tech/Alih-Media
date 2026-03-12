@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BerkasController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\PasswordResetOtpController;
+use App\Http\Controllers\RegistrationOtpController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ValidationLogController;
 use Illuminate\Support\Facades\Route;
@@ -41,6 +42,11 @@ Route::prefix('auth')->group(function () {
     Route::post('/otp/request', [PasswordResetOtpController::class, 'request']);
     Route::post('/otp/verify', [PasswordResetOtpController::class, 'verify']);
     Route::post('/otp/reset', [PasswordResetOtpController::class, 'reset']);
+
+    // Registration OTP
+    Route::post('/register/request-otp', [RegistrationOtpController::class, 'request']);
+    Route::post('/register/verify-otp', [RegistrationOtpController::class, 'verify']);
+    Route::post('/register/resend-otp', [RegistrationOtpController::class, 'resend']);
 });
 
 // ==========================================

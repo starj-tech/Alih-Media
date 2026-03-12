@@ -201,7 +201,25 @@ INSERT IGNORE INTO `migrations` (`migration`, `batch`) VALUES
 ('0002_create_user_roles_table', 1),
 ('0003_create_berkas_table', 1),
 ('0004_create_validation_logs_table', 1),
-('0005_create_password_reset_otps_table', 1);
+('0005_create_password_reset_otps_table', 1),
+('0006_create_registration_otps_table', 1);
+
+-- ==========================================
+-- 8. TABEL REGISTRATION_OTPS
+-- ==========================================
+CREATE TABLE IF NOT EXISTS `registration_otps` (
+  `id` CHAR(36) NOT NULL,
+  `phone` VARCHAR(20) NOT NULL,
+  `email` VARCHAR(255) NOT NULL,
+  `otp_code` VARCHAR(255) NOT NULL,
+  `registration_data` TEXT NOT NULL,
+  `verified` TINYINT(1) NOT NULL DEFAULT 0,
+  `expires_at` TIMESTAMP NOT NULL,
+  `created_at` TIMESTAMP NULL DEFAULT NULL,
+  `updated_at` TIMESTAMP NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `registration_otps_email_unique` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ==========================================
 -- SELESAI!
