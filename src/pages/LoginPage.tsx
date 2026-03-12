@@ -105,24 +105,66 @@ export default function LoginPage() {
   };
 
   const openForgot = () => {
-    setForgotEmail('');
-    setForgotSent(false);
+    setOtpPhone('');
+    setOtpCode('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setOtpUserId(null);
+    setOtpStep('phone');
     setShowForgot(true);
   };
 
-  const handleEmailReset = async () => {
-    if (!forgotEmail.trim()) { toast.error('Email harus diisi'); return; }
-    setForgotLoading(true);
+  const handleOtpRequest = async () => {
+    if (!otpPhone.trim()) { toast.error('Nomor telepon harus diisi'); return; }
+    setOtpLoading(true);
     try {
-      await apiFetch('/auth/reset-password', {
+      const data = await apiFetch<{ message: string; debug_otp?: string }>('/auth/otp/request', {
         method: 'POST',
-        body: JSON.stringify({ email: forgotEmail }),
+        body: JSON.stringify({ phone: otpPhone }),
       });
-      setForgotSent(true);
+      toast.success('Kode OTP telah dikirim');
+      if (data.debug_otp) {
+        console.log('[DEBUG] OTP:', data.debug_otp);
+      }
+      setOtpStep('otp');
     } catch (err: any) {
-      toast.error(err.message || 'Gagal mengirim link reset');
+      toast.error(err.message || 'Gagal mengirim OTP');
     }
-    setForgotLoading(false);
+    setOtpLoading(false);
+  };
+
+  const handleOtpVerify = async () => {
+    if (otpCode.length !== 6) { toast.error('Kode OTP harus 6 digit'); return; }
+    setOtpLoading(true);
+    try {
+      const data = await apiFetch<{ user_id: number }>('/auth/otp/verify', {
+        method: 'POST',
+        body: JSON.stringify({ phone: otpPhone, otp_code: otpCode }),
+      });
+      setOtpUserId(data.user_id);
+      setOtpStep('reset');
+      toast.success('OTP terverifikasi');
+    } catch (err: any) {
+      toast.error(err.message || 'OTP tidak valid');
+    }
+    setOtpLoading(false);
+  };
+
+  const handleOtpReset = async () => {
+    if (newPassword.length < 6) { toast.error('Password minimal 6 karakter'); return; }
+    if (newPassword !== confirmPassword) { toast.error('Konfirmasi password tidak cocok'); return; }
+    setOtpLoading(true);
+    try {
+      await apiFetch('/auth/otp/reset', {
+        method: 'POST',
+        body: JSON.stringify({ user_id: otpUserId, password: newPassword }),
+      });
+      setOtpStep('done');
+      toast.success('Password berhasil direset!');
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal mereset password');
+    }
+    setOtpLoading(false);
   };
 
   return (
