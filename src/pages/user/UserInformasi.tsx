@@ -27,6 +27,7 @@ const statusOptions: { value: string; label: string }[] = [
 
 export default function UserInformasi() {
   const { user } = useAuth();
+  const isSuperUser = user?.role === 'super_user';
   const [berkas, setBerkas] = useState<Berkas[]>([]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [editId, setEditId] = useState<string | null>(null);
@@ -37,6 +38,7 @@ export default function UserInformasi() {
   const [submitting, setSubmitting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [timelineBerkas, setTimelineBerkas] = useState<Berkas | null>(null);
   const sertifikatRef = useRef<HTMLInputElement>(null);
   const ktpRef = useRef<HTMLInputElement>(null);
   const fotoBangunanRef = useRef<HTMLInputElement>(null);
