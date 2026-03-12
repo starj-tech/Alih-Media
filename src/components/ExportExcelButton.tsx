@@ -66,12 +66,16 @@ export default function ExportExcelButton({ data, fileName, sheetName = 'Data' }
     const ws = XLSX.utils.json_to_sheet(filtered.map((b, i) => ({
       'No': i + 1,
       'Tgl Pengajuan': b.tanggalPengajuan,
-      'Nama Pemegang Hak': b.namaPemegangHak,
+      'Nama Pemohon': b.namaPemegangHak,
+      'Nama Pemilik Sertifikat': b.namaPemilikSertifikat || '-',
       'No.SU/Tahun': b.noSuTahun,
       'No Hak': b.noHak,
       'Jenis Hak': b.jenisHak,
       'Desa': b.desa,
       'Kecamatan': b.kecamatan,
+      'No HP Pemohon': b.noWaPemohon || b.noTelepon || '-',
+      'No HP Pemilik Sertifikat': b.namaPemilikSertifikat ? (b.noTelepon || '-') : '-',
+      'Link Shareloc': b.linkShareloc || '-',
       'Status': b.status,
       'Catatan Penolakan': b.catatanPenolakan || '-',
     })));
