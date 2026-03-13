@@ -280,11 +280,10 @@ function RegistrationDialog({ open, onOpenChange }: { open: boolean; onOpenChang
   const handleResendOtp = async () => {
     setResendLoading(true);
     try {
-      const res = await apiFetch<{ debug_otp?: string }>('/auth/register/resend-otp', {
+      await apiFetch('/auth/register/resend-otp', {
         method: 'POST',
         body: JSON.stringify({ email: regEmail }),
       });
-      if (res.debug_otp) setDebugOtp(res.debug_otp);
       setCountdown(300);
       setOtpValue('');
       toast.success('OTP baru telah dikirim');
