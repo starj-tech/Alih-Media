@@ -21,16 +21,33 @@ Route::get('/login', function () {
 // Akses: https://api-alihmedia.kantahkabbogor.id/test-smtp?email=test@example.com
 // ============================================
 Route::get('/test-smtp', function (\Illuminate\Http\Request $request) {
+    $resolution = \App\Support\SmtpConfigResolver::apply();
+
     $config = [
         'MAIL_MAILER' => config('mail.default'),
         'MAIL_HOST' => config('mail.mailers.smtp.host'),
         'MAIL_PORT' => config('mail.mailers.smtp.port'),
-        'MAIL_USERNAME' => config('mail.mailers.smtp.username'),
+        'MAIL_USERNAME' => config('mail.mailers.smtp.username') ? '***SET***' : '(kosong)',
         'MAIL_PASSWORD' => config('mail.mailers.smtp.password') ? '***SET***' : '(kosong)',
         'MAIL_ENCRYPTION' => config('mail.mailers.smtp.encryption'),
         'MAIL_FROM_ADDRESS' => config('mail.from.address'),
         'MAIL_FROM_NAME' => config('mail.from.name'),
+        'SMTP_SOURCE' => $resolution['source'],
     ];
+
+    if (!empty($resolution['missing'])) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Konfigurasi SMTP belum lengkap.',
+            'missing' => $resolution['missing'],
+            'smtp_config' => $config,
+            'hint' => [
+                'Isi MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM_ADDRESS di file .env server',
+                'Jika .env tidak bisa dibaca server, pastikan permission file benar',
+                'Jalankan clear-all-cache.php setelah update .env',
+            ],
+        ], 500);
+    }
 
     $testEmail = $request->query('email');
 
