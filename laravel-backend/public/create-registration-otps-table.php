@@ -30,11 +30,11 @@ try {
         $schema::create('registration_otps', function (Illuminate\Database\Schema\Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('phone', 20);
-            $table->string('email')->unique();
-            $table->string('otp_code');
+            $table->string('email', 191)->unique();
+            $table->string('otp_code', 191);
             $table->text('registration_data');
             $table->boolean('verified')->default(false);
-            $table->timestamp('expires_at');
+            $table->timestamp('expires_at')->nullable();
             $table->timestamps();
         });
         echo "✅ Tabel registration_otps berhasil dibuat!\n";
