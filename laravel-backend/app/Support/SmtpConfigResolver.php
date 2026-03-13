@@ -7,12 +7,14 @@ use Illuminate\Support\Facades\Config;
 class SmtpConfigResolver
 {
     /**
-     * Sinkronkan konfigurasi SMTP dari runtime config + fallback .env/.env.example.
+     * Sinkronkan konfigurasi SMTP dari runtime config + fallback env lintas lokasi.
      *
      * @return array{missing: array<int,string>, source: array<string,string>}
      */
     public static function apply(): array
     {
+        self::primeRuntimeEnvironment();
+
         $definitions = [
             'MAIL_MAILER' => [
                 'path' => 'mail.default',
@@ -73,12 +75,12 @@ class SmtpConfigResolver
             $source = 'config';
 
             if (self::isInvalid($finalValue, $definition['invalid'])) {
-                list($fileValue, $sourceFile) = self::lookupEnvValue($envKey);
+                list($resolvedValue, $resolvedSource) = self::lookupEnvValue($envKey);
 
-                if (!self::isInvalid($fileValue, ['', null])) {
-                    $finalValue = $envKey === 'MAIL_PORT' ? (int) $fileValue : $fileValue;
+                if (!self::isInvalid($resolvedValue, ['', null])) {
+                    $finalValue = $envKey === 'MAIL_PORT' ? (int) $resolvedValue : $resolvedValue;
                     Config::set($definition['path'], $finalValue);
-                    $source = $sourceFile;
+                    $source = $resolvedSource;
                 } elseif (!self::isInvalid($definition['default'], ['', null])) {
                     $finalValue = $definition['default'];
                     Config::set($definition['path'], $finalValue);
@@ -99,23 +101,105 @@ class SmtpConfigResolver
         ];
     }
 
-    private static function lookupEnvValue(string $key): array
+    private static function primeRuntimeEnvironment(): void
     {
-        $envFiles = ['.env', '.env.example'];
-
-        foreach ($envFiles as $file) {
-            $path = base_path($file);
-            if (!is_file($path) || !is_readable($path)) {
+        foreach (self::getCandidateEnvFiles() as $candidate) {
+            if (empty($candidate['readable'])) {
                 continue;
             }
 
-            $value = self::readFromFile($path, $key);
+            try {
+                $dotenv = \Dotenv\Dotenv::createMutable($candidate['dir'], $candidate['file']);
+                $dotenv->safeLoad();
+            } catch (\Throwable $e) {
+                // Lanjut ke candidate berikutnya.
+            }
+        }
+    }
+
+    private static function lookupEnvValue(string $key): array
+    {
+        $runtimeValue = self::readRuntimeValue($key);
+        if (!self::isInvalid($runtimeValue, ['', null])) {
+            return [$runtimeValue, 'runtime'];
+        }
+
+        foreach (self::getCandidateEnvFiles() as $candidate) {
+            if (empty($candidate['readable'])) {
+                continue;
+            }
+
+            $value = self::readFromFile($candidate['path'], $key);
             if (!self::isInvalid($value, ['', null])) {
-                return [$value, $file];
+                return [$value, $candidate['label']];
             }
         }
 
         return [null, 'none'];
+    }
+
+    private static function readRuntimeValue(string $key)
+    {
+        $candidates = [
+            getenv($key),
+            $_ENV[$key] ?? null,
+            $_SERVER[$key] ?? null,
+            env($key),
+        ];
+
+        foreach ($candidates as $candidate) {
+            $normalized = self::normalizeValue($candidate);
+            if (!self::isInvalid($normalized, ['', null])) {
+                return $normalized;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<int, array{path:string,dir:string,file:string,label:string,readable:bool}>
+     */
+    private static function getCandidateEnvFiles(): array
+    {
+        static $candidates = null;
+
+        if ($candidates !== null) {
+            return $candidates;
+        }
+
+        $basePath = base_path();
+        $parentPath = dirname($basePath);
+
+        $pairs = [
+            ['dir' => $basePath, 'file' => '.env', 'label' => '.env'],
+            ['dir' => $basePath, 'file' => '.env.example', 'label' => '.env.example'],
+            ['dir' => $parentPath, 'file' => '.env', 'label' => '../.env'],
+            ['dir' => $parentPath, 'file' => '.env.example', 'label' => '../.env.example'],
+        ];
+
+        $result = [];
+        $seen = [];
+
+        foreach ($pairs as $pair) {
+            $path = rtrim($pair['dir'], '/\\') . DIRECTORY_SEPARATOR . $pair['file'];
+            if (isset($seen[$path])) {
+                continue;
+            }
+
+            $seen[$path] = true;
+            $result[] = [
+                'path' => $path,
+                'dir' => $pair['dir'],
+                'file' => $pair['file'],
+                'label' => $pair['label'],
+                'readable' => is_file($path) && is_readable($path),
+            ];
+        }
+
+        $candidates = $result;
+
+        return $candidates;
     }
 
     private static function readFromFile(string $path, string $key)
@@ -125,18 +209,19 @@ class SmtpConfigResolver
             return null;
         }
 
+        $pattern = '/^(?:export\s+)?' . preg_quote($key, '/') . '\s*=\s*(.*)$/';
+
         foreach ($lines as $line) {
             $trimmed = trim($line);
             if ($trimmed === '' || strpos($trimmed, '#') === 0) {
                 continue;
             }
 
-            if (strpos($trimmed, $key . '=') !== 0) {
+            if (!preg_match($pattern, $trimmed, $matches)) {
                 continue;
             }
 
-            $value = substr($trimmed, strlen($key) + 1);
-            return self::normalizeValue($value);
+            return self::normalizeValue($matches[1] ?? null);
         }
 
         return null;
@@ -156,11 +241,24 @@ class SmtpConfigResolver
         $first = substr($value, 0, 1);
         $last = substr($value, -1);
 
-        if (($first === '"' && $last === '"') || ($first === "'" && $last === "'")) {
+        $isWrappedInDoubleQuote = $first === '"' && $last === '"';
+        $isWrappedInSingleQuote = $first === "'" && $last === "'";
+
+        if ($isWrappedInDoubleQuote || $isWrappedInSingleQuote) {
             $value = substr($value, 1, -1);
+        } else {
+            $commentPos = strpos($value, ' #');
+            if ($commentPos !== false) {
+                $value = trim(substr($value, 0, $commentPos));
+            }
         }
 
         if (preg_match('/^\$\{([A-Z0-9_]+)\}$/', $value, $match)) {
+            list($resolved, ) = self::lookupEnvValue($match[1]);
+            return $resolved;
+        }
+
+        if (preg_match('/^\$([A-Z0-9_]+)$/', $value, $match)) {
             list($resolved, ) = self::lookupEnvValue($match[1]);
             return $resolved;
         }
