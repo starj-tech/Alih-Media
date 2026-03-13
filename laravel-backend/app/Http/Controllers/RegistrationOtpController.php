@@ -9,51 +9,59 @@ use App\Models\UserRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 
 class RegistrationOtpController extends Controller
 {
-    private function ensureEmailConfiguration(): void
-    {
-        if (config('mail.default') !== 'smtp') {
-            return;
-        }
-
-        $requiredConfig = [
-            'MAIL_HOST' => config('mail.mailers.smtp.host'),
-            'MAIL_PORT' => config('mail.mailers.smtp.port'),
-            'MAIL_USERNAME' => config('mail.mailers.smtp.username'),
-            'MAIL_PASSWORD' => config('mail.mailers.smtp.password'),
-            'MAIL_FROM_ADDRESS' => config('mail.from.address'),
-        ];
-
-        $missing = [];
-        foreach ($requiredConfig as $key => $value) {
-            if ($value === null || (is_string($value) && trim($value) === '')) {
-                $missing[] = $key;
-            }
-        }
-
-        if (!empty($missing)) {
-            throw new \RuntimeException('Konfigurasi email belum lengkap: ' . implode(', ', $missing));
-        }
-    }
-
+    /**
+     * Kirim email OTP dengan eksplisit SMTP mailer + diagnostik detail.
+     */
     private function sendOtpEmail(string $email, string $otpCode): void
     {
-        $this->ensureEmailConfiguration();
+        // Baca konfigurasi SMTP langsung
+        $host = config('mail.mailers.smtp.host');
+        $port = config('mail.mailers.smtp.port');
+        $username = config('mail.mailers.smtp.username');
+        $password = config('mail.mailers.smtp.password');
+        $fromAddr = config('mail.from.address');
 
-        Mail::raw(
+        // Validasi konfigurasi
+        $missing = [];
+        if (empty($host)) $missing[] = 'MAIL_HOST';
+        if (empty($port)) $missing[] = 'MAIL_PORT';
+        if (empty($username)) $missing[] = 'MAIL_USERNAME';
+        if (empty($password)) $missing[] = 'MAIL_PASSWORD';
+        if (empty($fromAddr) || $fromAddr === 'hello@example.com') $missing[] = 'MAIL_FROM_ADDRESS';
+
+        if (!empty($missing)) {
+            $msg = 'Konfigurasi SMTP belum lengkap di file .env: ' . implode(', ', $missing);
+            Log::error('OTP Email Config Error', ['missing' => $missing]);
+            throw new \RuntimeException($msg);
+        }
+
+        Log::info('Sending OTP email', [
+            'to' => $email,
+            'smtp_host' => $host,
+            'smtp_port' => $port,
+            'smtp_user' => $username,
+            'from' => $fromAddr,
+        ]);
+
+        // Paksa gunakan mailer 'smtp' secara eksplisit
+        Mail::mailer('smtp')->raw(
             "Kode OTP Registrasi Anda: {$otpCode}\n\nKode ini berlaku selama 5 menit.\nJangan bagikan kode ini kepada siapapun.\n\n- Aplikasi Alih Media BPN Kab. Bogor II",
-            function ($message) use ($email) {
-                $message->to($email)
-                    ->subject('Kode OTP Registrasi - Alih Media BPN');
+            function ($message) use ($email, $fromAddr) {
+                $message->from($fromAddr, config('mail.from.name', 'Alihmedia BPN'));
+                $message->to($email);
+                $message->subject('Kode OTP Registrasi - Alih Media BPN');
             }
         );
+
+        Log::info('OTP email sent successfully', ['to' => $email]);
     }
 
     /**
      * POST /api/auth/register/request-otp
-     * Validate registration data and send OTP to email
      */
     public function request(Request $request)
     {
@@ -69,8 +77,6 @@ class RegistrationOtpController extends Controller
         $otpCode = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
         RegistrationOtp::cleanupExpired();
-
-        // Delete any existing OTP for this email
         RegistrationOtp::where('email', $request->email)->delete();
 
         RegistrationOtp::create([
@@ -90,17 +96,31 @@ class RegistrationOtpController extends Controller
 
         try {
             $this->sendOtpEmail($request->email, $otpCode);
-        } catch (\Throwable $e) {
-            \Log::error('Failed to send registration OTP email', [
+        } catch (\RuntimeException $e) {
+            // Konfigurasi SMTP belum lengkap
+            RegistrationOtp::where('email', $request->email)->delete();
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 500);
+        } catch (\Swift_TransportException $e) {
+            // Gagal konek ke SMTP server (port diblokir, auth gagal, dll)
+            Log::error('SMTP Transport Error', [
                 'email' => $request->email,
                 'error' => $e->getMessage(),
             ]);
-
-            // Avoid leaving unusable pending registration records
             RegistrationOtp::where('email', $request->email)->delete();
-
             return response()->json([
-                'error' => 'OTP gagal dikirim ke email. Silakan cek konfigurasi email server atau coba lagi.',
+                'error' => 'Gagal terhubung ke server email (SMTP). Kemungkinan port diblokir atau kredensial salah. Detail: ' . $e->getMessage(),
+            ], 500);
+        } catch (\Throwable $e) {
+            Log::error('OTP Email Send Failed', [
+                'email' => $request->email,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            RegistrationOtp::where('email', $request->email)->delete();
+            return response()->json([
+                'error' => 'Gagal mengirim email OTP: ' . $e->getMessage(),
             ], 500);
         }
 
@@ -112,7 +132,6 @@ class RegistrationOtpController extends Controller
 
     /**
      * POST /api/auth/register/verify-otp
-     * Verify OTP and complete registration
      */
     public function verify(Request $request)
     {
@@ -133,13 +152,11 @@ class RegistrationOtpController extends Controller
 
         $regData = json_decode($otp->registration_data, true);
 
-        // Check if email is still available
         if (User::where('email', $regData['email'])->exists()) {
             $otp->delete();
             return response()->json(['error' => 'Email sudah terdaftar'], 400);
         }
 
-        // Create user
         $user = User::create([
             'name' => $regData['name'],
             'email' => $regData['email'],
@@ -161,7 +178,6 @@ class RegistrationOtpController extends Controller
             'role' => 'user',
         ]);
 
-        // Cleanup
         $otp->delete();
 
         $token = $user->createToken('auth-token')->plainTextToken;
@@ -180,7 +196,6 @@ class RegistrationOtpController extends Controller
 
     /**
      * POST /api/auth/register/resend-otp
-     * Resend OTP for pending registration
      */
     public function resend(Request $request)
     {
@@ -199,13 +214,12 @@ class RegistrationOtpController extends Controller
         try {
             $this->sendOtpEmail($request->email, $otpCode);
         } catch (\Throwable $e) {
-            \Log::error('Failed to resend registration OTP email', [
+            Log::error('Failed to resend OTP', [
                 'email' => $request->email,
                 'error' => $e->getMessage(),
             ]);
-
             return response()->json([
-                'error' => 'OTP gagal dikirim ulang. Silakan cek konfigurasi email server atau coba lagi.',
+                'error' => 'Gagal kirim ulang OTP: ' . $e->getMessage(),
             ], 500);
         }
 
