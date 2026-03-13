@@ -15,3 +15,62 @@ Route::get('/', function () {
 Route::get('/login', function () {
     return response()->json(['message' => 'Unauthenticated.'], 401);
 })->name('login');
+
+// ============================================
+// Route Diagnostik SMTP (HAPUS SETELAH TESTING!)
+// Akses: https://api-alihmedia.kantahkabbogor.id/test-smtp?email=test@example.com
+// ============================================
+Route::get('/test-smtp', function (\Illuminate\Http\Request $request) {
+    $config = [
+        'MAIL_MAILER' => config('mail.default'),
+        'MAIL_HOST' => config('mail.mailers.smtp.host'),
+        'MAIL_PORT' => config('mail.mailers.smtp.port'),
+        'MAIL_USERNAME' => config('mail.mailers.smtp.username'),
+        'MAIL_PASSWORD' => config('mail.mailers.smtp.password') ? '***SET***' : '(kosong)',
+        'MAIL_ENCRYPTION' => config('mail.mailers.smtp.encryption'),
+        'MAIL_FROM_ADDRESS' => config('mail.from.address'),
+        'MAIL_FROM_NAME' => config('mail.from.name'),
+    ];
+
+    $testEmail = $request->query('email');
+
+    if (!$testEmail) {
+        return response()->json([
+            'status' => 'info',
+            'message' => 'Tambahkan ?email=alamat@email.com untuk mengirim email test',
+            'smtp_config' => $config,
+            'php_version' => PHP_VERSION,
+        ]);
+    }
+
+    try {
+        \Illuminate\Support\Facades\Mail::mailer('smtp')->raw(
+            "Ini adalah email test dari server Alihmedia BPN.\nWaktu: " . now()->toDateTimeString(),
+            function ($message) use ($testEmail) {
+                $message->from(config('mail.from.address'), config('mail.from.name', 'Alihmedia BPN'));
+                $message->to($testEmail);
+                $message->subject('Test SMTP - Alihmedia BPN');
+            }
+        );
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Email test berhasil dikirim ke {$testEmail}. Cek inbox & folder spam.",
+            'smtp_config' => $config,
+        ]);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Gagal mengirim email',
+            'error' => $e->getMessage(),
+            'error_class' => get_class($e),
+            'smtp_config' => $config,
+            'hint' => [
+                'Pastikan file .env sudah berisi kredensial SMTP yang benar',
+                'Jika pakai Gmail, gunakan App Password (bukan password biasa)',
+                'Jalankan clear-all-cache.php untuk membersihkan cache',
+                'Cek apakah port 587 tidak diblokir oleh firewall server',
+            ],
+        ], 500);
+    }
+});
