@@ -198,7 +198,6 @@ function RegistrationDialog({ open, onOpenChange }: { open: boolean; onOpenChang
   // OTP state
   const [otpValue, setOtpValue] = useState('');
   const [otpLoading, setOtpLoading] = useState(false);
-  const [debugOtp, setDebugOtp] = useState('');
   const [countdown, setCountdown] = useState(0);
   const [resendLoading, setResendLoading] = useState(false);
 
@@ -215,7 +214,7 @@ function RegistrationDialog({ open, onOpenChange }: { open: boolean; onOpenChang
     setStep('form');
     setRegName(''); setRegNoTelepon(''); setRegEmail('');
     setRegPengguna(''); setRegNamaInstansi(''); setRegPassword('');
-    setOtpValue(''); setDebugOtp(''); setCountdown(0);
+    setOtpValue(''); setCountdown(0);
   };
 
   const handleRequestOtp = async (e: React.FormEvent) => {
@@ -236,7 +235,7 @@ function RegistrationDialog({ open, onOpenChange }: { open: boolean; onOpenChang
 
     setRegLoading(true);
     try {
-      const res = await apiFetch<{ message: string; phone: string; debug_otp?: string }>('/auth/register/request-otp', {
+      const res = await apiFetch<{ message: string; email: string }>('/auth/register/request-otp', {
         method: 'POST',
         body: JSON.stringify({
           name: regName,
@@ -248,7 +247,6 @@ function RegistrationDialog({ open, onOpenChange }: { open: boolean; onOpenChang
         }),
       });
       toast.success('Kode OTP telah dikirim ke email Anda');
-      if (res.debug_otp) setDebugOtp(res.debug_otp);
       setStep('otp');
       setCountdown(300); // 5 minutes
     } catch (err: any) {
@@ -282,11 +280,10 @@ function RegistrationDialog({ open, onOpenChange }: { open: boolean; onOpenChang
   const handleResendOtp = async () => {
     setResendLoading(true);
     try {
-      const res = await apiFetch<{ debug_otp?: string }>('/auth/register/resend-otp', {
+      await apiFetch('/auth/register/resend-otp', {
         method: 'POST',
         body: JSON.stringify({ email: regEmail }),
       });
-      if (res.debug_otp) setDebugOtp(res.debug_otp);
       setCountdown(300);
       setOtpValue('');
       toast.success('OTP baru telah dikirim');
@@ -332,11 +329,6 @@ function RegistrationDialog({ open, onOpenChange }: { open: boolean; onOpenChang
                 Kode OTP 6 digit telah dikirim ke email <strong>{regEmail}</strong>.
                 Periksa inbox dan folder spam, lalu masukkan kode tersebut untuk menyelesaikan registrasi.
               </p>
-              {debugOtp && (
-                <p className="text-xs bg-muted p-2 rounded font-mono">
-                  [Debug] Kode OTP: <strong>{debugOtp}</strong>
-                </p>
-              )}
             </div>
 
             <div className="flex justify-center">
