@@ -329,11 +329,6 @@ function RegistrationDialog({ open, onOpenChange }: { open: boolean; onOpenChang
                 Kode OTP 6 digit telah dikirim ke email <strong>{regEmail}</strong>.
                 Periksa inbox dan folder spam, lalu masukkan kode tersebut untuk menyelesaikan registrasi.
               </p>
-              {debugOtp && (
-                <p className="text-xs bg-muted p-2 rounded font-mono">
-                  [Debug] Kode OTP: <strong>{debugOtp}</strong>
-                </p>
-              )}
             </div>
 
             <div className="flex justify-center">
