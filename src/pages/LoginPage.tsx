@@ -235,7 +235,7 @@ function RegistrationDialog({ open, onOpenChange }: { open: boolean; onOpenChang
 
     setRegLoading(true);
     try {
-      const res = await apiFetch<{ message: string; phone: string; debug_otp?: string }>('/auth/register/request-otp', {
+      const res = await apiFetch<{ message: string; email: string }>('/auth/register/request-otp', {
         method: 'POST',
         body: JSON.stringify({
           name: regName,
@@ -247,7 +247,6 @@ function RegistrationDialog({ open, onOpenChange }: { open: boolean; onOpenChang
         }),
       });
       toast.success('Kode OTP telah dikirim ke email Anda');
-      if (res.debug_otp) setDebugOtp(res.debug_otp);
       setStep('otp');
       setCountdown(300); // 5 minutes
     } catch (err: any) {
