@@ -6,6 +6,7 @@ use App\Models\RegistrationOtp;
 use App\Models\User;
 use App\Models\Profile;
 use App\Models\UserRole;
+use App\Support\SmtpConfigResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -18,24 +19,20 @@ class RegistrationOtpController extends Controller
      */
     private function sendOtpEmail(string $email, string $otpCode): void
     {
-        // Baca konfigurasi SMTP langsung
+        $resolution = SmtpConfigResolver::apply();
+
+        // Baca konfigurasi SMTP setelah fallback diterapkan
         $host = config('mail.mailers.smtp.host');
         $port = config('mail.mailers.smtp.port');
         $username = config('mail.mailers.smtp.username');
-        $password = config('mail.mailers.smtp.password');
         $fromAddr = config('mail.from.address');
 
-        // Validasi konfigurasi
-        $missing = [];
-        if (empty($host)) $missing[] = 'MAIL_HOST';
-        if (empty($port)) $missing[] = 'MAIL_PORT';
-        if (empty($username)) $missing[] = 'MAIL_USERNAME';
-        if (empty($password)) $missing[] = 'MAIL_PASSWORD';
-        if (empty($fromAddr) || $fromAddr === 'hello@example.com') $missing[] = 'MAIL_FROM_ADDRESS';
-
-        if (!empty($missing)) {
-            $msg = 'Konfigurasi SMTP belum lengkap di file .env: ' . implode(', ', $missing);
-            Log::error('OTP Email Config Error', ['missing' => $missing]);
+        if (!empty($resolution['missing'])) {
+            $msg = 'Konfigurasi SMTP belum lengkap di file .env/.env.example: ' . implode(', ', $resolution['missing']);
+            Log::error('OTP Email Config Error', [
+                'missing' => $resolution['missing'],
+                'source' => $resolution['source'],
+            ]);
             throw new \RuntimeException($msg);
         }
 
@@ -43,8 +40,9 @@ class RegistrationOtpController extends Controller
             'to' => $email,
             'smtp_host' => $host,
             'smtp_port' => $port,
-            'smtp_user' => $username,
+            'smtp_user' => $username ? '***SET***' : '(kosong)',
             'from' => $fromAddr,
+            'source' => $resolution['source'],
         ]);
 
         // Paksa gunakan mailer 'smtp' secara eksplisit
