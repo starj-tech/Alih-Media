@@ -247,7 +247,7 @@ function RegistrationDialog({ open, onOpenChange }: { open: boolean; onOpenChang
           nama_instansi: needsInstansi(regPengguna) ? regNamaInstansi : null,
         }),
       });
-      toast.success('Kode OTP telah dikirim ke WhatsApp');
+      toast.success('Kode OTP telah dikirim ke email Anda');
       if (res.debug_otp) setDebugOtp(res.debug_otp);
       setStep('otp');
       setCountdown(300); // 5 minutes
@@ -327,10 +327,10 @@ function RegistrationDialog({ open, onOpenChange }: { open: boolean; onOpenChang
         {step === 'otp' && (
           <div className="space-y-6 py-2">
             <div className="text-center space-y-2">
-              <Phone className="w-12 h-12 mx-auto text-primary" />
+              <Mail className="w-12 h-12 mx-auto text-primary" />
               <p className="text-sm text-muted-foreground">
-                Kode OTP 6 digit telah dikirim ke nomor WhatsApp <strong>{regNoTelepon}</strong>.
-                Masukkan kode tersebut untuk menyelesaikan registrasi.
+                Kode OTP 6 digit telah dikirim ke email <strong>{regEmail}</strong>.
+                Periksa inbox dan folder spam, lalu masukkan kode tersebut untuk menyelesaikan registrasi.
               </p>
               {debugOtp && (
                 <p className="text-xs bg-muted p-2 rounded font-mono">
