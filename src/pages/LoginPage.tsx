@@ -198,7 +198,6 @@ function RegistrationDialog({ open, onOpenChange }: { open: boolean; onOpenChang
   // OTP state
   const [otpValue, setOtpValue] = useState('');
   const [otpLoading, setOtpLoading] = useState(false);
-  const [debugOtp, setDebugOtp] = useState('');
   const [countdown, setCountdown] = useState(0);
   const [resendLoading, setResendLoading] = useState(false);
 
