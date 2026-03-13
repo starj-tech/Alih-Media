@@ -214,7 +214,7 @@ function RegistrationDialog({ open, onOpenChange }: { open: boolean; onOpenChang
     setStep('form');
     setRegName(''); setRegNoTelepon(''); setRegEmail('');
     setRegPengguna(''); setRegNamaInstansi(''); setRegPassword('');
-    setOtpValue(''); setDebugOtp(''); setCountdown(0);
+    setOtpValue(''); setCountdown(0);
   };
 
   const handleRequestOtp = async (e: React.FormEvent) => {
