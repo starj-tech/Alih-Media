@@ -247,7 +247,7 @@ function RegistrationDialog({ open, onOpenChange }: { open: boolean; onOpenChang
           nama_instansi: needsInstansi(regPengguna) ? regNamaInstansi : null,
         }),
       });
-      toast.success('Kode OTP telah dikirim ke WhatsApp');
+      toast.success('Kode OTP telah dikirim ke email Anda');
       if (res.debug_otp) setDebugOtp(res.debug_otp);
       setStep('otp');
       setCountdown(300); // 5 minutes

@@ -8,12 +8,13 @@ use App\Models\Profile;
 use App\Models\UserRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 
 class RegistrationOtpController extends Controller
 {
     /**
      * POST /api/auth/register/request-otp
-     * Validate registration data and send OTP to phone
+     * Validate registration data and send OTP to email
      */
     public function request(Request $request)
     {
@@ -48,10 +49,22 @@ class RegistrationOtpController extends Controller
             'expires_at' => now()->addMinutes(5),
         ]);
 
+        // Send OTP via email
+        try {
+            Mail::raw(
+                "Kode OTP Registrasi Anda: {$otpCode}\n\nKode ini berlaku selama 5 menit.\nJangan bagikan kode ini kepada siapapun.\n\n- Aplikasi Alih Media BPN Kab. Bogor II",
+                function ($message) use ($request) {
+                    $message->to($request->email)
+                        ->subject('Kode OTP Registrasi - Alih Media BPN');
+                }
+            );
+        } catch (\Exception $e) {
+            \Log::error('Failed to send registration OTP email: ' . $e->getMessage());
+        }
+
         return response()->json([
-            'message' => 'OTP telah dikirim ke WhatsApp',
-            'phone' => $request->no_telepon,
-            'debug_otp' => $otpCode, // Remove in production
+            'message' => 'OTP telah dikirim ke email Anda',
+            'email' => $request->email,
         ]);
     }
 
@@ -147,10 +160,22 @@ class RegistrationOtpController extends Controller
             'verified' => false,
         ]);
 
+        // Send OTP via email
+        try {
+            Mail::raw(
+                "Kode OTP Registrasi Anda: {$otpCode}\n\nKode ini berlaku selama 5 menit.\nJangan bagikan kode ini kepada siapapun.\n\n- Aplikasi Alih Media BPN Kab. Bogor II",
+                function ($message) use ($request) {
+                    $message->to($request->email)
+                        ->subject('Kode OTP Registrasi - Alih Media BPN');
+                }
+            );
+        } catch (\Exception $e) {
+            \Log::error('Failed to send registration OTP email: ' . $e->getMessage());
+        }
+
         return response()->json([
-            'message' => 'OTP baru telah dikirim ke WhatsApp',
-            'phone' => $otp->phone,
-            'debug_otp' => $otpCode,
+            'message' => 'OTP baru telah dikirim ke email Anda',
+            'email' => $otp->email,
         ]);
     }
 }
