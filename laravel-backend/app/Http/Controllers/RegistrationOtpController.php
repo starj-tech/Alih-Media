@@ -12,6 +12,45 @@ use Illuminate\Support\Facades\Mail;
 
 class RegistrationOtpController extends Controller
 {
+    private function ensureEmailConfiguration(): void
+    {
+        if (config('mail.default') !== 'smtp') {
+            return;
+        }
+
+        $requiredConfig = [
+            'MAIL_HOST' => config('mail.mailers.smtp.host'),
+            'MAIL_PORT' => config('mail.mailers.smtp.port'),
+            'MAIL_USERNAME' => config('mail.mailers.smtp.username'),
+            'MAIL_PASSWORD' => config('mail.mailers.smtp.password'),
+            'MAIL_FROM_ADDRESS' => config('mail.from.address'),
+        ];
+
+        $missing = [];
+        foreach ($requiredConfig as $key => $value) {
+            if ($value === null || (is_string($value) && trim($value) === '')) {
+                $missing[] = $key;
+            }
+        }
+
+        if (!empty($missing)) {
+            throw new \RuntimeException('Konfigurasi email belum lengkap: ' . implode(', ', $missing));
+        }
+    }
+
+    private function sendOtpEmail(string $email, string $otpCode): void
+    {
+        $this->ensureEmailConfiguration();
+
+        Mail::raw(
+            "Kode OTP Registrasi Anda: {$otpCode}\n\nKode ini berlaku selama 5 menit.\nJangan bagikan kode ini kepada siapapun.\n\n- Aplikasi Alih Media BPN Kab. Bogor II",
+            function ($message) use ($email) {
+                $message->to($email)
+                    ->subject('Kode OTP Registrasi - Alih Media BPN');
+            }
+        );
+    }
+
     /**
      * POST /api/auth/register/request-otp
      * Validate registration data and send OTP to email
@@ -49,17 +88,20 @@ class RegistrationOtpController extends Controller
             'expires_at' => now()->addMinutes(5),
         ]);
 
-        // Send OTP via email
         try {
-            Mail::raw(
-                "Kode OTP Registrasi Anda: {$otpCode}\n\nKode ini berlaku selama 5 menit.\nJangan bagikan kode ini kepada siapapun.\n\n- Aplikasi Alih Media BPN Kab. Bogor II",
-                function ($message) use ($request) {
-                    $message->to($request->email)
-                        ->subject('Kode OTP Registrasi - Alih Media BPN');
-                }
-            );
-        } catch (\Exception $e) {
-            \Log::error('Failed to send registration OTP email: ' . $e->getMessage());
+            $this->sendOtpEmail($request->email, $otpCode);
+        } catch (\Throwable $e) {
+            \Log::error('Failed to send registration OTP email', [
+                'email' => $request->email,
+                'error' => $e->getMessage(),
+            ]);
+
+            // Avoid leaving unusable pending registration records
+            RegistrationOtp::where('email', $request->email)->delete();
+
+            return response()->json([
+                'error' => 'OTP gagal dikirim ke email. Silakan cek konfigurasi email server atau coba lagi.',
+            ], 500);
         }
 
         return response()->json([
@@ -154,24 +196,24 @@ class RegistrationOtpController extends Controller
 
         $otpCode = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
+        try {
+            $this->sendOtpEmail($request->email, $otpCode);
+        } catch (\Throwable $e) {
+            \Log::error('Failed to resend registration OTP email', [
+                'email' => $request->email,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'error' => 'OTP gagal dikirim ulang. Silakan cek konfigurasi email server atau coba lagi.',
+            ], 500);
+        }
+
         $otp->update([
             'otp_code' => Hash::make($otpCode),
             'expires_at' => now()->addMinutes(5),
             'verified' => false,
         ]);
-
-        // Send OTP via email
-        try {
-            Mail::raw(
-                "Kode OTP Registrasi Anda: {$otpCode}\n\nKode ini berlaku selama 5 menit.\nJangan bagikan kode ini kepada siapapun.\n\n- Aplikasi Alih Media BPN Kab. Bogor II",
-                function ($message) use ($request) {
-                    $message->to($request->email)
-                        ->subject('Kode OTP Registrasi - Alih Media BPN');
-                }
-            );
-        } catch (\Exception $e) {
-            \Log::error('Failed to send registration OTP email: ' . $e->getMessage());
-        }
 
         return response()->json([
             'message' => 'OTP baru telah dikirim ke email Anda',
