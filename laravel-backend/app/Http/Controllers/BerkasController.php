@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Berkas;
 use App\Models\ValidationLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class BerkasController extends Controller
@@ -18,17 +19,28 @@ class BerkasController extends Controller
             $query->where('user_id', $user->id);
         }
 
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
+        // Status filter (supports comma-separated for multiple statuses)
+        if ($request->has('status') && $request->status !== '' && $request->status !== 'all') {
+            $statuses = explode(',', $request->status);
+            if (count($statuses) === 1) {
+                $query->where('status', $statuses[0]);
+            } else {
+                $query->whereIn('status', $statuses);
+            }
         }
-        if ($request->has('kecamatan')) {
+
+        if ($request->has('kecamatan') && $request->kecamatan !== '') {
             $query->where('kecamatan', $request->kecamatan);
         }
-        if ($request->has('jenis_hak')) {
+        if ($request->has('jenis_hak') && $request->jenis_hak !== '') {
             $query->where('jenis_hak', $request->jenis_hak);
         }
 
-        return response()->json($query->get());
+        // Pagination: default 50 per page, max 200
+        $perPage = min((int) ($request->per_page ?? 50), 200);
+        $paginated = $query->paginate($perPage);
+
+        return response()->json($paginated);
     }
 
     public function show(Request $request, $id)
@@ -184,6 +196,9 @@ class BerkasController extends Controller
         return response()->json(['message' => 'Berkas berhasil dihapus']);
     }
 
+    /**
+     * Optimized stats: uses COUNT(id) per status directly in DB, no ->get() all
+     */
     public function stats(Request $request)
     {
         $user = $request->user();
@@ -193,19 +208,27 @@ class BerkasController extends Controller
             $query->where('user_id', $user->id);
         }
 
-        $all = $query->get();
+        // Single query with conditional counts per status
+        $counts = $query->select(
+            DB::raw("COUNT(id) as total"),
+            DB::raw("COUNT(CASE WHEN status = 'Proses' THEN id END) as proses"),
+            DB::raw("COUNT(CASE WHEN status = 'Validasi SU & Bidang' THEN id END) as validasi_su"),
+            DB::raw("COUNT(CASE WHEN status = 'Validasi BT' THEN id END) as validasi_bt"),
+            DB::raw("COUNT(CASE WHEN status = 'Selesai' THEN id END) as selesai"),
+            DB::raw("COUNT(CASE WHEN status = 'Ditolak' THEN id END) as ditolak")
+        )->first();
 
         $stats = [
-            'total' => $all->count(),
-            'proses' => $all->where('status', 'Proses')->count(),
-            'validasi_su' => $all->where('status', 'Validasi SU & Bidang')->count(),
-            'validasi_bt' => $all->where('status', 'Validasi BT')->count(),
-            'selesai' => $all->where('status', 'Selesai')->count(),
-            'ditolak' => $all->where('status', 'Ditolak')->count(),
+            'total' => (int) $counts->total,
+            'proses' => (int) $counts->proses,
+            'validasi_su' => (int) $counts->validasi_su,
+            'validasi_bt' => (int) $counts->validasi_bt,
+            'selesai' => (int) $counts->selesai,
+            'ditolak' => (int) $counts->ditolak,
         ];
 
         if ($user->isAdmin()) {
-            $adminCounts = ValidationLog::selectRaw('admin_id, count(*) as total')
+            $adminCounts = ValidationLog::selectRaw('admin_id, count(id) as total')
                 ->groupBy('admin_id')
                 ->pluck('total', 'admin_id');
 
