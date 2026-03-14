@@ -23,7 +23,7 @@ export default function UserDashboard() {
   const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
-    if (user) getBerkasByUser(user.id).then(setBerkas);
+    if (user) fetchBerkas().then(setBerkas);
   }, [user]);
 
   const filteredBerkas = statusFilter === 'all' ? berkas : berkas.filter(b => b.status === statusFilter);

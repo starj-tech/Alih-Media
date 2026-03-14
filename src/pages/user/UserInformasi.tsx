@@ -44,7 +44,7 @@ export default function UserInformasi() {
   const fotoBangunanRef = useRef<HTMLInputElement>(null);
 
   const loadData = () => {
-    if (user) getBerkasByUser(user.id).then(setBerkas);
+    if (user) fetchBerkas().then(setBerkas);
   };
 
   useEffect(() => { loadData(); }, [user]);
