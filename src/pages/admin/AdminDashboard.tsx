@@ -4,7 +4,7 @@ import StatsCard from '@/components/StatsCard';
 import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
 import ExportExcelButton from '@/components/ExportExcelButton';
-import { getStats, getAllBerkas, getMyValidationCount, Berkas } from '@/lib/data';
+import { getStats, fetchBerkas, getMyValidationCount, Berkas } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -26,7 +26,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     getStats().then(setStats);
-    getAllBerkas().then(setBerkas);
+    fetchBerkas().then(setBerkas);
     if (user?.id) getMyValidationCount(user.id).then(setMyCount);
   }, [user?.id]);
 

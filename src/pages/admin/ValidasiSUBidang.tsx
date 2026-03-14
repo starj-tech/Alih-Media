@@ -4,7 +4,7 @@ import StatusBadge from '@/components/StatusBadge';
 import FileDownloadCell from '@/components/FileDownloadCell';
 import ExternalLinkCell from '@/components/ExternalLinkCell';
 import ExportExcelButton from '@/components/ExportExcelButton';
-import { getAllBerkas, updateBerkasStatus, isDueDateOverdue, Berkas } from '@/lib/data';
+import { getBerkasByStatus, updateBerkasStatus, isDueDateOverdue, Berkas } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Send, XCircle, Undo2 } from 'lucide-react';
@@ -23,8 +23,8 @@ export default function ValidasiSUBidang() {
   const [confirmKirimId, setConfirmKirimId] = useState<string | null>(null);
 
   const loadData = async () => {
-    const all = await getAllBerkas();
-    setBerkas(all.filter(b => b.status === 'Validasi SU & Bidang'));
+    const data = await getBerkasByStatus('Validasi SU & Bidang');
+    setBerkas(data);
   };
 
   useEffect(() => { loadData(); }, []);

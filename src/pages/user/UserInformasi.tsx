@@ -6,7 +6,7 @@ import FileDownloadCell from '@/components/FileDownloadCell';
 import ExportExcelButton from '@/components/ExportExcelButton';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
 import BerkasTimelineDialog from '@/components/BerkasTimelineDialog';
-import { getBerkasByUser, uploadFile, deleteBerkas, updateBerkas, getBerkasById, Berkas, BerkasStatus } from '@/lib/data';
+import { fetchBerkas, uploadFile, deleteBerkas, updateBerkas, getBerkasById, Berkas, BerkasStatus } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2, Eye } from 'lucide-react';
@@ -44,7 +44,7 @@ export default function UserInformasi() {
   const fotoBangunanRef = useRef<HTMLInputElement>(null);
 
   const loadData = () => {
-    if (user) getBerkasByUser(user.id).then(setBerkas);
+    if (user) fetchBerkas().then(setBerkas);
   };
 
   useEffect(() => { loadData(); }, [user]);

@@ -28,6 +28,14 @@ export interface Berkas {
   rejectedFromStatus?: string;
 }
 
+export interface PaginatedResponse<T> {
+  data: T[];
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+}
+
 export interface ManagedUser {
   id: string;
   email: string;
@@ -72,23 +80,68 @@ function mapBerkasRow(row: any): Berkas {
   };
 }
 
-export async function getAllBerkas(): Promise<Berkas[]> {
+function extractRows(data: any): any[] {
+  if (Array.isArray(data)) return data;
+  if (data?.data && Array.isArray(data.data)) return data.data;
+  return [];
+}
+
+/**
+ * Fetch berkas with optional status filter and pagination.
+ * status can be a single status or comma-separated for multiple.
+ * Returns all pages by default (per_page=200 to minimize requests).
+ */
+export async function fetchBerkas(options?: {
+  status?: string;
+  page?: number;
+  perPage?: number;
+}): Promise<Berkas[]> {
+  const params = new URLSearchParams();
+  if (options?.status) params.set('status', options.status);
+  params.set('per_page', String(options?.perPage ?? 200));
+  if (options?.page) params.set('page', String(options.page));
+
   try {
-    const data = await apiFetch<any[]>('/berkas');
-    return (Array.isArray(data) ? data : (data as any)?.data || []).map(mapBerkasRow);
+    const data = await apiFetch<any>(`/berkas?${params.toString()}`);
+    const rows = extractRows(data);
+    const mapped = rows.map(mapBerkasRow);
+
+    // If paginated response and there are more pages, fetch remaining
+    if (!options?.page && data?.last_page && data.last_page > 1) {
+      const promises: Promise<any>[] = [];
+      for (let p = 2; p <= data.last_page; p++) {
+        const pageParams = new URLSearchParams(params);
+        pageParams.set('page', String(p));
+        promises.push(apiFetch<any>(`/berkas?${pageParams.toString()}`));
+      }
+      const pages = await Promise.all(promises);
+      for (const pageData of pages) {
+        mapped.push(...extractRows(pageData).map(mapBerkasRow));
+      }
+    }
+
+    return mapped;
   } catch {
     return [];
   }
 }
 
+/** @deprecated Use fetchBerkas() with status filter instead */
+export async function getAllBerkas(): Promise<Berkas[]> {
+  return fetchBerkas();
+}
+
+/** @deprecated Use fetchBerkas() - backend already filters by user */
 export async function getBerkasByUser(userId: string): Promise<Berkas[]> {
-  try {
-    const data = await apiFetch<any[]>('/berkas');
-    const all = (Array.isArray(data) ? data : (data as any)?.data || []).map(mapBerkasRow);
-    return all.filter(b => b.userId === userId);
-  } catch {
-    return [];
-  }
+  return fetchBerkas();
+}
+
+/**
+ * Fetch berkas filtered by specific status(es) - sends WHERE to server
+ */
+export async function getBerkasByStatus(status: string | string[]): Promise<Berkas[]> {
+  const statusStr = Array.isArray(status) ? status.join(',') : status;
+  return fetchBerkas({ status: statusStr });
 }
 
 export async function uploadFile(file: File, userId: string, type: 'sertifikat' | 'ktp' | 'foto-bangunan'): Promise<string | null> {

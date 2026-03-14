@@ -5,22 +5,22 @@ import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
 import ExportExcelButton from '@/components/ExportExcelButton';
 import FileDownloadCell from '@/components/FileDownloadCell';
-import { getAllBerkas, getMyValidationCount, Berkas } from '@/lib/data';
+import { getAdminStats, getMyValidationCount, getBerkasByStatus, Berkas } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function DashboardValidasiBT() {
   const { user } = useAuth();
-  const [allBerkas, setAllBerkas] = useState<Berkas[]>([]);
+  const [menunggu, setMenunggu] = useState<Berkas[]>([]);
+  const [stats, setStats] = useState({ validasiBt: 0, selesai: 0, ditolak: 0 });
   const [myCount, setMyCount] = useState(0);
 
   useEffect(() => {
-    getAllBerkas().then(setAllBerkas);
+    getBerkasByStatus('Validasi BT').then(setMenunggu);
+    getAdminStats().then(s => {
+      setStats({ validasiBt: s.validasiBt, selesai: s.selesai, ditolak: s.ditolak });
+    });
     if (user?.id) getMyValidationCount(user.id).then(setMyCount);
   }, [user?.id]);
-
-  const menunggu = allBerkas.filter(b => b.status === 'Validasi BT');
-  const selesai = allBerkas.filter(b => b.status === 'Selesai');
-  const ditolak = allBerkas.filter(b => b.status === 'Ditolak');
 
   return (
     <div className="space-y-6">
@@ -30,9 +30,9 @@ export default function DashboardValidasiBT() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatsCard title="Menunggu Validasi BT" value={menunggu.length} icon={Clock} variant="primary" />
-        <StatsCard title="Selesai" value={selesai.length} icon={CheckCircle} variant="success" />
-        <StatsCard title="Ditolak" value={ditolak.length} icon={XCircle} variant="danger" />
+        <StatsCard title="Menunggu Validasi BT" value={stats.validasiBt} icon={Clock} variant="primary" />
+        <StatsCard title="Selesai" value={stats.selesai} icon={CheckCircle} variant="success" />
+        <StatsCard title="Ditolak" value={stats.ditolak} icon={XCircle} variant="danger" />
         <StatsCard title="Kinerja Saya" value={myCount} icon={UserCheck} variant="primary" />
       </div>
 

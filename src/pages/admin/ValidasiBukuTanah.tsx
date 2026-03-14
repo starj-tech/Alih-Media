@@ -4,7 +4,7 @@ import StatusBadge from '@/components/StatusBadge';
 import FileDownloadCell from '@/components/FileDownloadCell';
 import ExternalLinkCell from '@/components/ExternalLinkCell';
 import ExportExcelButton from '@/components/ExportExcelButton';
-import { getAllBerkas, updateBerkasStatus, isDueDateOverdue, Berkas, getUsers, ManagedUser } from '@/lib/data';
+import { getBerkasByStatus, updateBerkasStatus, isDueDateOverdue, Berkas, getUsers, ManagedUser } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Send, XCircle, Undo2 } from 'lucide-react';
@@ -25,8 +25,8 @@ export default function ValidasiBukuTanah() {
   const [confirmKirimId, setConfirmKirimId] = useState<string | null>(null);
 
   const loadData = async () => {
-    const [all, allUsers] = await Promise.all([getAllBerkas(), getUsers()]);
-    setBerkas(all.filter(b => b.status === 'Validasi BT'));
+    const [data, allUsers] = await Promise.all([getBerkasByStatus('Validasi BT'), getUsers()]);
+    setBerkas(data);
     setUsers(allUsers);
   };
 

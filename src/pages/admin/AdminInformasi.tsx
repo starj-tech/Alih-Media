@@ -5,7 +5,7 @@ import ExternalLinkCell from '@/components/ExternalLinkCell';
 import FileDownloadCell from '@/components/FileDownloadCell';
 import ExportExcelButton from '@/components/ExportExcelButton';
 import BerkasTimelineDialog from '@/components/BerkasTimelineDialog';
-import { getAllBerkas, deleteUploadedFiles, updateBerkasStatus, Berkas, BerkasStatus } from '@/lib/data';
+import { fetchBerkas, deleteUploadedFiles, updateBerkasStatus, Berkas, BerkasStatus } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -38,7 +38,7 @@ export default function AdminInformasi() {
 
   const isSuperAdmin = user?.role === 'super_admin';
 
-  const loadData = () => { getAllBerkas().then(setBerkas); };
+  const loadData = () => { fetchBerkas().then(setBerkas); };
   useEffect(() => { loadData(); }, []);
 
   const filteredBerkas = statusFilter === 'all' ? berkas : berkas.filter(b => b.status === statusFilter);
