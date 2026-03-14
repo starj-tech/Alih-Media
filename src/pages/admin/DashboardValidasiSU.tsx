@@ -10,17 +10,21 @@ import { useAuth } from '@/hooks/useAuth';
 
 export default function DashboardValidasiSU() {
   const { user } = useAuth();
-  const [allBerkas, setAllBerkas] = useState<Berkas[]>([]);
+  const [menunggu, setMenunggu] = useState<Berkas[]>([]);
+  const [stats, setStats] = useState({ validasiSu: 0, sudahValidasi: 0, ditolak: 0 });
   const [myCount, setMyCount] = useState(0);
 
   useEffect(() => {
-    getAllBerkas().then(setAllBerkas);
+    getBerkasByStatus('Validasi SU & Bidang').then(setMenunggu);
+    getAdminStats().then(s => {
+      setStats({
+        validasiSu: s.validasiSu,
+        sudahValidasi: s.validasiBt + s.selesai,
+        ditolak: s.ditolak,
+      });
+    });
     if (user?.id) getMyValidationCount(user.id).then(setMyCount);
   }, [user?.id]);
-
-  const menunggu = allBerkas.filter(b => b.status === 'Validasi SU & Bidang');
-  const sudahValidasi = allBerkas.filter(b => b.status === 'Validasi BT' || b.status === 'Selesai');
-  const ditolak = allBerkas.filter(b => b.status === 'Ditolak');
 
   return (
     <div className="space-y-6">
