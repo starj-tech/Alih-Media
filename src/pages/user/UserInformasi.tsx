@@ -6,7 +6,7 @@ import FileDownloadCell from '@/components/FileDownloadCell';
 import ExportExcelButton from '@/components/ExportExcelButton';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
 import BerkasTimelineDialog from '@/components/BerkasTimelineDialog';
-import { getBerkasByUser, uploadFile, deleteBerkas, updateBerkas, getBerkasById, Berkas, BerkasStatus } from '@/lib/data';
+import { fetchBerkas, uploadFile, deleteBerkas, updateBerkas, getBerkasById, Berkas, BerkasStatus } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2, Eye } from 'lucide-react';
