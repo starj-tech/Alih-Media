@@ -4,7 +4,7 @@ import StatusBadge from '@/components/StatusBadge';
 import FileDownloadCell from '@/components/FileDownloadCell';
 import ExternalLinkCell from '@/components/ExternalLinkCell';
 import ExportExcelButton from '@/components/ExportExcelButton';
-import { getAllBerkas, updateBerkasStatus, isDueDateOverdue, Berkas, getUsers, ManagedUser } from '@/lib/data';
+import { getBerkasByStatus, updateBerkasStatus, isDueDateOverdue, Berkas, getUsers, ManagedUser } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Send, XCircle, Undo2 } from 'lucide-react';
