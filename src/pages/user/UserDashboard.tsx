@@ -4,7 +4,7 @@ import StatsCard from '@/components/StatsCard';
 import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
 import ExportExcelButton from '@/components/ExportExcelButton';
-import { getBerkasByUser, Berkas } from '@/lib/data';
+import { fetchBerkas, Berkas } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
