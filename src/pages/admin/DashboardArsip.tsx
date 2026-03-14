@@ -10,17 +10,21 @@ import { useAuth } from '@/hooks/useAuth';
 
 export default function DashboardArsip() {
   const { user } = useAuth();
-  const [allBerkas, setAllBerkas] = useState<Berkas[]>([]);
+  const [proses, setProses] = useState<Berkas[]>([]);
+  const [stats, setStats] = useState({ proses: 0, selesaiDariArsip: 0, ditolak: 0 });
   const [myCount, setMyCount] = useState(0);
 
   useEffect(() => {
-    getAllBerkas().then(setAllBerkas);
+    getBerkasByStatus('Proses').then(setProses);
+    getAdminStats().then(s => {
+      setStats({
+        proses: s.proses,
+        selesaiDariArsip: s.validasiSu + s.validasiBt + s.selesai,
+        ditolak: s.ditolak,
+      });
+    });
     if (user?.id) getMyValidationCount(user.id).then(setMyCount);
   }, [user?.id]);
-
-  const proses = allBerkas.filter(b => b.status === 'Proses');
-  const selesaiDariArsip = allBerkas.filter(b => b.status !== 'Proses' && b.status !== 'Ditolak');
-  const ditolak = allBerkas.filter(b => b.status === 'Ditolak');
 
   return (
     <div className="space-y-6">
