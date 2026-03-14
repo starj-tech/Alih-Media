@@ -21,8 +21,8 @@ export default function ArsipVerifikasi() {
   const [processing, setProcessing] = useState<string | null>(null);
   const [confirmKirimId, setConfirmKirimId] = useState<string | null>(null);
   const loadData = async () => {
-    const all = await getAllBerkas();
-    setBerkas(all.filter(b => b.status === 'Proses'));
+    const data = await getBerkasByStatus('Proses');
+    setBerkas(data);
   };
 
   useEffect(() => { loadData(); }, []);

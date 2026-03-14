@@ -25,8 +25,8 @@ export default function ValidasiBukuTanah() {
   const [confirmKirimId, setConfirmKirimId] = useState<string | null>(null);
 
   const loadData = async () => {
-    const [all, allUsers] = await Promise.all([getAllBerkas(), getUsers()]);
-    setBerkas(all.filter(b => b.status === 'Validasi BT'));
+    const [data, allUsers] = await Promise.all([getBerkasByStatus('Validasi BT'), getUsers()]);
+    setBerkas(data);
     setUsers(allUsers);
   };
 

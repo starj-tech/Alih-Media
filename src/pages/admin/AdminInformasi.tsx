@@ -38,7 +38,7 @@ export default function AdminInformasi() {
 
   const isSuperAdmin = user?.role === 'super_admin';
 
-  const loadData = () => { getAllBerkas().then(setBerkas); };
+  const loadData = () => { fetchBerkas().then(setBerkas); };
   useEffect(() => { loadData(); }, []);
 
   const filteredBerkas = statusFilter === 'all' ? berkas : berkas.filter(b => b.status === statusFilter);

@@ -23,8 +23,8 @@ export default function ValidasiSUBidang() {
   const [confirmKirimId, setConfirmKirimId] = useState<string | null>(null);
 
   const loadData = async () => {
-    const all = await getAllBerkas();
-    setBerkas(all.filter(b => b.status === 'Validasi SU & Bidang'));
+    const data = await getBerkasByStatus('Validasi SU & Bidang');
+    setBerkas(data);
   };
 
   useEffect(() => { loadData(); }, []);

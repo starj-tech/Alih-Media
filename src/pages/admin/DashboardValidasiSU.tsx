@@ -34,9 +34,9 @@ export default function DashboardValidasiSU() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatsCard title="Menunggu Validasi SU" value={menunggu.length} icon={Clock} variant="primary" />
-        <StatsCard title="Sudah Divalidasi" value={sudahValidasi.length} icon={CheckCircle} variant="success" />
-        <StatsCard title="Ditolak" value={ditolak.length} icon={XCircle} variant="danger" />
+        <StatsCard title="Menunggu Validasi SU" value={stats.validasiSu} icon={Clock} variant="primary" />
+        <StatsCard title="Sudah Divalidasi" value={stats.sudahValidasi} icon={CheckCircle} variant="success" />
+        <StatsCard title="Ditolak" value={stats.ditolak} icon={XCircle} variant="danger" />
         <StatsCard title="Kinerja Saya" value={myCount} icon={UserCheck} variant="primary" />
       </div>
 

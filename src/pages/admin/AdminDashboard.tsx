@@ -26,7 +26,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     getStats().then(setStats);
-    getAllBerkas().then(setBerkas);
+    fetchBerkas().then(setBerkas);
     if (user?.id) getMyValidationCount(user.id).then(setMyCount);
   }, [user?.id]);
 

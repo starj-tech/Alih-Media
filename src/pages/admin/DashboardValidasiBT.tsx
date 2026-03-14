@@ -30,9 +30,9 @@ export default function DashboardValidasiBT() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatsCard title="Menunggu Validasi BT" value={menunggu.length} icon={Clock} variant="primary" />
-        <StatsCard title="Selesai" value={selesai.length} icon={CheckCircle} variant="success" />
-        <StatsCard title="Ditolak" value={ditolak.length} icon={XCircle} variant="danger" />
+        <StatsCard title="Menunggu Validasi BT" value={stats.validasiBt} icon={Clock} variant="primary" />
+        <StatsCard title="Selesai" value={stats.selesai} icon={CheckCircle} variant="success" />
+        <StatsCard title="Ditolak" value={stats.ditolak} icon={XCircle} variant="danger" />
         <StatsCard title="Kinerja Saya" value={myCount} icon={UserCheck} variant="primary" />
       </div>
 
