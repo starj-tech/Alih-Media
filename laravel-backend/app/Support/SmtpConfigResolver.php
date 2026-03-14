@@ -188,18 +188,49 @@ class SmtpConfigResolver
             }
 
             $seen[$path] = true;
+            $isAccessible = self::isPathWithinOpenBaseDir($path);
+
             $result[] = [
                 'path' => $path,
                 'dir' => $pair['dir'],
                 'file' => $pair['file'],
                 'label' => $pair['label'],
-                'readable' => is_file($path) && is_readable($path),
+                'readable' => $isAccessible && @is_file($path) && @is_readable($path),
             ];
         }
 
         $candidates = $result;
 
         return $candidates;
+    }
+
+    private static function isPathWithinOpenBaseDir(string $path): bool
+    {
+        $openBaseDir = ini_get('open_basedir');
+        if (!is_string($openBaseDir) || trim($openBaseDir) === '') {
+            return true;
+        }
+
+        $normalizedPath = self::normalizePath($path);
+        $allowedPaths = array_filter(array_map('trim', explode(PATH_SEPARATOR, $openBaseDir)));
+
+        foreach ($allowedPaths as $allowedPath) {
+            $normalizedAllowed = rtrim(self::normalizePath($allowedPath), '/');
+            if ($normalizedAllowed === '') {
+                continue;
+            }
+
+            if ($normalizedPath === $normalizedAllowed || strpos($normalizedPath, $normalizedAllowed . '/') === 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static function normalizePath(string $path): string
+    {
+        return str_replace('\\', '/', rtrim($path, '/\\'));
     }
 
     private static function readFromFile(string $path, string $key)
