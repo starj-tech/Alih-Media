@@ -5,7 +5,7 @@ import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
 import ExportExcelButton from '@/components/ExportExcelButton';
 import FileDownloadCell from '@/components/FileDownloadCell';
-import { getAllBerkas, getMyValidationCount, Berkas } from '@/lib/data';
+import { getAdminStats, getMyValidationCount, getBerkasByStatus, Berkas } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function DashboardArsip() {
