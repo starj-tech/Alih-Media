@@ -23,6 +23,7 @@ import PengajuanAlihmedia from "@/pages/user/PengajuanAlihmedia";
 import UserInformasi from "@/pages/user/UserInformasi";
 import ResetPassword from "./pages/ResetPassword";
 import AppErrorBoundary from "@/components/AppErrorBoundary";
+import BantuanPage from "./pages/BantuanPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
