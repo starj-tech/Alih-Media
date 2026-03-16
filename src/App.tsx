@@ -91,6 +91,7 @@ function AppRoutes() {
           <Route path="/user/dashboard" element={<DashboardLayout role={role} onLogout={handleLogout}><UserDashboard /></DashboardLayout>} />
           <Route path="/user/pengajuan" element={<DashboardLayout role={role} onLogout={handleLogout}><PengajuanAlihmedia /></DashboardLayout>} />
           <Route path="/user/informasi" element={<DashboardLayout role={role} onLogout={handleLogout}><UserInformasi /></DashboardLayout>} />
+          <Route path="/user/bantuan" element={<DashboardLayout role={role} onLogout={handleLogout}><BantuanPage /></DashboardLayout>} />
         </>
       )}
 
