@@ -94,9 +94,10 @@ Harus muncul: `{"status":"ok"}`
 ## B. Upload Frontend ke FTP
 
 **FTP Frontend:**
-- Host: `156.67.221.195`
-- User: `admin_dev-alihmedia`
-- Domain: `dev-alihmedia.kantahkabbogor.id`
+- Host: `202.10.48.17`
+- User: `alihmedia`
+- Password: `27oktobeR_`
+- Domain: `alihmedia.kantahkabbogor.id`
 
 ### Langkah-langkah:
 
