@@ -58,8 +58,8 @@ function getMenu(role: UserRole) {
         { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
         { label: 'Validasi Buku Tanah', path: '/admin/validasi-bt', icon: CheckSquare },
         { label: 'Informasi Alihmedia', path: '/admin/informasi', icon: Info },
+        { label: 'Bantuan', path: '/admin/bantuan', icon: HelpCircle },
       ];
-    case 'super_user':
     case 'user':
     default:
       return [
