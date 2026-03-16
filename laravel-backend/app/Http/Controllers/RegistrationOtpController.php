@@ -136,6 +136,8 @@ class RegistrationOtpController extends Controller
      */
     public function verify(Request $request)
     {
+        OtpTableManager::ensureRegistrationOtpsTable();
+
         $request->validate([
             'email' => 'required|email',
             'otp_code' => 'required|string|size:6',
