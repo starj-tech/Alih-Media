@@ -95,7 +95,7 @@ Harus muncul: `{"status":"ok"}`
 
 **FTP Frontend:**
 - Host: `202.10.48.17`
-- User: `alihmedia`
+- User: `admin_alihmedia`
 - Password: `27oktobeR_`
 - Domain: `alihmedia.kantahkabbogor.id`
 
