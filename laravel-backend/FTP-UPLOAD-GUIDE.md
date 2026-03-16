@@ -133,7 +133,7 @@ Buat file `.htaccess` di `public_html/` frontend:
 ```
 
 #### 4. Test
-Buka browser: `http://dev-alihmedia.kantahkabbogor.id`
+Buka browser: `https://alihmedia.kantahkabbogor.id`
 
 ---
 
