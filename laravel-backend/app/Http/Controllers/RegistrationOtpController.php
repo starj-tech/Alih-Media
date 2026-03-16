@@ -6,6 +6,7 @@ use App\Models\RegistrationOtp;
 use App\Models\User;
 use App\Models\Profile;
 use App\Models\UserRole;
+use App\Support\OtpTableManager;
 use App\Support\SmtpConfigResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -63,6 +64,8 @@ class RegistrationOtpController extends Controller
      */
     public function request(Request $request)
     {
+        OtpTableManager::ensureRegistrationOtpsTable();
+
         $request->validate([
             'name' => 'required|string|min:2|max:100',
             'email' => 'required|email|max:255|unique:users,email',
@@ -133,6 +136,8 @@ class RegistrationOtpController extends Controller
      */
     public function verify(Request $request)
     {
+        OtpTableManager::ensureRegistrationOtpsTable();
+
         $request->validate([
             'email' => 'required|email',
             'otp_code' => 'required|string|size:6',
@@ -197,6 +202,8 @@ class RegistrationOtpController extends Controller
      */
     public function resend(Request $request)
     {
+        OtpTableManager::ensureRegistrationOtpsTable();
+
         $request->validate([
             'email' => 'required|email',
         ]);
