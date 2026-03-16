@@ -6,6 +6,7 @@ use App\Models\RegistrationOtp;
 use App\Models\User;
 use App\Models\Profile;
 use App\Models\UserRole;
+use App\Support\OtpTableManager;
 use App\Support\SmtpConfigResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
