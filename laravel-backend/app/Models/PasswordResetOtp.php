@@ -16,6 +16,7 @@ class PasswordResetOtp extends Model
         'user_id',
         'phone',
         'otp_code',
+        'reset_token',
         'verified',
         'expires_at',
     ];

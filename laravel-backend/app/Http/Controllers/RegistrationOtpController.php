@@ -202,6 +202,8 @@ class RegistrationOtpController extends Controller
      */
     public function resend(Request $request)
     {
+        OtpTableManager::ensureRegistrationOtpsTable();
+
         $request->validate([
             'email' => 'required|email',
         ]);

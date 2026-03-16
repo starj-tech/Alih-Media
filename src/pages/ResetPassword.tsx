@@ -31,7 +31,7 @@ export default function ResetPassword({ onComplete }: ResetPasswordProps) {
 
     setLoading(true);
     try {
-      await apiFetch('/auth/reset-password', {
+      await apiFetch('/auth/reset-password/confirm', {
         method: 'POST',
         body: JSON.stringify({
           token,
