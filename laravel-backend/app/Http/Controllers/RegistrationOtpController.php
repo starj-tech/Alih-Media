@@ -160,12 +160,16 @@ class RegistrationOtpController extends Controller
             return response()->json(['error' => 'Email sudah terdaftar'], 400);
         }
 
-        $user = User::create([
-            'name' => $regData['name'],
-            'email' => $regData['email'],
-            'password' => $regData['password'],
-            'email_verified_at' => now(),
-        ]);
+        // PENTING: Gunakan DB::table untuk insert password mentah yang sudah di-hash manual,
+        // karena User model punya mutator setPasswordAttribute yang auto-hash.
+        // Password disimpan mentah di registration_data, jadi kita hash di sini.
+        $user = new User();
+        $user->name = $regData['name'];
+        $user->email = $regData['email'];
+        $user->email_verified_at = now();
+        // Bypass mutator: set attribute langsung agar tidak double-hash
+        $user->attributes['password'] = \Illuminate\Support\Facades\Hash::make($regData['password']);
+        $user->save();
 
         Profile::create([
             'user_id' => $user->id,

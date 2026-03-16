@@ -5,9 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Profile;
 use App\Models\UserRole;
+use App\Support\OtpTableManager;
+use App\Support\SmtpConfigResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -146,9 +150,12 @@ class AuthController extends Controller
 
     /**
      * POST /api/auth/reset-password
+     * Kirim link reset password via email SMTP
      */
     public function resetPassword(Request $request)
     {
+        OtpTableManager::ensurePasswordResetsTable();
+
         $request->validate([
             'email' => 'required|email|max:255',
         ]);
@@ -156,6 +163,7 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user) {
+            // Tetap kembalikan sukses untuk mencegah email enumeration
             return response()->json(['message' => 'Jika email terdaftar, link reset telah dikirim']);
         }
 
@@ -166,9 +174,45 @@ class AuthController extends Controller
             ['token' => Hash::make($token), 'created_at' => now()]
         );
 
+        // Kirim email reset password via SMTP
+        $frontendUrl = 'https://alihmedia.kantahkabbogor.id';
+        $resetLink = $frontendUrl . '/#/reset-password?token=' . $token . '&email=' . urlencode($request->email);
+
+        try {
+            $resolution = SmtpConfigResolver::apply();
+
+            if (!empty($resolution['missing'])) {
+                Log::error('SMTP config incomplete for password reset', ['missing' => $resolution['missing']]);
+                return response()->json(['message' => 'Jika email terdaftar, link reset telah dikirim']);
+            }
+
+            $fromAddr = config('mail.from.address');
+
+            Mail::mailer('smtp')->raw(
+                "Anda menerima email ini karena ada permintaan reset password untuk akun Anda.\n\n"
+                . "Klik link berikut untuk mereset password:\n"
+                . $resetLink . "\n\n"
+                . "Link ini berlaku selama 60 menit.\n"
+                . "Jika Anda tidak meminta reset password, abaikan email ini.\n\n"
+                . "- Aplikasi Alih Media BPN Kab. Bogor II",
+                function ($message) use ($request, $fromAddr) {
+                    $message->from($fromAddr, config('mail.from.name', 'Alihmedia BPN'));
+                    $message->to($request->email);
+                    $message->subject('Reset Password - Alih Media BPN');
+                }
+            );
+
+            Log::info('Password reset email sent', ['email' => $request->email]);
+        } catch (\Throwable $e) {
+            Log::error('Failed to send reset password email', [
+                'email' => $request->email,
+                'error' => $e->getMessage(),
+            ]);
+            // Tetap kembalikan sukses agar tidak bocorkan info
+        }
+
         return response()->json([
-            'message' => 'Link reset password telah dikirim ke email',
-            'debug_token' => $token,
+            'message' => 'Jika email terdaftar, link reset telah dikirim',
         ]);
     }
 
@@ -177,6 +221,8 @@ class AuthController extends Controller
      */
     public function confirmResetPassword(Request $request)
     {
+        OtpTableManager::ensurePasswordResetsTable();
+
         $request->validate([
             'email' => 'required|email',
             'token' => 'required|string',
