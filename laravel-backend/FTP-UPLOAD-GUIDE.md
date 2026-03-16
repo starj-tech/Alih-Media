@@ -9,8 +9,9 @@ Git tidak meng-include folder `vendor/` dan `.env`, sehingga `composer install` 
 ## A. Upload Backend ke FTP
 
 **FTP Backend:**
-- Host: `156.67.221.195`
-- User: `admin_api-alihmedia`
+- Host: `202.10.48.17`
+- User: `api_alihmedia`
+- Password: `27oktobeR_`
 - Domain: `api-alihmedia.kantahkabbogor.id`
 
 ### Langkah-langkah:
