@@ -29,6 +29,7 @@ function getMenu(role: UserRole) {
         { label: 'Validasi Buku Tanah', path: '/admin/validasi-bt', icon: CheckSquare },
         { label: 'Informasi Alihmedia', path: '/admin/informasi', icon: Info },
         { label: 'Kelola User', path: '/admin/users', icon: Users },
+        { label: 'Bantuan', path: '/admin/bantuan', icon: HelpCircle },
       ];
     case 'admin':
       return [
