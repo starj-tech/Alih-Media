@@ -10,7 +10,7 @@ Git tidak meng-include folder `vendor/` dan `.env`, sehingga `composer install` 
 
 **FTP Backend:**
 - Host: `202.10.48.17`
-- User: `api_alihmedia`
+- User: `admin_api_alihmedia`
 - Password: `27oktobeR_`
 - Domain: `api-alihmedia.kantahkabbogor.id`
 
@@ -95,7 +95,7 @@ Harus muncul: `{"status":"ok"}`
 
 **FTP Frontend:**
 - Host: `202.10.48.17`
-- User: `alihmedia`
+- User: `admin_alihmedia`
 - Password: `27oktobeR_`
 - Domain: `alihmedia.kantahkabbogor.id`
 
