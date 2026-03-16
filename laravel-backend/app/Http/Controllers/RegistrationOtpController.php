@@ -64,6 +64,8 @@ class RegistrationOtpController extends Controller
      */
     public function request(Request $request)
     {
+        OtpTableManager::ensureRegistrationOtpsTable();
+
         $request->validate([
             'name' => 'required|string|min:2|max:100',
             'email' => 'required|email|max:255|unique:users,email',
