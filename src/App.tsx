@@ -77,6 +77,7 @@ function AppRoutes() {
           <Route path="/admin/validasi-su" element={<DashboardLayout role={role} onLogout={handleLogout}><ValidasiSUBidang /></DashboardLayout>} />
           <Route path="/admin/validasi-bt" element={<DashboardLayout role={role} onLogout={handleLogout}><ValidasiBukuTanah /></DashboardLayout>} />
           <Route path="/admin/informasi" element={<DashboardLayout role={role} onLogout={handleLogout}><AdminInformasi /></DashboardLayout>} />
+          <Route path="/admin/bantuan" element={<DashboardLayout role={role} onLogout={handleLogout}><BantuanPage /></DashboardLayout>} />
           {(role === 'super_admin' || role === 'admin') && (
             <>
               <Route path="/admin/users" element={<DashboardLayout role={role} onLogout={handleLogout}><KelolaUser /></DashboardLayout>} />
