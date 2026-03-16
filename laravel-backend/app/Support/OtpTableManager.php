@@ -49,4 +49,18 @@ class OtpTableManager
             });
         }
     }
+
+    /**
+     * Pastikan tabel password_resets (untuk email-based reset) ada.
+     */
+    public static function ensurePasswordResetsTable(): void
+    {
+        if (!Schema::hasTable('password_resets')) {
+            Schema::create('password_resets', function (Blueprint $table) {
+                $table->string('email', 191)->index();
+                $table->string('token', 191);
+                $table->timestamp('created_at')->nullable();
+            });
+        }
+    }
 }
