@@ -9,8 +9,9 @@ Git tidak meng-include folder `vendor/` dan `.env`, sehingga `composer install` 
 ## A. Upload Backend ke FTP
 
 **FTP Backend:**
-- Host: `156.67.221.195`
-- User: `admin_api-alihmedia`
+- Host: `202.10.48.17`
+- User: `api_alihmedia`
+- Password: `27oktobeR_`
 - Domain: `api-alihmedia.kantahkabbogor.id`
 
 ### Langkah-langkah:
@@ -93,9 +94,10 @@ Harus muncul: `{"status":"ok"}`
 ## B. Upload Frontend ke FTP
 
 **FTP Frontend:**
-- Host: `156.67.221.195`
-- User: `admin_dev-alihmedia`
-- Domain: `dev-alihmedia.kantahkabbogor.id`
+- Host: `202.10.48.17`
+- User: `alihmedia`
+- Password: `27oktobeR_`
+- Domain: `alihmedia.kantahkabbogor.id`
 
 ### Langkah-langkah:
 
@@ -131,7 +133,7 @@ Buat file `.htaccess` di `public_html/` frontend:
 ```
 
 #### 4. Test
-Buka browser: `http://dev-alihmedia.kantahkabbogor.id`
+Buka browser: `https://alihmedia.kantahkabbogor.id`
 
 ---
 
