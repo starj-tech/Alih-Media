@@ -23,6 +23,7 @@ import PengajuanAlihmedia from "@/pages/user/PengajuanAlihmedia";
 import UserInformasi from "@/pages/user/UserInformasi";
 import ResetPassword from "./pages/ResetPassword";
 import AppErrorBoundary from "@/components/AppErrorBoundary";
+import BantuanPage from "./pages/BantuanPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -76,6 +77,7 @@ function AppRoutes() {
           <Route path="/admin/validasi-su" element={<DashboardLayout role={role} onLogout={handleLogout}><ValidasiSUBidang /></DashboardLayout>} />
           <Route path="/admin/validasi-bt" element={<DashboardLayout role={role} onLogout={handleLogout}><ValidasiBukuTanah /></DashboardLayout>} />
           <Route path="/admin/informasi" element={<DashboardLayout role={role} onLogout={handleLogout}><AdminInformasi /></DashboardLayout>} />
+          <Route path="/admin/bantuan" element={<DashboardLayout role={role} onLogout={handleLogout}><BantuanPage /></DashboardLayout>} />
           {(role === 'super_admin' || role === 'admin') && (
             <>
               <Route path="/admin/users" element={<DashboardLayout role={role} onLogout={handleLogout}><KelolaUser /></DashboardLayout>} />
@@ -90,6 +92,7 @@ function AppRoutes() {
           <Route path="/user/dashboard" element={<DashboardLayout role={role} onLogout={handleLogout}><UserDashboard /></DashboardLayout>} />
           <Route path="/user/pengajuan" element={<DashboardLayout role={role} onLogout={handleLogout}><PengajuanAlihmedia /></DashboardLayout>} />
           <Route path="/user/informasi" element={<DashboardLayout role={role} onLogout={handleLogout}><UserInformasi /></DashboardLayout>} />
+          <Route path="/user/bantuan" element={<DashboardLayout role={role} onLogout={handleLogout}><BantuanPage /></DashboardLayout>} />
         </>
       )}
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, CheckSquare, Info, Users, LogOut, Send, FileSearch, Archive, BarChart3, ChevronDown, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Info, Users, LogOut, Send, FileSearch, Archive, BarChart3, ChevronDown, ChevronRight, HelpCircle } from 'lucide-react';
 import { UserRole, getRoleLabel } from '@/lib/auth';
 import logoBpn from '@/assets/logo-bpn.png';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -29,6 +29,7 @@ function getMenu(role: UserRole) {
         { label: 'Validasi Buku Tanah', path: '/admin/validasi-bt', icon: CheckSquare },
         { label: 'Informasi Alihmedia', path: '/admin/informasi', icon: Info },
         { label: 'Kelola User', path: '/admin/users', icon: Users },
+        { label: 'Bantuan', path: '/admin/bantuan', icon: HelpCircle },
       ];
     case 'admin':
       return [
@@ -38,32 +39,34 @@ function getMenu(role: UserRole) {
         { label: 'Validasi Buku Tanah', path: '/admin/validasi-bt', icon: CheckSquare },
         { label: 'Informasi Alihmedia', path: '/admin/informasi', icon: Info },
         { label: 'Kelola User', path: '/admin/users', icon: Users },
+        { label: 'Bantuan', path: '/admin/bantuan', icon: HelpCircle },
       ];
     case 'admin_arsip':
       return [
         { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
         { label: 'Arsip Verifikasi BT/SU', path: '/admin/arsip-verifikasi', icon: Archive },
         { label: 'Informasi Alihmedia', path: '/admin/informasi', icon: Info },
+        { label: 'Bantuan', path: '/admin/bantuan', icon: HelpCircle },
       ];
-    case 'admin_validasi_su':
       return [
         { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
         { label: 'Validasi SU & Bidang', path: '/admin/validasi-su', icon: FileSearch },
         { label: 'Informasi Alihmedia', path: '/admin/informasi', icon: Info },
+        { label: 'Bantuan', path: '/admin/bantuan', icon: HelpCircle },
       ];
-    case 'admin_validasi_bt':
       return [
         { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
         { label: 'Validasi Buku Tanah', path: '/admin/validasi-bt', icon: CheckSquare },
         { label: 'Informasi Alihmedia', path: '/admin/informasi', icon: Info },
+        { label: 'Bantuan', path: '/admin/bantuan', icon: HelpCircle },
       ];
-    case 'super_user':
     case 'user':
     default:
       return [
         { label: 'Dashboard', path: '/user/dashboard', icon: LayoutDashboard },
         { label: 'Pengajuan Alihmedia', path: '/user/pengajuan', icon: Send },
         { label: 'Informasi Alihmedia', path: '/user/informasi', icon: Info },
+        { label: 'Bantuan', path: '/user/bantuan', icon: HelpCircle },
       ];
   }
 }
