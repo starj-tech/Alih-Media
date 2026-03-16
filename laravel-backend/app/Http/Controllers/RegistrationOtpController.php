@@ -160,6 +160,8 @@ class RegistrationOtpController extends Controller
             return response()->json(['error' => 'Email sudah terdaftar'], 400);
         }
 
+        // Password di registration_data adalah raw password dari form.
+        // User::create() akan auto-hash via mutator setPasswordAttribute.
         $user = User::create([
             'name' => $regData['name'],
             'email' => $regData['email'],
