@@ -213,6 +213,8 @@ export default function PengajuanAlihmedia() {
       toast.error(err?.message || 'Terjadi kesalahan saat mengirim pengajuan');
     } finally {
       setSubmitting(false);
+      setUploadProgress(0);
+      setUploadLabel('');
     }
   };
 
