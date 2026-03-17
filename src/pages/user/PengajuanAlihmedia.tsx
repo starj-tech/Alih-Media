@@ -143,21 +143,18 @@ export default function PengajuanAlihmedia() {
 
     setSubmitting(true);
     try {
-      let sertifikatUrl: string | null = null;
-      let ktpUrl: string | null = null;
-      let fotoBangunanUrl: string | null = null;
+      let sertifikatUrl: string | undefined = undefined;
+      let ktpUrl: string | undefined = undefined;
+      let fotoBangunanUrl: string | undefined = undefined;
 
       if (fileSertifikat) {
         sertifikatUrl = await uploadFile(fileSertifikat, user?.id || '', 'sertifikat');
-        if (!sertifikatUrl) { toast.error('Gagal mengupload file sertifikat'); return; }
       }
       if (fileKtp) {
         ktpUrl = await uploadFile(fileKtp, user?.id || '', 'ktp');
-        if (!ktpUrl) { toast.error('Gagal mengupload file KTP'); return; }
       }
       if (fileFotoBangunan) {
         fotoBangunanUrl = await uploadFile(fileFotoBangunan, user?.id || '', 'foto-bangunan');
-        if (!fotoBangunanUrl) { toast.error('Gagal mengupload foto bangunan'); return; }
       }
 
       const result = await addBerkas({
@@ -171,9 +168,9 @@ export default function PengajuanAlihmedia() {
         kecamatan: sanitized.kecamatan,
         linkShareloc: sanitized.linkShareloc,
         userId: user?.id || '',
-        fileSertifikatUrl: sertifikatUrl || undefined,
-        fileKtpUrl: ktpUrl || undefined,
-        fileFotoBangunanUrl: fotoBangunanUrl || undefined,
+        fileSertifikatUrl: sertifikatUrl,
+        fileKtpUrl: ktpUrl,
+        fileFotoBangunanUrl: fotoBangunanUrl,
         namaPemilikSertifikat: isSU ? sanitizeString(form.namaPemilikSertifikat) : undefined,
         noWaPemohon: isSU ? sanitizeString(form.noWaPemohon) : undefined,
       } as any);
@@ -186,7 +183,6 @@ export default function PengajuanAlihmedia() {
         if (sertifikatRef.current) sertifikatRef.current.value = '';
         if (ktpRef.current) ktpRef.current.value = '';
         if (fotoBangunanRef.current) fotoBangunanRef.current.value = '';
-        // Update count
         if (!isSU) {
           const newCount = todayCount + 1;
           setTodayCount(newCount);
@@ -195,6 +191,8 @@ export default function PengajuanAlihmedia() {
       } else {
         toast.error('Gagal mengirim pengajuan');
       }
+    } catch (err: any) {
+      toast.error(err?.message || 'Terjadi kesalahan saat mengirim pengajuan');
     } finally {
       setSubmitting(false);
     }
