@@ -33,6 +33,26 @@ function authHeaders(): Record<string, string> {
   };
 }
 
+// Map raw Laravel validation keys to Indonesian messages
+const VALIDATION_MAP: Record<string, Record<string, string>> = {
+  email: { 'validation.unique': 'Email sudah terdaftar. Silakan gunakan email lain atau login.', 'validation.email': 'Format email tidak valid', 'validation.required': 'Email harus diisi' },
+  password: { 'validation.required': 'Password harus diisi', 'validation.min': 'Password minimal 6 karakter' },
+  name: { 'validation.required': 'Nama harus diisi', 'validation.min': 'Nama minimal 2 karakter' },
+  no_telepon: { 'validation.required': 'Nomor telepon harus diisi', 'validation.min': 'Nomor telepon minimal 10 digit' },
+};
+
+function translateValidationMessage(msg: string, field: string): string {
+  // If it looks like a raw validation key (e.g. "validation.unique"), translate it
+  if (msg.startsWith('validation.')) {
+    const fieldMap = VALIDATION_MAP[field];
+    if (fieldMap?.[msg]) return fieldMap[msg];
+    // Generic fallback
+    const rule = msg.replace('validation.', '');
+    return `${field}: ${rule}`;
+  }
+  return msg;
+}
+
 export async function apiFetch<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
   let res: Response;
   try {
@@ -62,7 +82,7 @@ export async function apiFetch<T = any>(endpoint: string, options: RequestInit =
     if (err.errors && typeof err.errors === 'object') {
       const firstKey = Object.keys(err.errors)[0];
       if (firstKey && Array.isArray(err.errors[firstKey]) && err.errors[firstKey].length > 0) {
-        msg = err.errors[firstKey][0];
+        msg = translateValidationMessage(err.errors[firstKey][0], firstKey);
       }
     }
     if (!msg) {
