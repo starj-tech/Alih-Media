@@ -36,8 +36,8 @@ class BerkasController extends Controller
             $query->where('jenis_hak', $request->jenis_hak);
         }
 
-        // Pagination: default 50 per page, max 200
-        $perPage = min((int) ($request->per_page ?? 50), 200);
+        // Pagination: default 10 per page, max 100
+        $perPage = min((int) ($request->per_page ?? 10), 100);
         $paginated = $query->paginate($perPage);
 
         return response()->json($paginated);

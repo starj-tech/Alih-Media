@@ -1,5 +1,5 @@
 import { ReactNode, useState, useMemo } from 'react';
-import { Search, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
 interface Column<T> {
@@ -7,6 +7,16 @@ interface Column<T> {
   accessor: keyof T | ((row: T, index?: number) => ReactNode);
   className?: string;
   searchKey?: keyof T;
+}
+
+export interface ServerPagination {
+  currentPage: number;
+  totalPages: number;
+  total: number;
+  perPage: number;
+  onPageChange: (page: number) => void;
+  onPerPageChange?: (perPage: number) => void;
+  loading?: boolean;
 }
 
 interface DataTableProps<T> {
@@ -17,6 +27,7 @@ interface DataTableProps<T> {
   searchKeys?: (keyof T)[];
   pageSize?: number;
   headerActions?: ReactNode;
+  serverPagination?: ServerPagination;
 }
 
 export default function DataTable<T extends Record<string, any>>({
@@ -27,11 +38,14 @@ export default function DataTable<T extends Record<string, any>>({
   searchKeys,
   pageSize: defaultPageSize = 10,
   headerActions,
+  serverPagination,
 }: DataTableProps<T>) {
   const [globalSearch, setGlobalSearch] = useState('');
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(defaultPageSize);
+
+  const isServerPaginated = !!serverPagination;
 
   // Derive searchable columns from searchKeys
   const searchableColumns = useMemo(() => {
@@ -49,7 +63,7 @@ export default function DataTable<T extends Record<string, any>>({
   const filteredData = useMemo(() => {
     let result = data;
 
-    // Apply per-column filters
+    // Apply per-column filters (client-side, works on current page data)
     Object.entries(columnFilters).forEach(([key, value]) => {
       if (value) {
         result = result.filter(row =>
@@ -58,7 +72,7 @@ export default function DataTable<T extends Record<string, any>>({
       }
     });
 
-    // Apply global search
+    // Apply global search (client-side, works on current page data)
     if (globalSearch && searchKeys) {
       result = result.filter(row =>
         searchKeys.some(key =>
@@ -72,7 +86,7 @@ export default function DataTable<T extends Record<string, any>>({
 
   const handleColumnFilter = (key: string, val: string) => {
     setColumnFilters(prev => ({ ...prev, [key]: val }));
-    setCurrentPage(1);
+    if (!isServerPaginated) setCurrentPage(1);
   };
 
   const clearColumnFilter = (key: string) => {
@@ -81,16 +95,40 @@ export default function DataTable<T extends Record<string, any>>({
       delete next[key];
       return next;
     });
-    setCurrentPage(1);
+    if (!isServerPaginated) setCurrentPage(1);
   };
 
   const handleGlobalSearch = (val: string) => {
     setGlobalSearch(val);
-    setCurrentPage(1);
+    if (!isServerPaginated) setCurrentPage(1);
   };
 
-  const totalPages = Math.max(1, Math.ceil(filteredData.length / pageSize));
-  const paginatedData = filteredData.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  // Pagination values
+  const activePage = isServerPaginated ? serverPagination.currentPage : currentPage;
+  const activePageSize = isServerPaginated ? serverPagination.perPage : pageSize;
+  const totalItems = isServerPaginated ? serverPagination.total : filteredData.length;
+  const totalPages = isServerPaginated ? serverPagination.totalPages : Math.max(1, Math.ceil(filteredData.length / pageSize));
+  const paginatedData = isServerPaginated ? filteredData : filteredData.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  // Index offset for row numbering
+  const indexOffset = (activePage - 1) * activePageSize;
+
+  const handlePageChange = (page: number) => {
+    if (isServerPaginated) {
+      serverPagination.onPageChange(page);
+    } else {
+      setCurrentPage(page);
+    }
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    if (isServerPaginated && serverPagination.onPerPageChange) {
+      serverPagination.onPerPageChange(newSize);
+    } else {
+      setPageSize(newSize);
+      setCurrentPage(1);
+    }
+  };
 
   const getPageNumbers = () => {
     const pages: (number | '...')[] = [];
@@ -98,15 +136,20 @@ export default function DataTable<T extends Record<string, any>>({
       for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
       pages.push(1);
-      if (currentPage > 3) pages.push('...');
-      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+      if (activePage > 3) pages.push('...');
+      for (let i = Math.max(2, activePage - 1); i <= Math.min(totalPages - 1, activePage + 1); i++) {
         pages.push(i);
       }
-      if (currentPage < totalPages - 2) pages.push('...');
+      if (activePage < totalPages - 2) pages.push('...');
       pages.push(totalPages);
     }
     return pages;
   };
+
+  const showFrom = totalItems > 0 ? indexOffset + 1 : 0;
+  const showTo = isServerPaginated
+    ? Math.min(activePage * activePageSize, totalItems)
+    : Math.min(currentPage * pageSize, filteredData.length);
 
   return (
     <div className="gentelella-panel">
@@ -125,8 +168,8 @@ export default function DataTable<T extends Record<string, any>>({
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-muted-foreground whitespace-nowrap">Menampilkan</span>
             <select
-              value={pageSize}
-              onChange={e => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+              value={activePageSize}
+              onChange={e => handlePageSizeChange(Number(e.target.value))}
               className="h-7 text-xs border border-border rounded px-1.5 bg-background text-foreground"
             >
               {[10, 25, 50, 100].map(n => (
@@ -166,7 +209,12 @@ export default function DataTable<T extends Record<string, any>>({
         </div>
       )}
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto relative">
+        {isServerPaginated && serverPagination.loading && (
+          <div className="absolute inset-0 bg-background/60 z-10 flex items-center justify-center">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          </div>
+        )}
         <table className="w-full text-[13px]">
           <thead>
             <tr className="bg-muted/60 border-b border-border">
@@ -179,7 +227,7 @@ export default function DataTable<T extends Record<string, any>>({
           </thead>
           <tbody>
             {paginatedData.map((row, i) => {
-              const globalIndex = (currentPage - 1) * pageSize + i;
+              const globalIndex = indexOffset + i;
               return (
                 <tr key={i} className={`border-b border-border transition-colors hover:bg-muted/40 ${i % 2 === 0 ? 'bg-card' : 'bg-muted/20'}`}>
                   {columns.map((col, j) => (
@@ -205,13 +253,13 @@ export default function DataTable<T extends Record<string, any>>({
       {/* Footer with pagination */}
       <div className="px-4 py-3 border-t border-border flex items-center justify-between">
         <span className="text-xs text-muted-foreground">
-          Menampilkan {filteredData.length > 0 ? (currentPage - 1) * pageSize + 1 : 0}–{Math.min(currentPage * pageSize, filteredData.length)} dari {filteredData.length} data
+          Menampilkan {showFrom}–{showTo} dari {totalItems} data
         </span>
         <div className="flex items-center gap-1">
-          <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="p-1.5 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed">
+          <button onClick={() => handlePageChange(1)} disabled={activePage === 1} className="p-1.5 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed">
             <ChevronsLeft className="w-4 h-4" />
           </button>
-          <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-1.5 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed">
+          <button onClick={() => handlePageChange(Math.max(1, activePage - 1))} disabled={activePage === 1} className="p-1.5 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed">
             <ChevronLeft className="w-4 h-4" />
           </button>
           {getPageNumbers().map((page, i) => (
@@ -220,9 +268,9 @@ export default function DataTable<T extends Record<string, any>>({
             ) : (
               <button
                 key={page}
-                onClick={() => setCurrentPage(page)}
+                onClick={() => handlePageChange(page)}
                 className={`min-w-[28px] h-7 rounded text-xs font-medium transition-colors ${
-                  currentPage === page
+                  activePage === page
                     ? 'bg-primary text-primary-foreground'
                     : 'hover:bg-muted text-foreground'
                 }`}
@@ -231,10 +279,10 @@ export default function DataTable<T extends Record<string, any>>({
               </button>
             )
           ))}
-          <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="p-1.5 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed">
+          <button onClick={() => handlePageChange(Math.min(totalPages, activePage + 1))} disabled={activePage === totalPages} className="p-1.5 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed">
             <ChevronRight className="w-4 h-4" />
           </button>
-          <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="p-1.5 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed">
+          <button onClick={() => handlePageChange(totalPages)} disabled={activePage === totalPages} className="p-1.5 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed">
             <ChevronsRight className="w-4 h-4" />
           </button>
         </div>

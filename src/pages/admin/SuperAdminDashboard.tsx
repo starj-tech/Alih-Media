@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FileStack, CheckCircle, XCircle, Clock, FileSearch, CheckSquare, BarChart3, Trash2, Eye } from 'lucide-react';
 import StatsCard from '@/components/StatsCard';
 import DataTable from '@/components/DataTable';
@@ -6,7 +6,7 @@ import StatusBadge from '@/components/StatusBadge';
 import ExportExcelButton from '@/components/ExportExcelButton';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
 import BerkasTimelineDialog from '@/components/BerkasTimelineDialog';
-import { getAdminStats, getAllBerkas, getUsers, deleteBerkas, deleteUploadedFiles, Berkas, ManagedUser } from '@/lib/data';
+import { getAdminStats, fetchBerkasPaginated, getUsers, deleteBerkas, deleteUploadedFiles, Berkas, ManagedUser, PaginatedResponse } from '@/lib/data';
 import { getRoleLabel, UserRole } from '@/lib/auth';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -23,26 +23,40 @@ const statusOptions = [
 
 export default function SuperAdminDashboard() {
   const [stats, setStats] = useState({ total: 0, proses: 0, validasiSu: 0, validasiBt: 0, selesai: 0, ditolak: 0, adminCounts: {} as Record<string, number> });
-  const [berkas, setBerkas] = useState<Berkas[]>([]);
+  const [paginated, setPaginated] = useState<PaginatedResponse<Berkas>>({ data: [], current_page: 1, last_page: 1, per_page: 10, total: 0 });
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [loading, setLoading] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [timelineBerkas, setTimelineBerkas] = useState<Berkas | null>(null);
 
+  const loadBerkas = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await fetchBerkasPaginated({ status: statusFilter === 'all' ? undefined : statusFilter, page, perPage });
+      setPaginated(result);
+    } finally {
+      setLoading(false);
+    }
+  }, [statusFilter, page, perPage]);
+
   useEffect(() => {
     getAdminStats().then(setStats);
-    getAllBerkas().then(setBerkas);
     getUsers().then(setUsers);
   }, []);
 
+  useEffect(() => { loadBerkas(); }, [loadBerkas]);
+
   const loadData = () => {
     getAdminStats().then(setStats);
-    getAllBerkas().then(setBerkas);
     getUsers().then(setUsers);
+    loadBerkas();
   };
 
-  const filteredBerkas = statusFilter === 'all' ? berkas : berkas.filter(b => b.status === statusFilter);
+  const handleStatusChange = (val: string) => { setStatusFilter(val); setPage(1); };
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -134,9 +148,18 @@ export default function SuperAdminDashboard() {
       <DataTable<Berkas>
         title="Monitoring Seluruh Berkas"
         searchKeys={['namaPemegangHak', 'desa']}
+        serverPagination={{
+          currentPage: paginated.current_page,
+          totalPages: paginated.last_page,
+          total: paginated.total,
+          perPage,
+          onPageChange: setPage,
+          onPerPageChange: (n) => { setPerPage(n); setPage(1); },
+          loading,
+        }}
         headerActions={
           <div className="flex items-center gap-2 flex-wrap">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={handleStatusChange}>
               <SelectTrigger className="h-8 text-xs w-48">
                 <SelectValue placeholder="Filter Status" />
               </SelectTrigger>
@@ -146,7 +169,7 @@ export default function SuperAdminDashboard() {
                 ))}
               </SelectContent>
             </Select>
-            <ExportExcelButton data={filteredBerkas} fileName="super-admin-dashboard" sheetName="Dashboard" />
+            <ExportExcelButton data={paginated.data} fileName="super-admin-dashboard" sheetName="Dashboard" />
           </div>
         }
         columns={[
@@ -175,7 +198,7 @@ export default function SuperAdminDashboard() {
             </div>
           )},
         ]}
-        data={filteredBerkas}
+        data={paginated.data}
       />
 
       <BerkasTimelineDialog berkas={timelineBerkas} open={!!timelineBerkas} onOpenChange={(open) => { if (!open) setTimelineBerkas(null); }} />

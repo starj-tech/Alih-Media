@@ -1,21 +1,35 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { CheckSquare, Clock, CheckCircle, XCircle, UserCheck } from 'lucide-react';
 import StatsCard from '@/components/StatsCard';
 import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
 import ExportExcelButton from '@/components/ExportExcelButton';
 import FileDownloadCell from '@/components/FileDownloadCell';
-import { getAdminStats, getMyValidationCount, getBerkasByStatus, Berkas } from '@/lib/data';
+import { getAdminStats, getMyValidationCount, getBerkasByStatusPaginated, Berkas, PaginatedResponse } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function DashboardValidasiBT() {
   const { user } = useAuth();
-  const [menunggu, setMenunggu] = useState<Berkas[]>([]);
+  const [paginated, setPaginated] = useState<PaginatedResponse<Berkas>>({ data: [], current_page: 1, last_page: 1, per_page: 10, total: 0 });
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({ validasiBt: 0, selesai: 0, ditolak: 0 });
   const [myCount, setMyCount] = useState(0);
 
+  const loadBerkas = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await getBerkasByStatusPaginated('Validasi BT', page, perPage);
+      setPaginated(result);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, perPage]);
+
+  useEffect(() => { loadBerkas(); }, [loadBerkas]);
+
   useEffect(() => {
-    getBerkasByStatus('Validasi BT').then(setMenunggu);
     getAdminStats().then(s => {
       setStats({ validasiBt: s.validasiBt, selesai: s.selesai, ditolak: s.ditolak });
     });
@@ -39,7 +53,16 @@ export default function DashboardValidasiBT() {
       <DataTable<Berkas>
         title="Berkas Tahap Validasi Buku Tanah"
         searchKeys={['noHak', 'desa']}
-        headerActions={<ExportExcelButton data={menunggu} fileName="dashboard-validasi-bt" sheetName="Validasi BT" />}
+        serverPagination={{
+          currentPage: paginated.current_page,
+          totalPages: paginated.last_page,
+          total: paginated.total,
+          perPage,
+          onPageChange: setPage,
+          onPerPageChange: (n) => { setPerPage(n); setPage(1); },
+          loading,
+        }}
+        headerActions={<ExportExcelButton data={paginated.data} fileName="dashboard-validasi-bt" sheetName="Validasi BT" />}
         columns={[
           { header: 'No', accessor: (_, i) => (i ?? 0) + 1 } as any,
           { header: 'Tgl Pengajuan', accessor: 'tanggalPengajuan' },
@@ -53,7 +76,7 @@ export default function DashboardValidasiBT() {
           { header: 'KTP', accessor: (row) => <FileDownloadCell url={row.fileKtpUrl} label="KTP" /> },
           { header: 'Status', accessor: (row) => <StatusBadge status={row.status} /> },
         ]}
-        data={menunggu}
+        data={paginated.data}
       />
     </div>
   );
