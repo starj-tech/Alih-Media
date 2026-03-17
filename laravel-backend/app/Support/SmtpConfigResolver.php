@@ -62,7 +62,7 @@ class SmtpConfigResolver
                 'path' => 'mail.from.name',
                 'required' => false,
                 'invalid' => ['', null],
-                'default' => config('app.name', 'Alihmedia BPN'),
+                'default' => 'Validasi Alihmedia BPN.Kab.BogorII',
             ],
         ];
 
