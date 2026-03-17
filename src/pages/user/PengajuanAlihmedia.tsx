@@ -448,6 +448,16 @@ export default function PengajuanAlihmedia() {
               />
             </div>
 
+            {submitting && (
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Mengupload {uploadLabel}...</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <Progress value={uploadProgress} className="h-2" />
+              </div>
+            )}
+
             <Button type="submit" className="w-full gap-2 h-9 text-sm" disabled={submitting || (!isSU && quotaExceeded)}>
               <Send className="w-4 h-4" />
               {submitting ? 'Mengirim...' : 'Kirim Pengajuan'}
