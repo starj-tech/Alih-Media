@@ -150,15 +150,30 @@ export default function PengajuanAlihmedia() {
       let ktpUrl: string | undefined = undefined;
       let fotoBangunanUrl: string | undefined = undefined;
 
+      const totalFiles = [fileSertifikat, fileKtp, fileFotoBangunan].filter(Boolean).length;
+      let filesUploaded = 0;
+
+      const makeProgress = (label: string) => (percent: number) => {
+        setUploadLabel(label);
+        const base = (filesUploaded / Math.max(totalFiles, 1)) * 100;
+        const portion = (percent / Math.max(totalFiles, 1));
+        setUploadProgress(Math.round(base + portion));
+      };
+
       if (fileSertifikat) {
-        sertifikatUrl = await uploadFile(fileSertifikat, user?.id || '', 'sertifikat');
+        sertifikatUrl = await uploadFile(fileSertifikat, user?.id || '', 'sertifikat', makeProgress('Sertifikat'));
+        filesUploaded++;
       }
       if (fileKtp) {
-        ktpUrl = await uploadFile(fileKtp, user?.id || '', 'ktp');
+        ktpUrl = await uploadFile(fileKtp, user?.id || '', 'ktp', makeProgress('KTP'));
+        filesUploaded++;
       }
       if (fileFotoBangunan) {
-        fotoBangunanUrl = await uploadFile(fileFotoBangunan, user?.id || '', 'foto-bangunan');
+        fotoBangunanUrl = await uploadFile(fileFotoBangunan, user?.id || '', 'foto-bangunan', makeProgress('Foto Bangunan'));
+        filesUploaded++;
       }
+      setUploadLabel('Menyimpan data...');
+      setUploadProgress(100);
 
       const result = await addBerkas({
         tanggalPengajuan: tanggal,
