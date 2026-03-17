@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { addBerkas, uploadFile, getTodaySubmissionCount, JenisHak } from '@/lib/data';
+import { Progress } from '@/components/ui/progress';
 import { sanitizeString, isSuperUser } from '@/lib/auth';
 import { getKecamatanList, getDesaByKecamatan } from '@/lib/wilayah';
 import { Button } from '@/components/ui/button';
