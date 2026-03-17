@@ -158,11 +158,16 @@ export async function getBerkasByStatus(status: string | string[]): Promise<Berk
   return fetchBerkas({ status: statusStr });
 }
 
-export async function uploadFile(file: File, userId: string, type: 'sertifikat' | 'ktp' | 'foto-bangunan'): Promise<string> {
+export async function uploadFile(
+  file: File,
+  userId: string,
+  type: 'sertifikat' | 'ktp' | 'foto-bangunan',
+  onProgress?: (percent: number) => void,
+): Promise<string> {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('type', type);
-  const data = await apiUpload('/files/upload', formData);
+  const data = await apiUpload('/files/upload', formData, onProgress);
   const result = data.path || data.url;
   if (!result) throw new Error('Server tidak mengembalikan path file');
   return result;

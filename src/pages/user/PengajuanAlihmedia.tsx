@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { addBerkas, uploadFile, getTodaySubmissionCount, JenisHak } from '@/lib/data';
+import { Progress } from '@/components/ui/progress';
 import { sanitizeString, isSuperUser } from '@/lib/auth';
 import { getKecamatanList, getDesaByKecamatan } from '@/lib/wilayah';
 import { Button } from '@/components/ui/button';
@@ -48,6 +49,8 @@ export default function PengajuanAlihmedia() {
   const [fileKtp, setFileKtp] = useState<File | null>(null);
   const [fileFotoBangunan, setFileFotoBangunan] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadLabel, setUploadLabel] = useState('');
   const [todayCount, setTodayCount] = useState(0);
   const [quotaExceeded, setQuotaExceeded] = useState(false);
   const sertifikatRef = useRef<HTMLInputElement>(null);
@@ -147,15 +150,30 @@ export default function PengajuanAlihmedia() {
       let ktpUrl: string | undefined = undefined;
       let fotoBangunanUrl: string | undefined = undefined;
 
+      const totalFiles = [fileSertifikat, fileKtp, fileFotoBangunan].filter(Boolean).length;
+      let filesUploaded = 0;
+
+      const makeProgress = (label: string) => (percent: number) => {
+        setUploadLabel(label);
+        const base = (filesUploaded / Math.max(totalFiles, 1)) * 100;
+        const portion = (percent / Math.max(totalFiles, 1));
+        setUploadProgress(Math.round(base + portion));
+      };
+
       if (fileSertifikat) {
-        sertifikatUrl = await uploadFile(fileSertifikat, user?.id || '', 'sertifikat');
+        sertifikatUrl = await uploadFile(fileSertifikat, user?.id || '', 'sertifikat', makeProgress('Sertifikat'));
+        filesUploaded++;
       }
       if (fileKtp) {
-        ktpUrl = await uploadFile(fileKtp, user?.id || '', 'ktp');
+        ktpUrl = await uploadFile(fileKtp, user?.id || '', 'ktp', makeProgress('KTP'));
+        filesUploaded++;
       }
       if (fileFotoBangunan) {
-        fotoBangunanUrl = await uploadFile(fileFotoBangunan, user?.id || '', 'foto-bangunan');
+        fotoBangunanUrl = await uploadFile(fileFotoBangunan, user?.id || '', 'foto-bangunan', makeProgress('Foto Bangunan'));
+        filesUploaded++;
       }
+      setUploadLabel('Menyimpan data...');
+      setUploadProgress(100);
 
       const result = await addBerkas({
         tanggalPengajuan: tanggal,
@@ -195,6 +213,8 @@ export default function PengajuanAlihmedia() {
       toast.error(err?.message || 'Terjadi kesalahan saat mengirim pengajuan');
     } finally {
       setSubmitting(false);
+      setUploadProgress(0);
+      setUploadLabel('');
     }
   };
 
@@ -427,6 +447,16 @@ export default function PengajuanAlihmedia() {
                 maxLength={500}
               />
             </div>
+
+            {submitting && (
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Mengupload {uploadLabel}...</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <Progress value={uploadProgress} className="h-2" />
+              </div>
+            )}
 
             <Button type="submit" className="w-full gap-2 h-9 text-sm" disabled={submitting || (!isSU && quotaExceeded)}>
               <Send className="w-4 h-4" />

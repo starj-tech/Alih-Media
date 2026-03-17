@@ -98,28 +98,49 @@ export async function apiFetch<T = any>(endpoint: string, options: RequestInit =
   return res.json();
 }
 
-export async function apiUpload(endpoint: string, formData: FormData): Promise<any> {
+export async function apiUpload(
+  endpoint: string,
+  formData: FormData,
+  onProgress?: (percent: number) => void,
+): Promise<any> {
   const token = getToken();
-  const res = await fetch(`${LARAVEL_API_URL}${endpoint}`, {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: formData,
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${LARAVEL_API_URL}${endpoint}`);
+    xhr.setRequestHeader('Accept', 'application/json');
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+    if (onProgress) {
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          onProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      });
+    }
+
+    xhr.onload = () => {
+      const contentType = xhr.getResponseHeader('content-type') || '';
+      if (contentType.includes('text/html')) {
+        console.error('[API] Upload received HTML instead of JSON from:', endpoint);
+        reject(new Error('Server mengembalikan respons tidak valid. Hubungi admin.'));
+        return;
+      }
+
+      let data: any;
+      try { data = JSON.parse(xhr.responseText); } catch { data = { error: xhr.statusText }; }
+
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(data);
+      } else {
+        reject(new Error(data.error || data.message || 'Upload gagal'));
+      }
+    };
+
+    xhr.onerror = () => {
+      reject(new Error('Tidak dapat terhubung ke server saat upload.'));
+    };
+
+    xhr.send(formData);
   });
-
-  // Detect HTML responses on upload too
-  const contentType = res.headers.get('content-type') || '';
-  if (contentType.includes('text/html')) {
-    console.error('[API] Upload received HTML instead of JSON from:', endpoint);
-    throw new Error('Server mengembalikan respons tidak valid. Hubungi admin.');
-  }
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || err.message || 'Upload gagal');
-  }
-
-  return res.json();
 }
