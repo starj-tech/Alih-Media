@@ -50,7 +50,7 @@ class SmtpConfigResolver
                 'path' => 'mail.mailers.smtp.encryption',
                 'required' => true,
                 'invalid' => ['', null],
-                'default' => 'tls',
+                'default' => 'ssl',
             ],
             'MAIL_FROM_ADDRESS' => [
                 'path' => 'mail.from.address',
