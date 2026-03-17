@@ -168,9 +168,9 @@ export default function PengajuanAlihmedia() {
         kecamatan: sanitized.kecamatan,
         linkShareloc: sanitized.linkShareloc,
         userId: user?.id || '',
-        fileSertifikatUrl: sertifikatUrl || undefined,
-        fileKtpUrl: ktpUrl || undefined,
-        fileFotoBangunanUrl: fotoBangunanUrl || undefined,
+        fileSertifikatUrl: sertifikatUrl,
+        fileKtpUrl: ktpUrl,
+        fileFotoBangunanUrl: fotoBangunanUrl,
         namaPemilikSertifikat: isSU ? sanitizeString(form.namaPemilikSertifikat) : undefined,
         noWaPemohon: isSU ? sanitizeString(form.noWaPemohon) : undefined,
       } as any);
@@ -183,7 +183,6 @@ export default function PengajuanAlihmedia() {
         if (sertifikatRef.current) sertifikatRef.current.value = '';
         if (ktpRef.current) ktpRef.current.value = '';
         if (fotoBangunanRef.current) fotoBangunanRef.current.value = '';
-        // Update count
         if (!isSU) {
           const newCount = todayCount + 1;
           setTodayCount(newCount);
@@ -192,6 +191,8 @@ export default function PengajuanAlihmedia() {
       } else {
         toast.error('Gagal mengirim pengajuan');
       }
+    } catch (err: any) {
+      toast.error(err?.message || 'Terjadi kesalahan saat mengirim pengajuan');
     } finally {
       setSubmitting(false);
     }
