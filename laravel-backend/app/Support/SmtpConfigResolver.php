@@ -32,7 +32,7 @@ class SmtpConfigResolver
                 'path' => 'mail.mailers.smtp.port',
                 'required' => true,
                 'invalid' => ['', null],
-                'default' => 587,
+                'default' => 465,
             ],
             'MAIL_USERNAME' => [
                 'path' => 'mail.mailers.smtp.username',
