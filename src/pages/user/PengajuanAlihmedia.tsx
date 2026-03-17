@@ -49,6 +49,8 @@ export default function PengajuanAlihmedia() {
   const [fileKtp, setFileKtp] = useState<File | null>(null);
   const [fileFotoBangunan, setFileFotoBangunan] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadLabel, setUploadLabel] = useState('');
   const [todayCount, setTodayCount] = useState(0);
   const [quotaExceeded, setQuotaExceeded] = useState(false);
   const sertifikatRef = useRef<HTMLInputElement>(null);
