@@ -143,21 +143,18 @@ export default function PengajuanAlihmedia() {
 
     setSubmitting(true);
     try {
-      let sertifikatUrl: string | null = null;
-      let ktpUrl: string | null = null;
-      let fotoBangunanUrl: string | null = null;
+      let sertifikatUrl: string | undefined = undefined;
+      let ktpUrl: string | undefined = undefined;
+      let fotoBangunanUrl: string | undefined = undefined;
 
       if (fileSertifikat) {
         sertifikatUrl = await uploadFile(fileSertifikat, user?.id || '', 'sertifikat');
-        if (!sertifikatUrl) { toast.error('Gagal mengupload file sertifikat'); return; }
       }
       if (fileKtp) {
         ktpUrl = await uploadFile(fileKtp, user?.id || '', 'ktp');
-        if (!ktpUrl) { toast.error('Gagal mengupload file KTP'); return; }
       }
       if (fileFotoBangunan) {
         fotoBangunanUrl = await uploadFile(fileFotoBangunan, user?.id || '', 'foto-bangunan');
-        if (!fotoBangunanUrl) { toast.error('Gagal mengupload foto bangunan'); return; }
       }
 
       const result = await addBerkas({

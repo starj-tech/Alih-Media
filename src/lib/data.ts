@@ -158,17 +158,14 @@ export async function getBerkasByStatus(status: string | string[]): Promise<Berk
   return fetchBerkas({ status: statusStr });
 }
 
-export async function uploadFile(file: File, userId: string, type: 'sertifikat' | 'ktp' | 'foto-bangunan'): Promise<string | null> {
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('type', type);
-    const data = await apiUpload('/files/upload', formData);
-    return data.path || data.url || null;
-  } catch (err) {
-    console.error('Upload error:', err);
-    return null;
-  }
+export async function uploadFile(file: File, userId: string, type: 'sertifikat' | 'ktp' | 'foto-bangunan'): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('type', type);
+  const data = await apiUpload('/files/upload', formData);
+  const result = data.path || data.url;
+  if (!result) throw new Error('Server tidak mengembalikan path file');
+  return result;
 }
 
 export async function getSignedFileUrl(filePath: string): Promise<string | null> {
