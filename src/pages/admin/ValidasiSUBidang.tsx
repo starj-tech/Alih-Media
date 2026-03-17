@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
 import FileDownloadCell from '@/components/FileDownloadCell';
 import ExternalLinkCell from '@/components/ExternalLinkCell';
 import ExportExcelButton from '@/components/ExportExcelButton';
-import { getBerkasByStatus, updateBerkasStatus, isDueDateOverdue, Berkas } from '@/lib/data';
+import { getBerkasByStatusPaginated, updateBerkasStatus, isDueDateOverdue, Berkas, PaginatedResponse } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Send, XCircle, Undo2 } from 'lucide-react';
@@ -15,19 +15,27 @@ import { Label } from '@/components/ui/label';
 
 export default function ValidasiSUBidang() {
   const { user } = useAuth();
-  const [berkas, setBerkas] = useState<Berkas[]>([]);
+  const [paginated, setPaginated] = useState<PaginatedResponse<Berkas>>({ data: [], current_page: 1, last_page: 1, per_page: 10, total: 0 });
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [loading, setLoading] = useState(false);
   const [tolakId, setTolakId] = useState<string | null>(null);
   const [catatan, setCatatan] = useState('');
   const [kembalikanId, setKembalikanId] = useState<string | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
   const [confirmKirimId, setConfirmKirimId] = useState<string | null>(null);
 
-  const loadData = async () => {
-    const data = await getBerkasByStatus('Validasi SU & Bidang');
-    setBerkas(data);
-  };
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await getBerkasByStatusPaginated('Validasi SU & Bidang', page, perPage);
+      setPaginated(result);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, perPage]);
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [loadData]);
 
   const handleKirim = async (id: string) => {
     if (processing) return;
@@ -44,7 +52,7 @@ export default function ValidasiSUBidang() {
   const handleTolak = async () => {
     if (!tolakId) return;
     if (!catatan.trim()) { toast.error('Masukkan catatan penolakan'); return; }
-    const currentStatus = berkas.find(b => b.id === tolakId)?.status;
+    const currentStatus = paginated.data.find(b => b.id === tolakId)?.status;
     await updateBerkasStatus(tolakId, 'Ditolak', catatan.trim(), user?.id, currentStatus);
     toast.success('Berkas ditolak');
     setTolakId(null);
@@ -60,7 +68,7 @@ export default function ValidasiSUBidang() {
     loadData();
   };
 
-  const tolakBerkas = tolakId ? berkas.find(b => b.id === tolakId) : null;
+  const tolakBerkas = tolakId ? paginated.data.find(b => b.id === tolakId) : null;
 
   return (
     <div className="space-y-6">
@@ -72,7 +80,16 @@ export default function ValidasiSUBidang() {
       <DataTable<Berkas>
         title="Daftar Berkas Validasi SU & Bidang"
         searchKeys={['noSuTahun', 'desa']}
-        headerActions={<ExportExcelButton data={berkas} fileName="validasi-su-bidang" sheetName="Validasi SU" />}
+        serverPagination={{
+          currentPage: paginated.current_page,
+          totalPages: paginated.last_page,
+          total: paginated.total,
+          perPage,
+          onPageChange: setPage,
+          onPerPageChange: (n) => { setPerPage(n); setPage(1); },
+          loading,
+        }}
+        headerActions={<ExportExcelButton data={paginated.data} fileName="validasi-su-bidang" sheetName="Validasi SU" />}
         columns={[
           { header: 'No', accessor: (_, i) => (i ?? 0) + 1 } as any,
           { header: 'Tgl Pengajuan', accessor: (row) => (
@@ -98,7 +115,7 @@ export default function ValidasiSUBidang() {
             </div>
           )},
         ]}
-        data={berkas}
+        data={paginated.data}
       />
 
       <Dialog open={!!tolakId} onOpenChange={(open) => { if (!open) setTolakId(null); }}>

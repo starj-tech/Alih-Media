@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
 import FileDownloadCell from '@/components/FileDownloadCell';
 import ExternalLinkCell from '@/components/ExternalLinkCell';
 import ExportExcelButton from '@/components/ExportExcelButton';
-import { getBerkasByStatus, updateBerkasStatus, isDueDateOverdue, Berkas, getUsers, ManagedUser } from '@/lib/data';
+import { getBerkasByStatusPaginated, updateBerkasStatus, isDueDateOverdue, Berkas, getUsers, ManagedUser, PaginatedResponse } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Send, XCircle, Undo2 } from 'lucide-react';
@@ -16,27 +16,38 @@ import { Label } from '@/components/ui/label';
 
 export default function ValidasiBukuTanah() {
   const { user } = useAuth();
-  const [berkas, setBerkas] = useState<Berkas[]>([]);
+  const [paginated, setPaginated] = useState<PaginatedResponse<Berkas>>({ data: [], current_page: 1, last_page: 1, per_page: 10, total: 0 });
   const [users, setUsers] = useState<ManagedUser[]>([]);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [loading, setLoading] = useState(false);
   const [tolakId, setTolakId] = useState<string | null>(null);
   const [catatan, setCatatan] = useState('');
   const [kembalikanId, setKembalikanId] = useState<string | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
   const [confirmKirimId, setConfirmKirimId] = useState<string | null>(null);
 
-  const loadData = async () => {
-    const [data, allUsers] = await Promise.all([getBerkasByStatus('Validasi BT'), getUsers()]);
-    setBerkas(data);
-    setUsers(allUsers);
-  };
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [result, allUsers] = await Promise.all([
+        getBerkasByStatusPaginated('Validasi BT', page, perPage),
+        getUsers(),
+      ]);
+      setPaginated(result);
+      setUsers(allUsers);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, perPage]);
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [loadData]);
 
   const handleKirim = async (id: string) => {
     if (processing) return;
     setProcessing(id);
     try {
-    const item = berkas.find(b => b.id === id);
+    const item = paginated.data.find(b => b.id === id);
     await updateBerkasStatus(id, 'Selesai', undefined, user?.id);
     toast.success('Berkas selesai divalidasi');
 
@@ -45,11 +56,9 @@ export default function ValidasiBukuTanah() {
     let namaPenerima = '';
     
     if (item?.noWaPemohon) {
-      // Super User submission - use WA number from berkas
       waNumber = item.noWaPemohon;
       namaPenerima = item.namaPemilikSertifikat || item.namaPemegangHak;
     } else if (item) {
-      // Regular user - use registered phone number
       const submitter = users.find(u => u.id === item.userId);
       waNumber = submitter?.noTelepon || '';
       namaPenerima = item.namaPemegangHak;
@@ -79,7 +88,7 @@ export default function ValidasiBukuTanah() {
   const handleTolak = async () => {
     if (!tolakId) return;
     if (!catatan.trim()) { toast.error('Masukkan catatan penolakan'); return; }
-    const currentStatus = berkas.find(b => b.id === tolakId)?.status;
+    const currentStatus = paginated.data.find(b => b.id === tolakId)?.status;
     await updateBerkasStatus(tolakId, 'Ditolak', catatan.trim(), user?.id, currentStatus);
     toast.success('Berkas ditolak');
     setTolakId(null);
@@ -95,7 +104,7 @@ export default function ValidasiBukuTanah() {
     loadData();
   };
 
-  const tolakBerkas = tolakId ? berkas.find(b => b.id === tolakId) : null;
+  const tolakBerkas = tolakId ? paginated.data.find(b => b.id === tolakId) : null;
 
   return (
     <div className="space-y-6">
@@ -107,7 +116,16 @@ export default function ValidasiBukuTanah() {
       <DataTable<Berkas>
         title="Daftar Berkas Validasi Buku Tanah"
         searchKeys={['noHak', 'desa']}
-        headerActions={<ExportExcelButton data={berkas} fileName="validasi-buku-tanah" sheetName="Validasi BT" />}
+        serverPagination={{
+          currentPage: paginated.current_page,
+          totalPages: paginated.last_page,
+          total: paginated.total,
+          perPage,
+          onPageChange: setPage,
+          onPerPageChange: (n) => { setPerPage(n); setPage(1); },
+          loading,
+        }}
+        headerActions={<ExportExcelButton data={paginated.data} fileName="validasi-buku-tanah" sheetName="Validasi BT" />}
         columns={[
           { header: 'No', accessor: (_, i) => (i ?? 0) + 1 } as any,
           { header: 'Tgl Pengajuan', accessor: (row) => (
@@ -133,7 +151,7 @@ export default function ValidasiBukuTanah() {
             </div>
           )},
         ]}
-        data={berkas}
+        data={paginated.data}
       />
 
       <Dialog open={!!tolakId} onOpenChange={(open) => { if (!open) setTolakId(null); }}>

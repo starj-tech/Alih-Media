@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
 import ExternalLinkCell from '@/components/ExternalLinkCell';
@@ -6,7 +6,7 @@ import FileDownloadCell from '@/components/FileDownloadCell';
 import ExportExcelButton from '@/components/ExportExcelButton';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
 import BerkasTimelineDialog from '@/components/BerkasTimelineDialog';
-import { fetchBerkas, uploadFile, deleteBerkas, updateBerkas, getBerkasById, Berkas, BerkasStatus } from '@/lib/data';
+import { fetchBerkasPaginated, uploadFile, deleteBerkas, updateBerkas, getBerkasById, Berkas, BerkasStatus, PaginatedResponse } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2, Eye } from 'lucide-react';
@@ -28,8 +28,11 @@ const statusOptions: { value: string; label: string }[] = [
 export default function UserInformasi() {
   const { user } = useAuth();
   const isSuperUser = user?.role === 'super_user';
-  const [berkas, setBerkas] = useState<Berkas[]>([]);
+  const [paginated, setPaginated] = useState<PaginatedResponse<Berkas>>({ data: [], current_page: 1, last_page: 1, per_page: 10, total: 0 });
   const [statusFilter, setStatusFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [loading, setLoading] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ noSuTahun: '', noHak: '', linkShareloc: '' });
   const [fileSertifikat, setFileSertifikat] = useState<File | null>(null);
@@ -43,13 +46,20 @@ export default function UserInformasi() {
   const ktpRef = useRef<HTMLInputElement>(null);
   const fotoBangunanRef = useRef<HTMLInputElement>(null);
 
-  const loadData = () => {
-    if (user) fetchBerkas().then(setBerkas);
-  };
+  const loadData = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const result = await fetchBerkasPaginated({ status: statusFilter === 'all' ? undefined : statusFilter, page, perPage });
+      setPaginated(result);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, statusFilter, page, perPage]);
 
-  useEffect(() => { loadData(); }, [user]);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  const filteredBerkas = statusFilter === 'all' ? berkas : berkas.filter(b => b.status === statusFilter);
+  const handleStatusChange = (val: string) => { setStatusFilter(val); setPage(1); };
 
   const handleEdit = (row: Berkas) => {
     setEditId(row.id);
@@ -93,7 +103,7 @@ export default function UserInformasi() {
       };
 
       // If currently Ditolak, restore to the stage that rejected it
-      const currentBerkas = berkas.find(b => b.id === editId);
+      const currentBerkas = paginated.data.find(b => b.id === editId);
       if (currentBerkas?.status === 'Ditolak') {
         const berkasRow = await getBerkasById(editId);
         const restoreStatus = berkasRow?.rejectedFromStatus || berkasRow?.rejected_from_status || 'Proses';
@@ -138,7 +148,7 @@ export default function UserInformasi() {
     }
   };
 
-  const editBerkas = editId ? berkas.find(b => b.id === editId) : null;
+  const editBerkas = editId ? paginated.data.find(b => b.id === editId) : null;
 
   return (
     <div className="space-y-6">
@@ -150,9 +160,18 @@ export default function UserInformasi() {
       <DataTable<Berkas>
         title="Monitoring Berkas Alihmedia"
         searchKeys={['noHak', 'desa']}
+        serverPagination={{
+          currentPage: paginated.current_page,
+          totalPages: paginated.last_page,
+          total: paginated.total,
+          perPage,
+          onPageChange: setPage,
+          onPerPageChange: (n) => { setPerPage(n); setPage(1); },
+          loading,
+        }}
         headerActions={
           <div className="flex items-center gap-2 flex-wrap">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={handleStatusChange}>
               <SelectTrigger className="h-8 text-xs w-48">
                 <SelectValue placeholder="Filter Status" />
               </SelectTrigger>
@@ -162,7 +181,7 @@ export default function UserInformasi() {
                 ))}
               </SelectContent>
             </Select>
-            <ExportExcelButton data={filteredBerkas} fileName="informasi-user" sheetName="Informasi" />
+            <ExportExcelButton data={paginated.data} fileName="informasi-user" sheetName="Informasi" />
           </div>
         }
         columns={[
@@ -196,7 +215,7 @@ export default function UserInformasi() {
             </div>
           )},
         ]}
-        data={filteredBerkas}
+        data={paginated.data}
       />
 
       {/* Edit Dialog */}

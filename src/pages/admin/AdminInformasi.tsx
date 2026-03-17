@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import DataTable from '@/components/DataTable';
 import StatusBadge from '@/components/StatusBadge';
 import ExternalLinkCell from '@/components/ExternalLinkCell';
 import FileDownloadCell from '@/components/FileDownloadCell';
 import ExportExcelButton from '@/components/ExportExcelButton';
 import BerkasTimelineDialog from '@/components/BerkasTimelineDialog';
-import { fetchBerkas, deleteUploadedFiles, updateBerkasStatus, Berkas, BerkasStatus } from '@/lib/data';
+import { fetchBerkasPaginated, deleteUploadedFiles, updateBerkasStatus, Berkas, BerkasStatus, PaginatedResponse } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -30,18 +30,30 @@ const kembalikanOptions: { value: BerkasStatus; label: string }[] = [
 
 export default function AdminInformasi() {
   const { user } = useAuth();
-  const [berkas, setBerkas] = useState<Berkas[]>([]);
+  const [paginated, setPaginated] = useState<PaginatedResponse<Berkas>>({ data: [], current_page: 1, last_page: 1, per_page: 10, total: 0 });
   const [statusFilter, setStatusFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [loading, setLoading] = useState(false);
   const [timelineBerkas, setTimelineBerkas] = useState<Berkas | null>(null);
   const [kembalikanBerkas, setKembalikanBerkas] = useState<Berkas | null>(null);
   const [kembalikanLoading, setKembalikanLoading] = useState(false);
 
   const isSuperAdmin = user?.role === 'super_admin';
 
-  const loadData = () => { fetchBerkas().then(setBerkas); };
-  useEffect(() => { loadData(); }, []);
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await fetchBerkasPaginated({ status: statusFilter === 'all' ? undefined : statusFilter, page, perPage });
+      setPaginated(result);
+    } finally {
+      setLoading(false);
+    }
+  }, [statusFilter, page, perPage]);
 
-  const filteredBerkas = statusFilter === 'all' ? berkas : berkas.filter(b => b.status === statusFilter);
+  useEffect(() => { loadData(); }, [loadData]);
+
+  const handleStatusChange = (val: string) => { setStatusFilter(val); setPage(1); };
 
   const handleDeleteFiles = async (row: Berkas) => {
     if (!row.fileSertifikatUrl && !row.fileKtpUrl && !row.fileFotoBangunanUrl) { toast.info('Tidak ada file untuk dihapus'); return; }
@@ -75,9 +87,18 @@ export default function AdminInformasi() {
       <DataTable<Berkas>
         title="Verifikasi Arsip"
         searchKeys={['noHak', 'noSuTahun', 'desa']}
+        serverPagination={{
+          currentPage: paginated.current_page,
+          totalPages: paginated.last_page,
+          total: paginated.total,
+          perPage,
+          onPageChange: setPage,
+          onPerPageChange: (n) => { setPerPage(n); setPage(1); },
+          loading,
+        }}
         headerActions={
           <div className="flex items-center gap-2 flex-wrap">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={handleStatusChange}>
               <SelectTrigger className="h-8 text-xs w-48">
                 <SelectValue placeholder="Filter Status" />
               </SelectTrigger>
@@ -87,7 +108,7 @@ export default function AdminInformasi() {
                 ))}
               </SelectContent>
             </Select>
-            <ExportExcelButton data={filteredBerkas} fileName="informasi-alihmedia" sheetName="Informasi" />
+            <ExportExcelButton data={paginated.data} fileName="informasi-alihmedia" sheetName="Informasi" />
           </div>
         }
         columns={[
@@ -123,7 +144,7 @@ export default function AdminInformasi() {
             </div>
           )},
         ]}
-        data={filteredBerkas}
+        data={paginated.data}
       />
 
       <BerkasTimelineDialog berkas={timelineBerkas} open={!!timelineBerkas} onOpenChange={(open) => { if (!open) setTimelineBerkas(null); }} />
