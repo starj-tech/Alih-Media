@@ -25,8 +25,8 @@ class SmtpConfigResolver
             'MAIL_HOST' => [
                 'path' => 'mail.mailers.smtp.host',
                 'required' => true,
-                'invalid' => ['', null, 'smtp.mailgun.org'],
-                'default' => null,
+                'invalid' => ['', null, 'smtp.mailgun.org', 'smtp.gmail.com'],
+                'default' => 'smtp.titan.email',
             ],
             'MAIL_PORT' => [
                 'path' => 'mail.mailers.smtp.port',
