@@ -73,6 +73,18 @@ class RegistrationOtpController extends Controller
             'no_telepon' => 'required|string|min:10|max:20',
             'pengguna' => 'nullable|in:' . implode(',', Profile::PENGGUNA_TYPES),
             'nama_instansi' => 'nullable|string|max:200',
+        ], [
+            'name.required' => 'Nama harus diisi',
+            'name.min' => 'Nama minimal 2 karakter',
+            'name.max' => 'Nama maksimal 100 karakter',
+            'email.required' => 'Email harus diisi',
+            'email.email' => 'Format email tidak valid',
+            'email.unique' => 'Email sudah terdaftar. Silakan gunakan email lain atau login.',
+            'password.required' => 'Password harus diisi',
+            'password.min' => 'Password minimal 6 karakter',
+            'no_telepon.required' => 'Nomor telepon harus diisi',
+            'no_telepon.min' => 'Nomor telepon minimal 10 digit',
+            'no_telepon.max' => 'Nomor telepon maksimal 20 digit',
         ]);
 
         $otpCode = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);

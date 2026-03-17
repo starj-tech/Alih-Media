@@ -62,7 +62,7 @@ export async function apiFetch<T = any>(endpoint: string, options: RequestInit =
     if (err.errors && typeof err.errors === 'object') {
       const firstKey = Object.keys(err.errors)[0];
       if (firstKey && Array.isArray(err.errors[firstKey]) && err.errors[firstKey].length > 0) {
-        msg = err.errors[firstKey][0];
+        msg = translateValidationMessage(err.errors[firstKey][0], firstKey);
       }
     }
     if (!msg) {
