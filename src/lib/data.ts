@@ -87,57 +87,71 @@ function extractRows(data: any): any[] {
 }
 
 /**
- * Fetch berkas with optional status filter and pagination.
- * status can be a single status or comma-separated for multiple.
- * Returns all pages by default (per_page=200 to minimize requests).
+ * Fetch berkas with server-side pagination.
+ * Returns paginated response with metadata.
+ */
+export async function fetchBerkasPaginated(options?: {
+  status?: string;
+  page?: number;
+  perPage?: number;
+}): Promise<PaginatedResponse<Berkas>> {
+  const params = new URLSearchParams();
+  if (options?.status && options.status !== 'all') params.set('status', options.status);
+  params.set('per_page', String(options?.perPage ?? 10));
+  params.set('page', String(options?.page ?? 1));
+
+  try {
+    const data = await apiFetch<any>(`/berkas?${params.toString()}`);
+    const rows = extractRows(data);
+    return {
+      data: rows.map(mapBerkasRow),
+      current_page: data.current_page || 1,
+      last_page: data.last_page || 1,
+      per_page: data.per_page || 10,
+      total: data.total || rows.length,
+    };
+  } catch {
+    return { data: [], current_page: 1, last_page: 1, per_page: 10, total: 0 };
+  }
+}
+
+/**
+ * Fetch berkas - returns just the array (single page only).
+ * For paginated usage, prefer fetchBerkasPaginated().
  */
 export async function fetchBerkas(options?: {
   status?: string;
   page?: number;
   perPage?: number;
 }): Promise<Berkas[]> {
-  const params = new URLSearchParams();
-  if (options?.status) params.set('status', options.status);
-  params.set('per_page', String(options?.perPage ?? 200));
-  if (options?.page) params.set('page', String(options.page));
-
-  try {
-    const data = await apiFetch<any>(`/berkas?${params.toString()}`);
-    const rows = extractRows(data);
-    const mapped = rows.map(mapBerkasRow);
-
-    // If paginated response and there are more pages, fetch remaining
-    if (!options?.page && data?.last_page && data.last_page > 1) {
-      const promises: Promise<any>[] = [];
-      for (let p = 2; p <= data.last_page; p++) {
-        const pageParams = new URLSearchParams(params);
-        pageParams.set('page', String(p));
-        promises.push(apiFetch<any>(`/berkas?${pageParams.toString()}`));
-      }
-      const pages = await Promise.all(promises);
-      for (const pageData of pages) {
-        mapped.push(...extractRows(pageData).map(mapBerkasRow));
-      }
-    }
-
-    return mapped;
-  } catch {
-    return [];
-  }
+  const result = await fetchBerkasPaginated(options);
+  return result.data;
 }
 
-/** @deprecated Use fetchBerkas() with status filter instead */
+/** @deprecated Use fetchBerkasPaginated() */
 export async function getAllBerkas(): Promise<Berkas[]> {
   return fetchBerkas();
 }
 
-/** @deprecated Use fetchBerkas() - backend already filters by user */
+/** @deprecated Use fetchBerkasPaginated() */
 export async function getBerkasByUser(userId: string): Promise<Berkas[]> {
   return fetchBerkas();
 }
 
 /**
- * Fetch berkas filtered by specific status(es) - sends WHERE to server
+ * Fetch berkas filtered by specific status(es) - paginated
+ */
+export async function getBerkasByStatusPaginated(
+  status: string | string[],
+  page = 1,
+  perPage = 10,
+): Promise<PaginatedResponse<Berkas>> {
+  const statusStr = Array.isArray(status) ? status.join(',') : status;
+  return fetchBerkasPaginated({ status: statusStr, page, perPage });
+}
+
+/**
+ * Fetch berkas filtered by specific status(es) - returns array (single page)
  */
 export async function getBerkasByStatus(status: string | string[]): Promise<Berkas[]> {
   const statusStr = Array.isArray(status) ? status.join(',') : status;
