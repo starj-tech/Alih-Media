@@ -55,8 +55,8 @@ class SmtpConfigResolver
             'MAIL_FROM_ADDRESS' => [
                 'path' => 'mail.from.address',
                 'required' => true,
-                'invalid' => ['', null, 'hello@example.com'],
-                'default' => null,
+                'invalid' => ['', null, 'hello@example.com', 'amaze.onway@gmail.com'],
+                'default' => 'admin@kantahkabbogor.id',
             ],
             'MAIL_FROM_NAME' => [
                 'path' => 'mail.from.name',
