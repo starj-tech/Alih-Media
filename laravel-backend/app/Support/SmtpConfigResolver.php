@@ -25,14 +25,14 @@ class SmtpConfigResolver
             'MAIL_HOST' => [
                 'path' => 'mail.mailers.smtp.host',
                 'required' => true,
-                'invalid' => ['', null, 'smtp.mailgun.org'],
-                'default' => null,
+                'invalid' => ['', null, 'smtp.mailgun.org', 'smtp.gmail.com'],
+                'default' => 'smtp.titan.email',
             ],
             'MAIL_PORT' => [
                 'path' => 'mail.mailers.smtp.port',
                 'required' => true,
                 'invalid' => ['', null],
-                'default' => 587,
+                'default' => 465,
             ],
             'MAIL_USERNAME' => [
                 'path' => 'mail.mailers.smtp.username',
@@ -50,19 +50,19 @@ class SmtpConfigResolver
                 'path' => 'mail.mailers.smtp.encryption',
                 'required' => true,
                 'invalid' => ['', null],
-                'default' => 'tls',
+                'default' => 'ssl',
             ],
             'MAIL_FROM_ADDRESS' => [
                 'path' => 'mail.from.address',
                 'required' => true,
-                'invalid' => ['', null, 'hello@example.com'],
-                'default' => null,
+                'invalid' => ['', null, 'hello@example.com', 'amaze.onway@gmail.com'],
+                'default' => 'admin@kantahkabbogor.id',
             ],
             'MAIL_FROM_NAME' => [
                 'path' => 'mail.from.name',
                 'required' => false,
                 'invalid' => ['', null],
-                'default' => config('app.name', 'Alihmedia BPN'),
+                'default' => 'Validasi Alihmedia BPN.Kab.BogorII',
             ],
         ];
 
