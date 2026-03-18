@@ -248,8 +248,8 @@ async function apiUploadFetch(
   const headers: Record<string, string> = {
     Accept: 'application/json',
     'X-Requested-With': 'XMLHttpRequest',
+    ...authTokenHeaders(token),
   };
-  if (token) headers.Authorization = `Bearer ${token}`;
 
   let res: Response;
   try {
