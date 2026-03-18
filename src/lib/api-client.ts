@@ -31,12 +31,20 @@ export function notifyAuthInvalid(message = 'Sesi Anda telah berakhir. Silakan l
   window.dispatchEvent(new CustomEvent(AUTH_INVALID_EVENT, { detail: { message } }));
 }
 
+function authTokenHeaders(token: string | null): Record<string, string> {
+  if (!token) return {};
+  return {
+    Authorization: `Bearer ${token}`,
+    'X-Access-Token': token,
+  };
+}
+
 function authHeaders(): Record<string, string> {
   const token = getToken();
   return {
     'Content-Type': 'application/json',
     Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...authTokenHeaders(token),
   };
 }
 
@@ -195,9 +203,8 @@ export async function apiUploadChunked(
     const headers: Record<string, string> = {
       Accept: 'application/json',
       'X-Requested-With': 'XMLHttpRequest',
+      ...authTokenHeaders(token),
     };
-
-    if (token) headers.Authorization = `Bearer ${token}`;
 
     let res: Response;
     try {
@@ -241,8 +248,8 @@ async function apiUploadFetch(
   const headers: Record<string, string> = {
     Accept: 'application/json',
     'X-Requested-With': 'XMLHttpRequest',
+    ...authTokenHeaders(token),
   };
-  if (token) headers.Authorization = `Bearer ${token}`;
 
   let res: Response;
   try {
@@ -297,7 +304,10 @@ function apiUploadXHR(
     xhr.timeout = 120000;
     xhr.setRequestHeader('Accept', 'application/json');
     xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    if (token) {
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      xhr.setRequestHeader('X-Access-Token', token);
+    }
 
     onProgress?.(0);
 

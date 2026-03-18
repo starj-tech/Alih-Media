@@ -34,9 +34,8 @@ class AuthController extends Controller
             ]);
         }
 
-        // Revoke old tokens
-        $user->tokens()->delete();
-
+        // Pertahankan token sesi lain agar login di device/browser lain tidak
+        // memutus sesi yang sedang dipakai untuk upload.
         $token = $user->createToken('auth-token')->plainTextToken;
         $profile = $user->profile;
 
