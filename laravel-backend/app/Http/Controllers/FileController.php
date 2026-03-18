@@ -32,7 +32,14 @@ class FileController extends Controller
         $ext = $file->getClientOriginalExtension();
         $path = $user->id . '/' . $type . '/' . $timestamp . '.' . $ext;
 
-        Storage::disk('public')->putFileAs('', $file, $path);
+        try {
+            $stored = Storage::disk('public')->putFileAs('', $file, $path);
+            if (!$stored) {
+                return response()->json(['error' => 'Gagal menyimpan file ke storage. Periksa izin direktori server.'], 500);
+            }
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Gagal menyimpan file: ' . $e->getMessage()], 500);
+        }
 
         return response()->json([
             'path' => $path,

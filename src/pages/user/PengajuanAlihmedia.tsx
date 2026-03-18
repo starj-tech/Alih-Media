@@ -163,19 +163,31 @@ export default function PengajuanAlihmedia() {
       };
 
       if (fileSertifikat) {
-        sertifikatUrl = await uploadFile(fileSertifikat, user?.id || '', 'sertifikat', makeProgress('Sertifikat'));
-        uploadedPaths.push(sertifikatUrl);
-        filesUploaded++;
+        try {
+          sertifikatUrl = await uploadFile(fileSertifikat, user?.id || '', 'sertifikat', makeProgress('Sertifikat'));
+          uploadedPaths.push(sertifikatUrl);
+          filesUploaded++;
+        } catch (uploadErr: any) {
+          throw new Error(`Gagal mengupload Sertifikat: ${uploadErr?.message || 'Error tidak diketahui'}`);
+        }
       }
       if (fileKtp) {
-        ktpUrl = await uploadFile(fileKtp, user?.id || '', 'ktp', makeProgress('KTP'));
-        uploadedPaths.push(ktpUrl);
-        filesUploaded++;
+        try {
+          ktpUrl = await uploadFile(fileKtp, user?.id || '', 'ktp', makeProgress('KTP'));
+          uploadedPaths.push(ktpUrl);
+          filesUploaded++;
+        } catch (uploadErr: any) {
+          throw new Error(`Gagal mengupload KTP: ${uploadErr?.message || 'Error tidak diketahui'}`);
+        }
       }
       if (fileFotoBangunan) {
-        fotoBangunanUrl = await uploadFile(fileFotoBangunan, user?.id || '', 'foto-bangunan', makeProgress('Foto Bangunan'));
-        uploadedPaths.push(fotoBangunanUrl);
-        filesUploaded++;
+        try {
+          fotoBangunanUrl = await uploadFile(fileFotoBangunan, user?.id || '', 'foto-bangunan', makeProgress('Foto Bangunan'));
+          uploadedPaths.push(fotoBangunanUrl);
+          filesUploaded++;
+        } catch (uploadErr: any) {
+          throw new Error(`Gagal mengupload Foto Bangunan: ${uploadErr?.message || 'Error tidak diketahui'}`);
+        }
       }
 
       setUploadLabel('Menyimpan data...');
