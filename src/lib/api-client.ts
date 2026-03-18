@@ -31,12 +31,20 @@ export function notifyAuthInvalid(message = 'Sesi Anda telah berakhir. Silakan l
   window.dispatchEvent(new CustomEvent(AUTH_INVALID_EVENT, { detail: { message } }));
 }
 
+function authTokenHeaders(token: string | null): Record<string, string> {
+  if (!token) return {};
+  return {
+    Authorization: `Bearer ${token}`,
+    'X-Access-Token': token,
+  };
+}
+
 function authHeaders(): Record<string, string> {
   const token = getToken();
   return {
     'Content-Type': 'application/json',
     Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...authTokenHeaders(token),
   };
 }
 
