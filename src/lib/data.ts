@@ -179,6 +179,7 @@ export async function uploadFile(
       message.includes('validation.uploaded') ||
       message.includes('file: uploaded') ||
       message.includes('failed to upload') ||
+      message.includes('upload gagal di server') ||
       message.includes('melebihi batas') ||
       message.includes('too large');
 
