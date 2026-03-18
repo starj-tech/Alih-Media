@@ -38,6 +38,13 @@ const VALIDATION_MAP: Record<string, Record<string, string>> = {
   password: { 'validation.required': 'Password harus diisi', 'validation.min': 'Password minimal 6 karakter' },
   name: { 'validation.required': 'Nama harus diisi', 'validation.min': 'Nama minimal 2 karakter' },
   no_telepon: { 'validation.required': 'Nomor telepon harus diisi', 'validation.min': 'Nomor telepon minimal 10 digit' },
+  file: {
+    'validation.uploaded': 'Upload gagal di server. Sistem akan mencoba mode upload bertahap.',
+    'validation.max': 'Ukuran file melebihi batas server.',
+    'validation.required': 'File wajib diunggah',
+    'validation.mimes': 'Format file tidak sesuai',
+    'validation.mimetypes': 'Tipe file tidak didukung',
+  },
 };
 
 function translateValidationMessage(msg: string, field: string): string {
