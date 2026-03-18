@@ -1,5 +1,5 @@
 // Data layer using Laravel REST API
-import { apiFetch, apiUpload } from '@/lib/api-client';
+import { apiFetch, apiUpload, apiUploadChunked } from '@/lib/api-client';
 
 export type BerkasStatus = 'Proses' | 'Validasi SU & Bidang' | 'Validasi BT' | 'Selesai' | 'Ditolak';
 export type JenisHak = 'HM' | 'HGB' | 'HP' | 'HGU' | 'HMSRS' | 'HPL' | 'HW';
