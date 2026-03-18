@@ -304,7 +304,10 @@ function apiUploadXHR(
     xhr.timeout = 120000;
     xhr.setRequestHeader('Accept', 'application/json');
     xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    if (token) {
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      xhr.setRequestHeader('X-Access-Token', token);
+    }
 
     onProgress?.(0);
 
