@@ -158,6 +158,53 @@ export async function getBerkasByStatus(status: string | string[]): Promise<Berk
   return fetchBerkas({ status: statusStr });
 }
 
+function getUploadResultPath(data: any, fallbackMessage: string): string {
+  const result = data?.path || data?.url;
+  if (!result) throw new Error(fallbackMessage);
+  return result;
+}
+
+function normalizeUploadErrorMessage(error: unknown): string {
+  return String((error as any)?.message || '').trim();
+}
+
+function isNonRetryableUploadError(message: string): boolean {
+  const lower = message.toLowerCase();
+
+  return [
+    'file sertifikat harus berformat pdf',
+    'file harus berformat jpg/jpeg/png',
+    'format file tidak sesuai',
+    'tipe file tidak didukung',
+    'file wajib diunggah',
+    'sesi tidak valid',
+    'forbidden',
+    'unauthenticated',
+  ].some(keyword => lower.includes(keyword));
+}
+
+function shouldRetryWithAlternateUpload(message: string): boolean {
+  if (!message) return true;
+  if (isNonRetryableUploadError(message)) return false;
+
+  const lower = message.toLowerCase();
+  return [
+    'validation.uploaded',
+    'file: uploaded',
+    'failed to upload',
+    'upload gagal',
+    'server error',
+    'respons tidak valid',
+    'http 0',
+    'status 0',
+    'koneksi',
+    'timeout',
+    'melebihi batas',
+    'too large',
+    'tidak dapat terhubung',
+  ].some(keyword => lower.includes(keyword));
+}
+
 export async function uploadFile(
   file: File,
   _userId: string,
@@ -168,29 +215,36 @@ export async function uploadFile(
   formData.append('file', file);
   formData.append('type', type);
 
-  try {
-    const data = await apiUpload('/files/upload', formData, onProgress);
-    const result = data.path || data.url;
-    if (!result) throw new Error('Server tidak mengembalikan path file');
-    return result;
-  } catch (error: any) {
-    const message = String(error?.message || '').toLowerCase();
-    const shouldUseChunkUpload =
-      message.includes('validation.uploaded') ||
-      message.includes('file: uploaded') ||
-      message.includes('failed to upload') ||
-      message.includes('upload gagal di server') ||
-      message.includes('melebihi batas') ||
-      message.includes('too large');
+  const uploadChunked = async () => {
+    const data = await apiUploadChunked('/files/upload-chunk', file, type, onProgress);
+    return getUploadResultPath(data, 'Server tidak mengembalikan path file dari upload bertahap');
+  };
 
-    if (!shouldUseChunkUpload) {
+  const uploadStandard = async () => {
+    const data = await apiUpload('/files/upload', formData, onProgress);
+    return getUploadResultPath(data, 'Server tidak mengembalikan path file');
+  };
+
+  let chunkedErrorMessage = '';
+  try {
+    return await uploadChunked();
+  } catch (error) {
+    chunkedErrorMessage = normalizeUploadErrorMessage(error);
+    if (!shouldRetryWithAlternateUpload(chunkedErrorMessage)) {
+      throw error;
+    }
+  }
+
+  try {
+    return await uploadStandard();
+  } catch (error) {
+    const standardErrorMessage = normalizeUploadErrorMessage(error);
+    if (!shouldRetryWithAlternateUpload(standardErrorMessage)) {
       throw error;
     }
 
-    const chunkedData = await apiUploadChunked('/files/upload-chunk', file, type, onProgress);
-    const chunkedResult = chunkedData.path || chunkedData.url;
-    if (!chunkedResult) throw new Error('Server tidak mengembalikan path file dari upload bertahap');
-    return chunkedResult;
+    const reasons = [chunkedErrorMessage, standardErrorMessage].filter(Boolean).join(' | ');
+    throw new Error(reasons || 'Upload file gagal pada semua metode yang tersedia.');
   }
 }
 
