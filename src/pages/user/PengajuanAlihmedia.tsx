@@ -192,7 +192,7 @@ export default function PengajuanAlihmedia() {
         await addBerkas({
           tanggalPengajuan: tanggal,
           namaPemegangHak: user?.name || '',
-          noTelepon: user?.noTelepon || '',
+          noTelepon: '',
           noSuTahun: sanitized.noSuTahun,
           jenisHak: sanitized.jenisHak as JenisHak,
           noHak: sanitized.noHak,
