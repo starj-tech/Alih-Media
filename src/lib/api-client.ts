@@ -175,19 +175,17 @@ export async function apiUploadChunked(
   for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
     const start = chunkIndex * chunkSize;
     const end = Math.min(file.size, start + chunkSize);
-    const chunk = file.slice(start, end);
-
-    const query = new URLSearchParams({
-      type,
-      upload_id: uploadId,
-      chunk_index: String(chunkIndex),
-      total_chunks: String(totalChunks),
-      file_name: file.name,
-    });
+    const chunk = file.slice(start, end, file.type || 'application/octet-stream');
+    const formData = new FormData();
+    formData.append('chunk', chunk, file.name);
+    formData.append('type', type);
+    formData.append('upload_id', uploadId);
+    formData.append('chunk_index', String(chunkIndex));
+    formData.append('total_chunks', String(totalChunks));
+    formData.append('file_name', file.name);
 
     const headers: Record<string, string> = {
       Accept: 'application/json',
-      'Content-Type': 'application/octet-stream',
       'X-Requested-With': 'XMLHttpRequest',
     };
 
@@ -195,10 +193,10 @@ export async function apiUploadChunked(
 
     let res: Response;
     try {
-      res = await fetch(`${LARAVEL_API_URL}${endpoint}?${query.toString()}`, {
+      res = await fetch(`${LARAVEL_API_URL}${endpoint}`, {
         method: 'POST',
         headers,
-        body: chunk,
+        body: formData,
       });
     } catch {
       throw createUploadError('Tidak dapat terhubung ke server saat upload bertahap. Periksa koneksi internet.');

@@ -202,6 +202,8 @@ function shouldRetryWithAlternateUpload(message: string): boolean {
     'melebihi batas',
     'too large',
     'tidak dapat terhubung',
+    'chunk kosong',
+    'php://input',
   ].some(keyword => lower.includes(keyword));
 }
 
