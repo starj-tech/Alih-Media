@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { apiFetch, setToken, removeToken, getToken } from '@/lib/api-client';
+import { apiFetch, setToken, removeToken, getToken, AUTH_INVALID_EVENT } from '@/lib/api-client';
 import { User, UserRole } from '@/lib/auth';
+import { toast } from 'sonner';
 
 const USER_STORAGE_KEY = 'auth_user';
 
@@ -43,6 +44,12 @@ function clearStoredUser() {
   }
 }
 
+function clearSession(setUser: (user: User | null) => void) {
+  removeToken();
+  clearStoredUser();
+  setUser(null);
+}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -58,46 +65,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = getToken();
-    if (!token) {
-      clearStoredUser();
-      setLoading(false);
-      return;
-    }
+    let mounted = true;
 
-    const stored = loadStoredUser();
-    if (stored) {
-      setUser(stored);
-      setLoading(false);
-      // Background validate — never blocks, never clears session on failure
-      apiFetch<any>('/auth/me').then(data => {
+    const bootstrapAuth = async () => {
+      const token = getToken();
+      if (!token) {
+        clearStoredUser();
+        if (mounted) setLoading(false);
+        return;
+      }
+
+      const stored = loadStoredUser();
+      if (stored && mounted) {
+        setUser(stored);
+      }
+
+      try {
+        const data = await apiFetch<any>('/auth/me');
+        if (!mounted) return;
+
         if (data?.id) {
-          const freshUser: User = { id: data.id, email: data.email, name: data.name, role: data.role || 'user' };
+          const freshUser: User = {
+            id: data.id,
+            email: data.email,
+            name: data.name,
+            role: (data.role as UserRole) || 'user',
+          };
           setUser(freshUser);
           storeUser(freshUser);
+        } else {
+          clearSession(setUser);
         }
-      }).catch(() => {
-        console.warn('[Auth] /auth/me failed, using stored session');
-      });
-      return;
+      } catch {
+        if (mounted) {
+          clearSession(setUser);
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    bootstrapAuth();
+
+    const handleAuthInvalid = (event: Event) => {
+      const customEvent = event as CustomEvent<{ message?: string }>;
+      clearSession(setUser);
+      setLoading(false);
+      if (customEvent.detail?.message) {
+        toast.error(customEvent.detail.message);
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener(AUTH_INVALID_EVENT, handleAuthInvalid as EventListener);
     }
 
-    // No stored user but have token
-    apiFetch<any>('/auth/me').then(data => {
-      if (data?.id) {
-        const u: User = { id: data.id, email: data.email, name: data.name, role: data.role || 'user' };
-        setUser(u);
-        storeUser(u);
-      } else {
-        removeToken();
-        clearStoredUser();
+    return () => {
+      mounted = false;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener(AUTH_INVALID_EVENT, handleAuthInvalid as EventListener);
       }
-    }).catch(() => {
-      removeToken();
-      clearStoredUser();
-    }).finally(() => {
-      setLoading(false);
-    });
+    };
   }, []);
 
   const login = useCallback(async (email: string, password: string): Promise<User | { error: string }> => {
@@ -150,9 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try { await apiFetch('/auth/logout', { method: 'POST' }); } catch {}
-    removeToken();
-    clearStoredUser();
-    setUser(null);
+    clearSession(setUser);
   }, []);
 
   return (

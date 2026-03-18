@@ -2,6 +2,7 @@
 // Configure LARAVEL_API_URL to point to your Laravel server
 
 export const LARAVEL_API_URL = 'https://api-alihmedia.kantahkabbogor.id/api';
+export const AUTH_INVALID_EVENT = 'app:auth-invalid';
 
 function getBrowserStorage(): Storage | null {
   if (typeof window === 'undefined') return null;
@@ -22,6 +23,12 @@ export function setToken(token: string) {
 
 export function removeToken() {
   getBrowserStorage()?.removeItem('auth_token');
+}
+
+export function notifyAuthInvalid(message = 'Sesi Anda telah berakhir. Silakan login kembali.') {
+  removeToken();
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(AUTH_INVALID_EVENT, { detail: { message } }));
 }
 
 function authHeaders(): Record<string, string> {
@@ -89,8 +96,12 @@ export async function apiFetch<T = any>(endpoint: string, options: RequestInit =
   const contentType = res.headers.get('content-type') || '';
   if (contentType.includes('text/html')) {
     console.error('[API] Received HTML instead of JSON from:', endpoint, 'Status:', res.status);
-    if (res.status === 401 || res.status === 403) {
+    if (res.status === 401) {
+      notifyAuthInvalid('Sesi tidak valid. Silakan login kembali.');
       throw new Error('Sesi tidak valid. Silakan login kembali.');
+    }
+    if (res.status === 403) {
+      throw new Error('Akses ditolak.');
     }
     throw new Error('Server mengembalikan respons tidak valid. Hubungi admin untuk membersihkan cache server.');
   }
@@ -99,6 +110,9 @@ export async function apiFetch<T = any>(endpoint: string, options: RequestInit =
     const err = await res.json().catch(() => ({ error: res.statusText }));
     const msg = extractApiError(err, `Request failed (${res.status})`);
     console.error('[API] Error:', endpoint, res.status, msg);
+    if (res.status === 401) {
+      notifyAuthInvalid(msg || 'Sesi tidak valid. Silakan login kembali.');
+    }
     throw new Error(msg);
   }
 
@@ -136,7 +150,6 @@ export async function apiUpload(
 ): Promise<any> {
   const token = getToken();
 
-  // Try XHR first for progress support, then fallback to fetch for status=0/CORS/network issues
   try {
     return await apiUploadXHR(endpoint, formData, token, onProgress);
   } catch (xhrError: any) {
@@ -155,7 +168,7 @@ export async function apiUploadChunked(
   onProgress?: (percent: number) => void,
 ): Promise<any> {
   const token = getToken();
-  const chunkSize = 512 * 1024; // 512KB per chunk
+  const chunkSize = 512 * 1024;
   const totalChunks = Math.max(1, Math.ceil(file.size / chunkSize));
   const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
@@ -178,7 +191,7 @@ export async function apiUploadChunked(
       'X-Requested-With': 'XMLHttpRequest',
     };
 
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (token) headers.Authorization = `Bearer ${token}`;
 
     let res: Response;
     try {
@@ -195,6 +208,9 @@ export async function apiUploadChunked(
 
     if (!res.ok) {
       const msg = extractApiError(data, `Upload bertahap gagal (HTTP ${res.status})`);
+      if (res.status === 401) {
+        notifyAuthInvalid(msg || 'Sesi tidak valid. Silakan login kembali.');
+      }
       throw createUploadError(msg);
     }
 
@@ -220,7 +236,7 @@ async function apiUploadFetch(
     Accept: 'application/json',
     'X-Requested-With': 'XMLHttpRequest',
   };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (token) headers.Authorization = `Bearer ${token}`;
 
   let res: Response;
   try {
@@ -239,8 +255,12 @@ async function apiUploadFetch(
   if (contentType.includes('text/html')) {
     const htmlText = await res.text().catch(() => '');
     console.error('[API] Upload fetch got HTML:', res.status, htmlText.substring(0, 200));
-    if (res.status === 401 || res.status === 403) {
+    if (res.status === 401) {
+      notifyAuthInvalid('Sesi tidak valid. Silakan login kembali.');
       throw createUploadError('Sesi tidak valid. Silakan login kembali.');
+    }
+    if (res.status === 403) {
+      throw createUploadError('Akses ditolak.');
     }
     throw createUploadError(`Upload gagal: server error (${res.status}). Hubungi admin.`);
   }
@@ -249,6 +269,9 @@ async function apiUploadFetch(
 
   if (!res.ok) {
     const msg = extractApiError(data, `Upload gagal (HTTP ${res.status})`);
+    if (res.status === 401) {
+      notifyAuthInvalid(msg || 'Sesi tidak valid. Silakan login kembali.');
+    }
     throw createUploadError(msg);
   }
 
@@ -294,10 +317,16 @@ function apiUploadXHR(
       } catch {
         if (contentType.includes('text/html')) {
           console.error('[API] Upload HTML response:', endpoint, xhr.status, xhr.responseText?.substring(0, 300));
-          const error = xhr.status === 401 || xhr.status === 403
-            ? createUploadError('Sesi tidak valid. Silakan login kembali.')
-            : createUploadError(`Server error (${xhr.status}). Hubungi admin server.`, xhr.status === 0);
-          reject(error);
+          if (xhr.status === 401) {
+            notifyAuthInvalid('Sesi tidak valid. Silakan login kembali.');
+            reject(createUploadError('Sesi tidak valid. Silakan login kembali.'));
+            return;
+          }
+          if (xhr.status === 403) {
+            reject(createUploadError('Akses ditolak.'));
+            return;
+          }
+          reject(createUploadError(`Server error (${xhr.status}). Hubungi admin server.`, xhr.status === 0));
           return;
         }
         data = { error: xhr.statusText || 'Respons server tidak dapat dibaca' };
@@ -311,6 +340,9 @@ function apiUploadXHR(
 
       const errorMsg = extractApiError(data, `Upload gagal (HTTP ${xhr.status})`);
       console.error('[API] Upload error:', endpoint, xhr.status, errorMsg, data);
+      if (xhr.status === 401) {
+        notifyAuthInvalid(errorMsg || 'Sesi tidak valid. Silakan login kembali.');
+      }
       reject(createUploadError(errorMsg, xhr.status === 0));
     };
 
