@@ -156,60 +156,64 @@ export default function PengajuanAlihmedia() {
       let filesUploaded = 0;
 
       const makeProgress = (label: string) => (percent: number) => {
-        setUploadLabel(label);
+        setUploadLabel(`Mengupload ${label}...`);
         const base = (filesUploaded / Math.max(totalFiles, 1)) * 100;
         const portion = percent / Math.max(totalFiles, 1);
         setUploadProgress(Math.round(base + portion));
       };
 
-      if (fileSertifikat) {
+      const doUpload = async (file: File, type: 'sertifikat' | 'ktp' | 'foto-bangunan', label: string) => {
+        const progress = makeProgress(label);
         try {
-          sertifikatUrl = await uploadFile(fileSertifikat, user?.id || '', 'sertifikat', makeProgress('Sertifikat'));
-          uploadedPaths.push(sertifikatUrl);
+          const url = await uploadFile(file, user?.id || '', type, progress);
+          uploadedPaths.push(url);
           filesUploaded++;
-        } catch (uploadErr: any) {
-          throw new Error(`Gagal mengupload Sertifikat: ${uploadErr?.message || 'Error tidak diketahui'}`);
+          return url;
+        } catch (err: any) {
+          console.error(`[Upload] ${label} failed:`, err);
+          throw new Error(`Gagal mengupload ${label}: ${err?.message || 'Silakan coba lagi'}`);
         }
+      };
+
+      if (fileSertifikat) {
+        sertifikatUrl = await doUpload(fileSertifikat, 'sertifikat', 'Sertifikat');
       }
       if (fileKtp) {
-        try {
-          ktpUrl = await uploadFile(fileKtp, user?.id || '', 'ktp', makeProgress('KTP'));
-          uploadedPaths.push(ktpUrl);
-          filesUploaded++;
-        } catch (uploadErr: any) {
-          throw new Error(`Gagal mengupload KTP: ${uploadErr?.message || 'Error tidak diketahui'}`);
-        }
+        ktpUrl = await doUpload(fileKtp, 'ktp', 'KTP');
       }
       if (fileFotoBangunan) {
-        try {
-          fotoBangunanUrl = await uploadFile(fileFotoBangunan, user?.id || '', 'foto-bangunan', makeProgress('Foto Bangunan'));
-          uploadedPaths.push(fotoBangunanUrl);
-          filesUploaded++;
-        } catch (uploadErr: any) {
-          throw new Error(`Gagal mengupload Foto Bangunan: ${uploadErr?.message || 'Error tidak diketahui'}`);
-        }
+        fotoBangunanUrl = await doUpload(fileFotoBangunan, 'foto-bangunan', 'Foto Bangunan');
       }
 
-      setUploadLabel('Menyimpan data...');
+      setUploadLabel('Menyimpan data pengajuan...');
       setUploadProgress(100);
 
-      await addBerkas({
-        tanggalPengajuan: tanggal,
-        namaPemegangHak: user?.name || '',
-        noTelepon: '',
-        noSuTahun: sanitized.noSuTahun,
-        jenisHak: sanitized.jenisHak as JenisHak,
-        noHak: sanitized.noHak,
-        desa: sanitized.desa,
-        kecamatan: sanitized.kecamatan,
-        linkShareloc: sanitized.linkShareloc,
-        userId: user?.id || '',
-        fileSertifikatUrl: sertifikatUrl,
-        fileKtpUrl: ktpUrl,
-        fileFotoBangunanUrl: fotoBangunanUrl,
-        namaPemilikSertifikat: isSU ? sanitizeString(form.namaPemilikSertifikat) : undefined,
-        noWaPemohon: isSU ? sanitizeString(form.noWaPemohon) : undefined,
-      } as any);
+      try {
+        await addBerkas({
+          tanggalPengajuan: tanggal,
+          namaPemegangHak: user?.name || '',
+          noTelepon: user?.noTelepon || '',
+          noSuTahun: sanitized.noSuTahun,
+          jenisHak: sanitized.jenisHak as JenisHak,
+          noHak: sanitized.noHak,
+          desa: sanitized.desa,
+          kecamatan: sanitized.kecamatan,
+          linkShareloc: sanitized.linkShareloc,
+          userId: user?.id || '',
+          fileSertifikatUrl: sertifikatUrl,
+          fileKtpUrl: ktpUrl,
+          fileFotoBangunanUrl: fotoBangunanUrl,
+          namaPemilikSertifikat: isSU ? sanitizeString(form.namaPemilikSertifikat) : undefined,
+          noWaPemohon: isSU ? sanitizeString(form.noWaPemohon) : undefined,
+        } as any);
+      } catch (dbErr: any) {
+        console.error('[Submit] Save berkas failed:', dbErr);
+        // Clean up uploaded files if save fails
+        if (uploadedPaths.length > 0) {
+          await Promise.allSettled(uploadedPaths.map(path => deleteUploadedFileByPath(path)));
+        }
+        throw new Error(`Gagal menyimpan data: ${dbErr?.message || 'Silakan coba lagi'}`);
+      }
 
       toast.success('Pengajuan berhasil dikirim!');
       setForm({ noSuTahun: '', jenisHak: '', noHak: '', desa: '', kecamatan: '', linkShareloc: '', namaPemilikSertifikat: '', noWaPemohon: '' });
@@ -225,9 +229,7 @@ export default function PengajuanAlihmedia() {
         if (newCount >= DAILY_LIMIT) setQuotaExceeded(true);
       }
     } catch (err: any) {
-      if (uploadedPaths.length > 0) {
-        await Promise.allSettled(uploadedPaths.map(path => deleteUploadedFileByPath(path)));
-      }
+      console.error('[Submit] Full error:', err);
       toast.error(err?.message || 'Terjadi kesalahan saat mengirim pengajuan');
     } finally {
       setSubmitting(false);
