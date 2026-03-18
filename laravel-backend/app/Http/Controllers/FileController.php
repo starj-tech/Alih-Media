@@ -81,11 +81,11 @@ class FileController extends Controller
 
     private function validateChunkRequest(Request $request): ?array
     {
-        $type = (string) $request->query('type');
-        $uploadId = preg_replace('/[^a-zA-Z0-9\-_]/', '', (string) $request->query('upload_id'));
-        $chunkIndex = filter_var($request->query('chunk_index'), FILTER_VALIDATE_INT);
-        $totalChunks = filter_var($request->query('total_chunks'), FILTER_VALIDATE_INT);
-        $fileName = basename((string) $request->query('file_name'));
+        $type = (string) $request->input('type', $request->query('type'));
+        $uploadId = preg_replace('/[^a-zA-Z0-9\-_]/', '', (string) $request->input('upload_id', $request->query('upload_id')));
+        $chunkIndex = filter_var($request->input('chunk_index', $request->query('chunk_index')), FILTER_VALIDATE_INT);
+        $totalChunks = filter_var($request->input('total_chunks', $request->query('total_chunks')), FILTER_VALIDATE_INT);
+        $fileName = basename((string) $request->input('file_name', $request->query('file_name')));
 
         if (!in_array($type, ['sertifikat', 'ktp', 'foto-bangunan'], true)) {
             return ['error' => 'Tipe file tidak valid', 'status' => 422];
