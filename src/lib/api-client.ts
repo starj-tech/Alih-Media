@@ -33,7 +33,6 @@ function authHeaders(): Record<string, string> {
   };
 }
 
-// Map raw Laravel validation keys to Indonesian messages
 const VALIDATION_MAP: Record<string, Record<string, string>> = {
   email: { 'validation.unique': 'Email sudah terdaftar. Silakan gunakan email lain atau login.', 'validation.email': 'Format email tidak valid', 'validation.required': 'Email harus diisi' },
   password: { 'validation.required': 'Password harus diisi', 'validation.min': 'Password minimal 6 karakter' },
@@ -42,15 +41,30 @@ const VALIDATION_MAP: Record<string, Record<string, string>> = {
 };
 
 function translateValidationMessage(msg: string, field: string): string {
-  // If it looks like a raw validation key (e.g. "validation.unique"), translate it
   if (msg.startsWith('validation.')) {
     const fieldMap = VALIDATION_MAP[field];
     if (fieldMap?.[msg]) return fieldMap[msg];
-    // Generic fallback
     const rule = msg.replace('validation.', '');
     return `${field}: ${rule}`;
   }
   return msg;
+}
+
+function extractApiError(errorPayload: any, fallback: string) {
+  let message = '';
+
+  if (errorPayload?.errors && typeof errorPayload.errors === 'object') {
+    const firstKey = Object.keys(errorPayload.errors)[0];
+    if (firstKey && Array.isArray(errorPayload.errors[firstKey]) && errorPayload.errors[firstKey].length > 0) {
+      message = translateValidationMessage(String(errorPayload.errors[firstKey][0]), firstKey);
+    }
+  }
+
+  if (!message) {
+    message = errorPayload?.error || errorPayload?.message || fallback;
+  }
+
+  return message;
 }
 
 export async function apiFetch<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -65,7 +79,6 @@ export async function apiFetch<T = any>(endpoint: string, options: RequestInit =
     throw new Error('Tidak dapat terhubung ke server. Periksa koneksi internet atau hubungi admin.');
   }
 
-  // Detect HTML responses (e.g. Ignition error pages, redirect pages)
   const contentType = res.headers.get('content-type') || '';
   if (contentType.includes('text/html')) {
     console.error('[API] Received HTML instead of JSON from:', endpoint, 'Status:', res.status);
@@ -77,22 +90,11 @@ export async function apiFetch<T = any>(endpoint: string, options: RequestInit =
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    // Prioritize detailed validation errors over generic "The given data was invalid"
-    let msg = '';
-    if (err.errors && typeof err.errors === 'object') {
-      const firstKey = Object.keys(err.errors)[0];
-      if (firstKey && Array.isArray(err.errors[firstKey]) && err.errors[firstKey].length > 0) {
-        msg = translateValidationMessage(err.errors[firstKey][0], firstKey);
-      }
-    }
-    if (!msg) {
-      msg = err.error || err.message || `Request failed (${res.status})`;
-    }
+    const msg = extractApiError(err, `Request failed (${res.status})`);
     console.error('[API] Error:', endpoint, res.status, msg);
     throw new Error(msg);
   }
 
-  // Handle 204 No Content
   if (res.status === 204) return {} as T;
 
   return res.json();
@@ -108,8 +110,12 @@ export async function apiUpload(
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${LARAVEL_API_URL}${endpoint}`);
+    xhr.timeout = 60000;
     xhr.setRequestHeader('Accept', 'application/json');
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
     if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+    onProgress?.(0);
 
     if (onProgress) {
       xhr.upload.addEventListener('progress', (e) => {
@@ -122,23 +128,33 @@ export async function apiUpload(
     xhr.onload = () => {
       const contentType = xhr.getResponseHeader('content-type') || '';
       if (contentType.includes('text/html')) {
-        console.error('[API] Upload received HTML instead of JSON from:', endpoint);
-        reject(new Error('Server mengembalikan respons tidak valid. Hubungi admin.'));
+        console.error('[API] Upload received HTML instead of JSON from:', endpoint, 'Status:', xhr.status);
+        reject(new Error(xhr.status === 401 || xhr.status === 403 ? 'Sesi tidak valid. Silakan login kembali.' : 'Server upload mengembalikan respons tidak valid.'));
         return;
       }
 
-      let data: any;
-      try { data = JSON.parse(xhr.responseText); } catch { data = { error: xhr.statusText }; }
+      let data: any = null;
+      try {
+        data = xhr.responseText ? JSON.parse(xhr.responseText) : null;
+      } catch {
+        data = { error: xhr.statusText };
+      }
 
       if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress?.(100);
         resolve(data);
-      } else {
-        reject(new Error(data.error || data.message || 'Upload gagal'));
+        return;
       }
+
+      reject(new Error(extractApiError(data, `Upload gagal (${xhr.status})`)));
     };
 
     xhr.onerror = () => {
       reject(new Error('Tidak dapat terhubung ke server saat upload.'));
+    };
+
+    xhr.ontimeout = () => {
+      reject(new Error('Upload melebihi batas waktu. Silakan coba lagi.'));
     };
 
     xhr.send(formData);
