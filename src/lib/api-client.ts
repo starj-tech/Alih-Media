@@ -177,6 +177,14 @@ export async function apiUploadChunked(
     const end = Math.min(file.size, start + chunkSize);
     const chunk = file.slice(start, end, file.type || 'application/octet-stream');
     const formData = new FormData();
+    const query = new URLSearchParams({
+      type,
+      upload_id: uploadId,
+      chunk_index: String(chunkIndex),
+      total_chunks: String(totalChunks),
+      file_name: file.name,
+    });
+
     formData.append('chunk', chunk, file.name);
     formData.append('type', type);
     formData.append('upload_id', uploadId);
@@ -193,7 +201,7 @@ export async function apiUploadChunked(
 
     let res: Response;
     try {
-      res = await fetch(`${LARAVEL_API_URL}${endpoint}`, {
+      res = await fetch(`${LARAVEL_API_URL}${endpoint}?${query.toString()}`, {
         method: 'POST',
         headers,
         body: formData,
