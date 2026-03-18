@@ -79,13 +79,24 @@ class FileController extends Controller
         }
     }
 
+    private function getChunkRequestValue(Request $request, string $inputKey, string $headerKey): string
+    {
+        $value = $request->input($inputKey, $request->query($inputKey));
+
+        if ($value === null || $value === '') {
+            $value = $request->header($headerKey, '');
+        }
+
+        return is_string($value) ? trim($value) : '';
+    }
+
     private function validateChunkRequest(Request $request): ?array
     {
-        $type = (string) $request->input('type', $request->query('type'));
-        $uploadId = preg_replace('/[^a-zA-Z0-9\-_]/', '', (string) $request->input('upload_id', $request->query('upload_id')));
-        $chunkIndex = filter_var($request->input('chunk_index', $request->query('chunk_index')), FILTER_VALIDATE_INT);
-        $totalChunks = filter_var($request->input('total_chunks', $request->query('total_chunks')), FILTER_VALIDATE_INT);
-        $fileName = basename((string) $request->input('file_name', $request->query('file_name')));
+        $type = $this->getChunkRequestValue($request, 'type', 'X-Upload-Type');
+        $uploadId = preg_replace('/[^a-zA-Z0-9\-_]/', '', $this->getChunkRequestValue($request, 'upload_id', 'X-Upload-Id'));
+        $chunkIndex = filter_var($this->getChunkRequestValue($request, 'chunk_index', 'X-Chunk-Index'), FILTER_VALIDATE_INT);
+        $totalChunks = filter_var($this->getChunkRequestValue($request, 'total_chunks', 'X-Total-Chunks'), FILTER_VALIDATE_INT);
+        $fileName = basename($this->getChunkRequestValue($request, 'file_name', 'X-File-Name'));
 
         if (!in_array($type, ['sertifikat', 'ktp', 'foto-bangunan'], true)) {
             return ['error' => 'Tipe file tidak valid', 'status' => 422];
@@ -114,6 +125,62 @@ class FileController extends Controller
             'total_chunks' => $totalChunks,
             'file_name' => $fileName,
         ];
+    }
+
+    private function readChunkBinaryContent(Request $request): ?string
+    {
+        $binaryContent = $request->getContent();
+
+        if (is_string($binaryContent) && $binaryContent !== '') {
+            return $binaryContent;
+        }
+
+        if ($request->hasFile('chunk')) {
+            $chunkFile = $request->file('chunk');
+            if ($chunkFile && $chunkFile->isValid()) {
+                $binaryContent = @file_get_contents($chunkFile->getRealPath());
+                if (is_string($binaryContent) && $binaryContent !== '') {
+                    return $binaryContent;
+                }
+            }
+        }
+
+        $rawInput = @file_get_contents('php://input');
+        if (is_string($rawInput) && $rawInput !== '') {
+            return $rawInput;
+        }
+
+        return null;
+    }
+
+    private function ensureDirectory(string $dirPath): bool
+    {
+        return is_dir($dirPath) || (@mkdir($dirPath, 0775, true) && is_dir($dirPath));
+    }
+
+    private function cleanupChunkDirectory(string $dirPath): void
+    {
+        if (!is_dir($dirPath)) {
+            return;
+        }
+
+        $files = @scandir($dirPath);
+        if (is_array($files)) {
+            foreach ($files as $file) {
+                if ($file === '.' || $file === '..') {
+                    continue;
+                }
+
+                $fullPath = $dirPath . DIRECTORY_SEPARATOR . $file;
+                if (is_dir($fullPath)) {
+                    $this->cleanupChunkDirectory($fullPath);
+                } elseif (file_exists($fullPath)) {
+                    @unlink($fullPath);
+                }
+            }
+        }
+
+        @rmdir($dirPath);
     }
 
     public function upload(Request $request)
@@ -197,26 +264,7 @@ class FileController extends Controller
             return response()->json(['error' => $typeError], 422);
         }
 
-        $binaryContent = null;
-
-        if ($request->hasFile('chunk')) {
-            $chunkFile = $request->file('chunk');
-            if ($chunkFile && $chunkFile->isValid()) {
-                $binaryContent = @file_get_contents($chunkFile->getRealPath());
-            }
-        }
-
-        if (!is_string($binaryContent) || $binaryContent === '') {
-            $binaryContent = $request->getContent();
-        }
-
-        if (!is_string($binaryContent) || $binaryContent === '') {
-            $rawInput = @file_get_contents('php://input');
-            if (is_string($rawInput) && $rawInput !== '') {
-                $binaryContent = $rawInput;
-            }
-        }
-
+        $binaryContent = $this->readChunkBinaryContent($request);
         if (!is_string($binaryContent) || $binaryContent === '') {
             return response()->json(['error' => 'Chunk kosong atau tidak valid'], 422);
         }
@@ -225,18 +273,14 @@ class FileController extends Controller
             return response()->json(['error' => 'Ukuran chunk melebihi 1MB'], 422);
         }
 
-        $chunkDir = storage_path('app/chunks/' . $user->id);
-        if (!is_dir($chunkDir) && !@mkdir($chunkDir, 0775, true) && !is_dir($chunkDir)) {
+        $chunkDir = storage_path('app/chunks/' . $user->id . '/' . $uploadId);
+        if (!$this->ensureDirectory($chunkDir)) {
             return response()->json(['error' => 'Gagal menyiapkan direktori chunk'], 500);
         }
 
-        $tempFile = $chunkDir . '/' . $uploadId . '.part';
-        if ($chunkIndex === 0 && file_exists($tempFile)) {
-            @unlink($tempFile);
-        }
-
-        $appendResult = @file_put_contents($tempFile, $binaryContent, FILE_APPEND | LOCK_EX);
-        if ($appendResult === false) {
+        $chunkFilePath = $chunkDir . '/' . str_pad((string) $chunkIndex, 5, '0', STR_PAD_LEFT) . '.chunk';
+        $storedChunk = @file_put_contents($chunkFilePath, $binaryContent, LOCK_EX);
+        if ($storedChunk === false) {
             return response()->json(['error' => 'Gagal menyimpan chunk file sementara'], 500);
         }
 
@@ -248,29 +292,77 @@ class FileController extends Controller
             ]);
         }
 
-        if (!file_exists($tempFile)) {
-            return response()->json(['error' => 'File sementara tidak ditemukan'], 500);
+        $assembledPath = $chunkDir . '/assembled.part';
+        $writeHandle = @fopen($assembledPath, 'wb');
+        if ($writeHandle === false) {
+            $this->cleanupChunkDirectory($chunkDir);
+            return response()->json(['error' => 'Gagal menyiapkan file sementara'], 500);
         }
 
-        $finalSize = filesize($tempFile);
-        if ($finalSize === false || $finalSize > self::MAX_FILE_SIZE_BYTES) {
-            @unlink($tempFile);
-            return response()->json(['error' => 'Ukuran file maksimal 5MB'], 422);
-        }
-
-        $finalPath = $user->id . '/' . $type . '/' . now()->format('YmdHis') . '-' . uniqid('', true) . '.' . $ext;
+        $finalSize = 0;
 
         try {
+            for ($index = 0; $index < $totalChunks; $index++) {
+                $partPath = $chunkDir . '/' . str_pad((string) $index, 5, '0', STR_PAD_LEFT) . '.chunk';
+                if (!file_exists($partPath)) {
+                    fclose($writeHandle);
+                    $this->cleanupChunkDirectory($chunkDir);
+                    return response()->json(['error' => 'Chunk upload belum lengkap. Silakan ulangi upload file.'], 422);
+                }
+
+                $readHandle = @fopen($partPath, 'rb');
+                if ($readHandle === false) {
+                    fclose($writeHandle);
+                    $this->cleanupChunkDirectory($chunkDir);
+                    return response()->json(['error' => 'Gagal membaca potongan file sementara'], 500);
+                }
+
+                while (!feof($readHandle)) {
+                    $buffer = fread($readHandle, 8192);
+                    if ($buffer === false) {
+                        fclose($readHandle);
+                        fclose($writeHandle);
+                        $this->cleanupChunkDirectory($chunkDir);
+                        return response()->json(['error' => 'Gagal merakit potongan file'], 500);
+                    }
+
+                    if ($buffer === '') {
+                        continue;
+                    }
+
+                    $finalSize += strlen($buffer);
+                    if ($finalSize > self::MAX_FILE_SIZE_BYTES) {
+                        fclose($readHandle);
+                        fclose($writeHandle);
+                        $this->cleanupChunkDirectory($chunkDir);
+                        return response()->json(['error' => 'Ukuran file maksimal 5MB'], 422);
+                    }
+
+                    if (fwrite($writeHandle, $buffer) === false) {
+                        fclose($readHandle);
+                        fclose($writeHandle);
+                        $this->cleanupChunkDirectory($chunkDir);
+                        return response()->json(['error' => 'Gagal merakit file sementara'], 500);
+                    }
+                }
+
+                fclose($readHandle);
+            }
+
+            fclose($writeHandle);
+
+            $finalPath = $user->id . '/' . $type . '/' . now()->format('YmdHis') . '-' . uniqid('', true) . '.' . $ext;
             Storage::disk('public')->makeDirectory($user->id . '/' . $type);
-            $stream = fopen($tempFile, 'rb');
+
+            $stream = fopen($assembledPath, 'rb');
             if ($stream === false) {
-                @unlink($tempFile);
+                $this->cleanupChunkDirectory($chunkDir);
                 return response()->json(['error' => 'Gagal membaca file sementara'], 500);
             }
 
             $stored = Storage::disk('public')->put($finalPath, $stream);
             fclose($stream);
-            @unlink($tempFile);
+            $this->cleanupChunkDirectory($chunkDir);
 
             if (!$stored) {
                 return response()->json(['error' => 'Gagal menyimpan file akhir ke storage'], 500);
@@ -281,7 +373,10 @@ class FileController extends Controller
                 'url' => Storage::disk('public')->url($finalPath),
             ]);
         } catch (\Throwable $e) {
-            @unlink($tempFile);
+            if (is_resource($writeHandle)) {
+                fclose($writeHandle);
+            }
+            $this->cleanupChunkDirectory($chunkDir);
             return response()->json(['error' => 'Gagal menyelesaikan upload bertahap: ' . $e->getMessage()], 500);
         }
     }
