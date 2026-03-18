@@ -38,33 +38,45 @@ class FileController extends Controller
 
     private function resolvePhpUploadError(?int $errorCode): array
     {
-        return match ($errorCode) {
-            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => [
-                'message' => 'Ukuran file melebihi batas upload server. Sistem dapat memakai upload bertahap sebagai cadangan.',
-                'status' => 413,
-                'code' => 'upload_transport_failed',
-            ],
-            UPLOAD_ERR_PARTIAL => [
-                'message' => 'Upload file terputus di tengah proses. Sistem dapat memakai upload bertahap sebagai cadangan.',
-                'status' => 422,
-                'code' => 'upload_transport_failed',
-            ],
-            UPLOAD_ERR_NO_FILE => [
-                'message' => 'File wajib diunggah',
-                'status' => 422,
-                'code' => 'file_required',
-            ],
-            UPLOAD_ERR_NO_TMP_DIR, UPLOAD_ERR_CANT_WRITE, UPLOAD_ERR_EXTENSION => [
-                'message' => 'Server gagal memproses upload file biasa. Sistem dapat memakai upload bertahap sebagai cadangan.',
-                'status' => 500,
-                'code' => 'upload_transport_failed',
-            ],
-            default => [
-                'message' => 'Upload file gagal di server. Sistem dapat memakai upload bertahap sebagai cadangan.',
-                'status' => 422,
-                'code' => 'upload_transport_failed',
-            ],
-        };
+        switch ($errorCode) {
+            case UPLOAD_ERR_INI_SIZE:
+            case UPLOAD_ERR_FORM_SIZE:
+                return [
+                    'message' => 'Ukuran file melebihi batas upload server. Sistem dapat memakai upload bertahap sebagai cadangan.',
+                    'status' => 413,
+                    'code' => 'upload_transport_failed',
+                ];
+
+            case UPLOAD_ERR_PARTIAL:
+                return [
+                    'message' => 'Upload file terputus di tengah proses. Sistem dapat memakai upload bertahap sebagai cadangan.',
+                    'status' => 422,
+                    'code' => 'upload_transport_failed',
+                ];
+
+            case UPLOAD_ERR_NO_FILE:
+                return [
+                    'message' => 'File wajib diunggah',
+                    'status' => 422,
+                    'code' => 'file_required',
+                ];
+
+            case UPLOAD_ERR_NO_TMP_DIR:
+            case UPLOAD_ERR_CANT_WRITE:
+            case UPLOAD_ERR_EXTENSION:
+                return [
+                    'message' => 'Server gagal memproses upload file biasa. Sistem dapat memakai upload bertahap sebagai cadangan.',
+                    'status' => 500,
+                    'code' => 'upload_transport_failed',
+                ];
+
+            default:
+                return [
+                    'message' => 'Upload file gagal di server. Sistem dapat memakai upload bertahap sebagai cadangan.',
+                    'status' => 422,
+                    'code' => 'upload_transport_failed',
+                ];
+        }
     }
 
     private function validateChunkRequest(Request $request): ?array
