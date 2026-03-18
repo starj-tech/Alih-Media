@@ -197,7 +197,26 @@ class FileController extends Controller
             return response()->json(['error' => $typeError], 422);
         }
 
-        $binaryContent = $request->getContent();
+        $binaryContent = null;
+
+        if ($request->hasFile('chunk')) {
+            $chunkFile = $request->file('chunk');
+            if ($chunkFile && $chunkFile->isValid()) {
+                $binaryContent = @file_get_contents($chunkFile->getRealPath());
+            }
+        }
+
+        if (!is_string($binaryContent) || $binaryContent === '') {
+            $binaryContent = $request->getContent();
+        }
+
+        if (!is_string($binaryContent) || $binaryContent === '') {
+            $rawInput = @file_get_contents('php://input');
+            if (is_string($rawInput) && $rawInput !== '') {
+                $binaryContent = $rawInput;
+            }
+        }
+
         if (!is_string($binaryContent) || $binaryContent === '') {
             return response()->json(['error' => 'Chunk kosong atau tidak valid'], 422);
         }
