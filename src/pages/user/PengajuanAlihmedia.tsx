@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { addBerkas, uploadFile, getTodaySubmissionCount, JenisHak } from '@/lib/data';
+import { addBerkas, uploadFile, getTodaySubmissionCount, JenisHak, deleteUploadedFileByPath } from '@/lib/data';
 import { Progress } from '@/components/ui/progress';
 import { sanitizeString, isSuperUser } from '@/lib/auth';
 import { getKecamatanList, getDesaByKecamatan } from '@/lib/wilayah';
@@ -145,10 +145,12 @@ export default function PengajuanAlihmedia() {
     }
 
     setSubmitting(true);
+    const uploadedPaths: string[] = [];
+
     try {
-      let sertifikatUrl: string | undefined = undefined;
-      let ktpUrl: string | undefined = undefined;
-      let fotoBangunanUrl: string | undefined = undefined;
+      let sertifikatUrl: string | undefined;
+      let ktpUrl: string | undefined;
+      let fotoBangunanUrl: string | undefined;
 
       const totalFiles = [fileSertifikat, fileKtp, fileFotoBangunan].filter(Boolean).length;
       let filesUploaded = 0;
@@ -156,26 +158,30 @@ export default function PengajuanAlihmedia() {
       const makeProgress = (label: string) => (percent: number) => {
         setUploadLabel(label);
         const base = (filesUploaded / Math.max(totalFiles, 1)) * 100;
-        const portion = (percent / Math.max(totalFiles, 1));
+        const portion = percent / Math.max(totalFiles, 1);
         setUploadProgress(Math.round(base + portion));
       };
 
       if (fileSertifikat) {
         sertifikatUrl = await uploadFile(fileSertifikat, user?.id || '', 'sertifikat', makeProgress('Sertifikat'));
+        uploadedPaths.push(sertifikatUrl);
         filesUploaded++;
       }
       if (fileKtp) {
         ktpUrl = await uploadFile(fileKtp, user?.id || '', 'ktp', makeProgress('KTP'));
+        uploadedPaths.push(ktpUrl);
         filesUploaded++;
       }
       if (fileFotoBangunan) {
         fotoBangunanUrl = await uploadFile(fileFotoBangunan, user?.id || '', 'foto-bangunan', makeProgress('Foto Bangunan'));
+        uploadedPaths.push(fotoBangunanUrl);
         filesUploaded++;
       }
+
       setUploadLabel('Menyimpan data...');
       setUploadProgress(100);
 
-      const result = await addBerkas({
+      await addBerkas({
         tanggalPengajuan: tanggal,
         namaPemegangHak: user?.name || '',
         noTelepon: '',
@@ -192,24 +198,24 @@ export default function PengajuanAlihmedia() {
         namaPemilikSertifikat: isSU ? sanitizeString(form.namaPemilikSertifikat) : undefined,
         noWaPemohon: isSU ? sanitizeString(form.noWaPemohon) : undefined,
       } as any);
-      if (result) {
-        toast.success('Pengajuan berhasil dikirim!');
-        setForm({ noSuTahun: '', jenisHak: '', noHak: '', desa: '', kecamatan: '', linkShareloc: '', namaPemilikSertifikat: '', noWaPemohon: '' });
-        setFileSertifikat(null);
-        setFileKtp(null);
-        setFileFotoBangunan(null);
-        if (sertifikatRef.current) sertifikatRef.current.value = '';
-        if (ktpRef.current) ktpRef.current.value = '';
-        if (fotoBangunanRef.current) fotoBangunanRef.current.value = '';
-        if (!isSU) {
-          const newCount = todayCount + 1;
-          setTodayCount(newCount);
-          if (newCount >= DAILY_LIMIT) setQuotaExceeded(true);
-        }
-      } else {
-        toast.error('Gagal mengirim pengajuan');
+
+      toast.success('Pengajuan berhasil dikirim!');
+      setForm({ noSuTahun: '', jenisHak: '', noHak: '', desa: '', kecamatan: '', linkShareloc: '', namaPemilikSertifikat: '', noWaPemohon: '' });
+      setFileSertifikat(null);
+      setFileKtp(null);
+      setFileFotoBangunan(null);
+      if (sertifikatRef.current) sertifikatRef.current.value = '';
+      if (ktpRef.current) ktpRef.current.value = '';
+      if (fotoBangunanRef.current) fotoBangunanRef.current.value = '';
+      if (!isSU) {
+        const newCount = todayCount + 1;
+        setTodayCount(newCount);
+        if (newCount >= DAILY_LIMIT) setQuotaExceeded(true);
       }
     } catch (err: any) {
+      if (uploadedPaths.length > 0) {
+        await Promise.allSettled(uploadedPaths.map(path => deleteUploadedFileByPath(path)));
+      }
       toast.error(err?.message || 'Terjadi kesalahan saat mengirim pengajuan');
     } finally {
       setSubmitting(false);

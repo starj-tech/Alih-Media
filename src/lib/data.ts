@@ -160,7 +160,7 @@ export async function getBerkasByStatus(status: string | string[]): Promise<Berk
 
 export async function uploadFile(
   file: File,
-  userId: string,
+  _userId: string,
   type: 'sertifikat' | 'ktp' | 'foto-bangunan',
   onProgress?: (percent: number) => void,
 ): Promise<string> {
@@ -171,6 +171,16 @@ export async function uploadFile(
   const result = data.path || data.url;
   if (!result) throw new Error('Server tidak mengembalikan path file');
   return result;
+}
+
+export async function deleteUploadedFileByPath(filePath: string): Promise<boolean> {
+  if (!filePath) return true;
+  try {
+    await apiFetch(`/files/${encodeURIComponent(filePath)}`, { method: 'DELETE' });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function getSignedFileUrl(filePath: string): Promise<string | null> {
@@ -191,33 +201,29 @@ function parseDateDDMMYYYY(dateStr: string): string {
   return dateStr;
 }
 
-export async function addBerkas(berkas: Omit<Berkas, 'id' | 'status'>): Promise<Berkas | null> {
-  try {
-    const data = await apiFetch('/berkas', {
-      method: 'POST',
-      body: JSON.stringify({
-        tanggal_pengajuan: parseDateDDMMYYYY(berkas.tanggalPengajuan),
-        nama_pemegang_hak: berkas.namaPemegangHak,
-        no_telepon: berkas.noTelepon,
-        no_su_tahun: berkas.noSuTahun,
-        jenis_hak: berkas.jenisHak,
-        no_hak: berkas.noHak,
-        desa: berkas.desa,
-        kecamatan: berkas.kecamatan,
-        user_id: berkas.userId,
-        link_shareloc: berkas.linkShareloc || null,
-        file_sertifikat_url: berkas.fileSertifikatUrl || null,
-        file_ktp_url: berkas.fileKtpUrl || null,
-        file_foto_bangunan_url: berkas.fileFotoBangunanUrl || null,
-        nama_pemilik_sertifikat: berkas.namaPemilikSertifikat || null,
-        no_wa_pemohon: berkas.noWaPemohon || null,
-      }),
-    });
-    return mapBerkasRow(data.data || data);
-  } catch (err) {
-    console.error('addBerkas error:', err);
-    return null;
-  }
+export async function addBerkas(berkas: Omit<Berkas, 'id' | 'status'>): Promise<Berkas> {
+  const data = await apiFetch('/berkas', {
+    method: 'POST',
+    body: JSON.stringify({
+      tanggal_pengajuan: parseDateDDMMYYYY(berkas.tanggalPengajuan),
+      nama_pemegang_hak: berkas.namaPemegangHak,
+      no_telepon: berkas.noTelepon,
+      no_su_tahun: berkas.noSuTahun,
+      jenis_hak: berkas.jenisHak,
+      no_hak: berkas.noHak,
+      desa: berkas.desa,
+      kecamatan: berkas.kecamatan,
+      user_id: berkas.userId,
+      link_shareloc: berkas.linkShareloc || null,
+      file_sertifikat_url: berkas.fileSertifikatUrl || null,
+      file_ktp_url: berkas.fileKtpUrl || null,
+      file_foto_bangunan_url: berkas.fileFotoBangunanUrl || null,
+      nama_pemilik_sertifikat: berkas.namaPemilikSertifikat || null,
+      no_wa_pemohon: berkas.noWaPemohon || null,
+    }),
+  });
+
+  return mapBerkasRow(data.data || data);
 }
 
 export async function updateBerkasStatus(
