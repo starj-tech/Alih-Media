@@ -38,6 +38,13 @@ const VALIDATION_MAP: Record<string, Record<string, string>> = {
   password: { 'validation.required': 'Password harus diisi', 'validation.min': 'Password minimal 6 karakter' },
   name: { 'validation.required': 'Nama harus diisi', 'validation.min': 'Nama minimal 2 karakter' },
   no_telepon: { 'validation.required': 'Nomor telepon harus diisi', 'validation.min': 'Nomor telepon minimal 10 digit' },
+  file: {
+    'validation.uploaded': 'Upload gagal di server. Sistem akan mencoba mode upload bertahap.',
+    'validation.max': 'Ukuran file melebihi batas server.',
+    'validation.required': 'File wajib diunggah',
+    'validation.mimes': 'Format file tidak sesuai',
+    'validation.mimetypes': 'Tipe file tidak didukung',
+  },
 };
 
 function translateValidationMessage(msg: string, field: string): string {
@@ -141,6 +148,66 @@ export async function apiUpload(
   }
 }
 
+export async function apiUploadChunked(
+  endpoint: string,
+  file: File,
+  type: 'sertifikat' | 'ktp' | 'foto-bangunan',
+  onProgress?: (percent: number) => void,
+): Promise<any> {
+  const token = getToken();
+  const chunkSize = 512 * 1024; // 512KB per chunk
+  const totalChunks = Math.max(1, Math.ceil(file.size / chunkSize));
+  const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+  for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+    const start = chunkIndex * chunkSize;
+    const end = Math.min(file.size, start + chunkSize);
+    const chunk = file.slice(start, end);
+
+    const query = new URLSearchParams({
+      type,
+      upload_id: uploadId,
+      chunk_index: String(chunkIndex),
+      total_chunks: String(totalChunks),
+      file_name: file.name,
+    });
+
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
+      'Content-Type': 'application/octet-stream',
+      'X-Requested-With': 'XMLHttpRequest',
+    };
+
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    let res: Response;
+    try {
+      res = await fetch(`${LARAVEL_API_URL}${endpoint}?${query.toString()}`, {
+        method: 'POST',
+        headers,
+        body: chunk,
+      });
+    } catch {
+      throw createUploadError('Tidak dapat terhubung ke server saat upload bertahap. Periksa koneksi internet.');
+    }
+
+    const data = await res.json().catch(() => ({ error: res.statusText }));
+
+    if (!res.ok) {
+      const msg = extractApiError(data, `Upload bertahap gagal (HTTP ${res.status})`);
+      throw createUploadError(msg);
+    }
+
+    onProgress?.(Math.round(((chunkIndex + 1) / totalChunks) * 100));
+
+    if (chunkIndex === totalChunks - 1) {
+      return data;
+    }
+  }
+
+  throw createUploadError('Upload bertahap gagal diselesaikan.');
+}
+
 async function apiUploadFetch(
   endpoint: string,
   formData: FormData,
@@ -162,7 +229,7 @@ async function apiUploadFetch(
       headers,
       body: formData,
     });
-  } catch (e) {
+  } catch {
     throw createUploadError('Tidak dapat terhubung ke server untuk upload. Periksa koneksi internet.');
   }
 

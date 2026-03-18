@@ -79,6 +79,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // --- Files ---
     Route::prefix('files')->group(function () {
         Route::post('/upload', [FileController::class, 'upload']);
+        Route::post('/upload-chunk', [FileController::class, 'uploadChunk']);
         Route::get('/download/{path}', [FileController::class, 'download'])->where('path', '.*');
         Route::get('/url/{path}', [FileController::class, 'getUrl'])->where('path', '.*');
         Route::delete('/{path}', [FileController::class, 'destroy'])->where('path', '.*');

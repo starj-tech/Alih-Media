@@ -1,5 +1,5 @@
 // Data layer using Laravel REST API
-import { apiFetch, apiUpload } from '@/lib/api-client';
+import { apiFetch, apiUpload, apiUploadChunked } from '@/lib/api-client';
 
 export type BerkasStatus = 'Proses' | 'Validasi SU & Bidang' | 'Validasi BT' | 'Selesai' | 'Ditolak';
 export type JenisHak = 'HM' | 'HGB' | 'HP' | 'HGU' | 'HMSRS' | 'HPL' | 'HW';
@@ -167,10 +167,31 @@ export async function uploadFile(
   const formData = new FormData();
   formData.append('file', file);
   formData.append('type', type);
-  const data = await apiUpload('/files/upload', formData, onProgress);
-  const result = data.path || data.url;
-  if (!result) throw new Error('Server tidak mengembalikan path file');
-  return result;
+
+  try {
+    const data = await apiUpload('/files/upload', formData, onProgress);
+    const result = data.path || data.url;
+    if (!result) throw new Error('Server tidak mengembalikan path file');
+    return result;
+  } catch (error: any) {
+    const message = String(error?.message || '').toLowerCase();
+    const shouldUseChunkUpload =
+      message.includes('validation.uploaded') ||
+      message.includes('file: uploaded') ||
+      message.includes('failed to upload') ||
+      message.includes('upload gagal di server') ||
+      message.includes('melebihi batas') ||
+      message.includes('too large');
+
+    if (!shouldUseChunkUpload) {
+      throw error;
+    }
+
+    const chunkedData = await apiUploadChunked('/files/upload-chunk', file, type, onProgress);
+    const chunkedResult = chunkedData.path || chunkedData.url;
+    if (!chunkedResult) throw new Error('Server tidak mengembalikan path file dari upload bertahap');
+    return chunkedResult;
+  }
 }
 
 export async function deleteUploadedFileByPath(filePath: string): Promise<boolean> {
