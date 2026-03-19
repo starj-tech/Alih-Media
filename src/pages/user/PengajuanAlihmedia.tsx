@@ -208,11 +208,16 @@ export default function PengajuanAlihmedia() {
         } as any);
       } catch (dbErr: any) {
         console.error('[Submit] Save berkas failed:', dbErr);
-        // Clean up uploaded files if save fails
         if (uploadedPaths.length > 0) {
           await Promise.allSettled(uploadedPaths.map(path => deleteUploadedFileByPath(path)));
         }
-        throw new Error(`Gagal menyimpan data: ${dbErr?.message || 'Silakan coba lagi'}`);
+
+        const saveMessage = String(dbErr?.message || 'Silakan coba lagi');
+        if (saveMessage.toLowerCase().includes('folder vendor') || saveMessage.toLowerCase().includes('backend laravel belum lengkap')) {
+          throw new Error('Data belum tersimpan karena backend Laravel di server belum lengkap. Pulihkan folder vendor lalu coba kirim lagi.');
+        }
+
+        throw new Error(`Gagal menyimpan data: ${saveMessage}`);
       }
 
       toast.success('Pengajuan berhasil dikirim!');

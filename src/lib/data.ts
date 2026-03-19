@@ -279,25 +279,26 @@ function parseDateDDMMYYYY(dateStr: string): string {
 }
 
 export async function addBerkas(berkas: Omit<Berkas, 'id' | 'status'>): Promise<Berkas> {
+  const payload = {
+    tanggal_pengajuan: parseDateDDMMYYYY(berkas.tanggalPengajuan),
+    nama_pemegang_hak: berkas.namaPemegangHak,
+    no_telepon: berkas.noTelepon,
+    no_su_tahun: berkas.noSuTahun,
+    jenis_hak: berkas.jenisHak,
+    no_hak: berkas.noHak,
+    desa: berkas.desa,
+    kecamatan: berkas.kecamatan,
+    link_shareloc: berkas.linkShareloc || null,
+    file_sertifikat_url: berkas.fileSertifikatUrl || null,
+    file_ktp_url: berkas.fileKtpUrl || null,
+    file_foto_bangunan_url: berkas.fileFotoBangunanUrl || null,
+    nama_pemilik_sertifikat: berkas.namaPemilikSertifikat || null,
+    no_wa_pemohon: berkas.noWaPemohon || null,
+  };
+
   const data = await apiFetch('/berkas', {
     method: 'POST',
-    body: JSON.stringify({
-      tanggal_pengajuan: parseDateDDMMYYYY(berkas.tanggalPengajuan),
-      nama_pemegang_hak: berkas.namaPemegangHak,
-      no_telepon: berkas.noTelepon,
-      no_su_tahun: berkas.noSuTahun,
-      jenis_hak: berkas.jenisHak,
-      no_hak: berkas.noHak,
-      desa: berkas.desa,
-      kecamatan: berkas.kecamatan,
-      user_id: berkas.userId,
-      link_shareloc: berkas.linkShareloc || null,
-      file_sertifikat_url: berkas.fileSertifikatUrl || null,
-      file_ktp_url: berkas.fileKtpUrl || null,
-      file_foto_bangunan_url: berkas.fileFotoBangunanUrl || null,
-      nama_pemilik_sertifikat: berkas.namaPemilikSertifikat || null,
-      no_wa_pemohon: berkas.noWaPemohon || null,
-    }),
+    body: JSON.stringify(payload),
   });
 
   return mapBerkasRow(data.data || data);

@@ -197,7 +197,7 @@ function uint8ArrayToBase64(bytes: Uint8Array): string {
 }
 
 async function parseChunkUploadResponse(res: Response, fallbackMessage: string) {
-  const contentType = res.headers.get('content-type') || '';
+  const contentType = (res.headers.get('content-type') || '').toLowerCase();
 
   if (contentType.includes('text/html')) {
     if (res.status === 401) {
@@ -207,20 +207,47 @@ async function parseChunkUploadResponse(res: Response, fallbackMessage: string) 
     if (res.status === 403) {
       throw createUploadError('Akses ditolak.');
     }
+
+    const htmlText = await res.text().catch(() => '');
+    if (htmlText.toLowerCase().includes('vendor/autoload.php') || htmlText.toLowerCase().includes('autoload.php')) {
+      throw createUploadError('Backend belum lengkap: folder vendor Laravel hilang di server.');
+    }
+
     throw createUploadError(`${fallbackMessage}: server mengembalikan HTML (${res.status}).`);
   }
 
-  const data = await res.json().catch(() => ({ error: res.statusText || fallbackMessage }));
+  if (contentType.includes('application/json') || contentType.includes('+json')) {
+    const data = await res.json().catch(() => ({ error: res.statusText || fallbackMessage }));
 
-  if (!res.ok) {
-    const msg = extractApiError(data, `${fallbackMessage} (HTTP ${res.status})`);
-    if (res.status === 401) {
-      notifyAuthInvalid(msg || 'Sesi tidak valid. Silakan login kembali.');
+    if (!res.ok) {
+      const msg = extractApiError(data, `${fallbackMessage} (HTTP ${res.status})`);
+      if (res.status === 401) {
+        notifyAuthInvalid(msg || 'Sesi tidak valid. Silakan login kembali.');
+      }
+      throw createUploadError(msg);
     }
-    throw createUploadError(msg);
+
+    return data;
   }
 
-  return data;
+  const text = await res.text().catch(() => '');
+  const normalizedText = text.trim();
+
+  if (!res.ok) {
+    const message = normalizedText || `${fallbackMessage} (HTTP ${res.status})`;
+
+    if (res.status === 401) {
+      notifyAuthInvalid(message || 'Sesi tidak valid. Silakan login kembali.');
+    }
+
+    if (message.toLowerCase().includes('vendor/autoload.php') || message.toLowerCase().includes('folder vendor')) {
+      throw createUploadError('Backend belum lengkap: folder vendor Laravel hilang di server.');
+    }
+
+    throw createUploadError(message);
+  }
+
+  return normalizedText ? { message: normalizedText } : {};
 }
 
 export async function apiUploadChunked(
@@ -235,6 +262,7 @@ export async function apiUploadChunked(
   const uploadSessionId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   const strategies = [
     { key: 'json', label: 'JSON base64' },
+    { key: 'multipart', label: 'multipart form-data' },
     { key: 'binary', label: 'binary stream' },
   ] as const;
   const errors: string[] = [];
@@ -266,11 +294,24 @@ export async function apiUploadChunked(
               headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
                 ...authTokenHeaders(token),
               },
               body: JSON.stringify({
                 chunk_base64: chunkBase64,
               }),
+            });
+          } else if (strategy.key === 'multipart') {
+            const formData = new FormData();
+            formData.append('chunk', chunk, `chunk-${chunkIndex}`);
+            res = await fetch(`${LARAVEL_API_URL}${endpoint}?${query.toString()}`, {
+              method: 'POST',
+              headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                ...authTokenHeaders(token),
+              },
+              body: formData,
             });
           } else {
             res = await fetch(`${LARAVEL_API_URL}${endpoint}?${query.toString()}`, {
@@ -278,6 +319,7 @@ export async function apiUploadChunked(
               headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/octet-stream',
+                'X-Requested-With': 'XMLHttpRequest',
                 ...authTokenHeaders(token),
               },
               body: chunk,
