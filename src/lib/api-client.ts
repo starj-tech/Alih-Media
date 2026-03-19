@@ -103,7 +103,11 @@ export async function apiFetch<T = any>(endpoint: string, options: RequestInit =
 
   const contentType = res.headers.get('content-type') || '';
   if (contentType.includes('text/html')) {
-    console.error('[API] Received HTML instead of JSON from:', endpoint, 'Status:', res.status);
+    // Try to read the HTML to give better diagnostics
+    const htmlBody = await res.text().catch(() => '');
+    const lowerHtml = htmlBody.toLowerCase();
+    console.error('[API] Received HTML instead of JSON from:', endpoint, 'Status:', res.status, 'Body preview:', htmlBody.substring(0, 500));
+
     if (res.status === 401) {
       notifyAuthInvalid('Sesi tidak valid. Silakan login kembali.');
       throw new Error('Sesi tidak valid. Silakan login kembali.');
@@ -111,7 +115,19 @@ export async function apiFetch<T = any>(endpoint: string, options: RequestInit =
     if (res.status === 403) {
       throw new Error('Akses ditolak.');
     }
-    throw new Error('Server mengembalikan respons tidak valid. Hubungi admin untuk membersihkan cache server.');
+
+    // Detect specific server issues from HTML content
+    if (lowerHtml.includes('vendor/autoload.php') || lowerHtml.includes('missing_vendor_autoload')) {
+      throw new Error('Backend belum lengkap: folder vendor belum ter-upload. Hubungi admin server.');
+    }
+    if (lowerHtml.includes('500') || lowerHtml.includes('internal server error')) {
+      throw new Error('Server error (500). Coba bersihkan cache: buka clear-all-cache.php di server, lalu coba lagi.');
+    }
+    if (lowerHtml.includes('syntax error') || lowerHtml.includes('parse error')) {
+      throw new Error('Server error: ada kesalahan sintaks pada kode backend. Hubungi admin.');
+    }
+
+    throw new Error('Server mengembalikan respons tidak valid (HTML). Buka clear-all-cache.php di server untuk membersihkan cache, lalu coba lagi.');
   }
 
   if (!res.ok) {
