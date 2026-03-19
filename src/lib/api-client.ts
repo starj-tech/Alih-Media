@@ -232,7 +232,7 @@ export async function apiUploadChunked(
   const token = getToken();
   const chunkSize = 512 * 1024;
   const totalChunks = Math.max(1, Math.ceil(file.size / chunkSize));
-  const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const uploadSessionId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   const strategies = [
     { key: 'json', label: 'JSON base64' },
     { key: 'binary', label: 'binary stream' },
@@ -240,6 +240,8 @@ export async function apiUploadChunked(
   const errors: string[] = [];
 
   for (const strategy of strategies) {
+    const strategyUploadId = `${uploadSessionId}-${strategy.key}`;
+
     try {
       for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
         const start = chunkIndex * chunkSize;
@@ -247,7 +249,7 @@ export async function apiUploadChunked(
         const chunk = file.slice(start, end, 'application/octet-stream');
         const query = chunkRequestQuery({
           type,
-          uploadId,
+          uploadId: strategyUploadId,
           chunkIndex,
           totalChunks,
           fileName: file.name,
@@ -259,7 +261,7 @@ export async function apiUploadChunked(
           if (strategy.key === 'json') {
             const buffer = await chunk.arrayBuffer();
             const chunkBase64 = uint8ArrayToBase64(new Uint8Array(buffer));
-            res = await fetch(`${LARAVEL_API_URL}${endpoint}`, {
+            res = await fetch(`${LARAVEL_API_URL}${endpoint}?${query.toString()}`, {
               method: 'POST',
               headers: {
                 Accept: 'application/json',
@@ -267,11 +269,6 @@ export async function apiUploadChunked(
                 ...authTokenHeaders(token),
               },
               body: JSON.stringify({
-                type,
-                upload_id: uploadId,
-                chunk_index: chunkIndex,
-                total_chunks: totalChunks,
-                file_name: file.name,
                 chunk_base64: chunkBase64,
               }),
             });

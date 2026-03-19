@@ -390,6 +390,12 @@ class FileController extends Controller
 
             fclose($writeHandle);
 
+            $assembledValidationError = $this->validateAssembledFile($assembledPath, $type, $ext);
+            if ($assembledValidationError) {
+                $this->cleanupChunkDirectory($chunkDir);
+                return response()->json(['error' => $assembledValidationError], 422);
+            }
+
             $finalPath = $user->id . '/' . $type . '/' . now()->format('YmdHis') . '-' . uniqid('', true) . '.' . $ext;
             Storage::disk('public')->makeDirectory($user->id . '/' . $type);
 
