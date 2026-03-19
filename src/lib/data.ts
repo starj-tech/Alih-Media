@@ -165,7 +165,7 @@ function getUploadResultPath(data: any, fallbackMessage: string): string {
 }
 
 function normalizeUploadErrorMessage(error: unknown): string {
-  return String((error as any)?.message || '').trim();
+  return String((error as any)?.message || '').replace(/\s+/g, ' ').trim();
 }
 
 function isNonRetryableUploadError(message: string): boolean {
@@ -180,6 +180,7 @@ function isNonRetryableUploadError(message: string): boolean {
     'sesi tidak valid',
     'forbidden',
     'unauthenticated',
+    'akses ditolak',
   ].some(keyword => lower.includes(keyword));
 }
 
@@ -193,6 +194,11 @@ function shouldRetryWithAlternateUpload(message: string): boolean {
     'file: uploaded',
     'failed to upload',
     'upload gagal',
+    'upload_transport_failed',
+    'upload file biasa',
+    'upload bertahap sebagai cadangan',
+    'server gagal memproses upload file biasa',
+    'gagal memproses upload file biasa',
     'server error',
     'respons tidak valid',
     'http 0',
@@ -204,7 +210,30 @@ function shouldRetryWithAlternateUpload(message: string): boolean {
     'tidak dapat terhubung',
     'chunk kosong',
     'php://input',
+    '500',
+    '413',
   ].some(keyword => lower.includes(keyword));
+}
+
+function combineUploadErrors(messages: string[]): Error {
+  const uniqueMessages = Array.from(new Set(messages.map(normalizeUploadErrorMessage).filter(Boolean)));
+
+  if (uniqueMessages.length === 0) {
+    return new Error('Upload file gagal pada semua metode yang tersedia.');
+  }
+
+  const primaryMessage = uniqueMessages.find(message => {
+    const lower = message.toLowerCase();
+    return lower.includes('folder vendor') || lower.includes('sesi tidak valid') || lower.includes('akses ditolak');
+  }) || uniqueMessages[0];
+
+  const secondaryMessages = uniqueMessages.filter(message => message !== primaryMessage);
+
+  return new Error(
+    secondaryMessages.length > 0
+      ? `${primaryMessage} | Detail: ${secondaryMessages.join(' | ')}`
+      : primaryMessage,
+  );
 }
 
 export async function uploadFile(
@@ -227,11 +256,13 @@ export async function uploadFile(
     return getUploadResultPath(data, 'Server tidak mengembalikan path file');
   };
 
-  let chunkedErrorMessage = '';
+  const errors: string[] = [];
+
   try {
     return await uploadChunked();
   } catch (error) {
-    chunkedErrorMessage = normalizeUploadErrorMessage(error);
+    const chunkedErrorMessage = normalizeUploadErrorMessage(error);
+    if (chunkedErrorMessage) errors.push(`chunked-1: ${chunkedErrorMessage}`);
     if (!shouldRetryWithAlternateUpload(chunkedErrorMessage)) {
       throw error;
     }
@@ -241,12 +272,18 @@ export async function uploadFile(
     return await uploadStandard();
   } catch (error) {
     const standardErrorMessage = normalizeUploadErrorMessage(error);
+    if (standardErrorMessage) errors.push(`standard: ${standardErrorMessage}`);
     if (!shouldRetryWithAlternateUpload(standardErrorMessage)) {
       throw error;
     }
+  }
 
-    const reasons = [chunkedErrorMessage, standardErrorMessage].filter(Boolean).join(' | ');
-    throw new Error(reasons || 'Upload file gagal pada semua metode yang tersedia.');
+  try {
+    return await uploadChunked();
+  } catch (error) {
+    const finalChunkedErrorMessage = normalizeUploadErrorMessage(error);
+    if (finalChunkedErrorMessage) errors.push(`chunked-2: ${finalChunkedErrorMessage}`);
+    throw combineUploadErrors(errors);
   }
 }
 
