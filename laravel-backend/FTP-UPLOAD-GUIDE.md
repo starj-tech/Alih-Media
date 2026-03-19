@@ -16,11 +16,18 @@ Git tidak meng-include folder `vendor/` dan `.env`, sehingga `composer install` 
 
 ### Langkah-langkah:
 
-#### 1. Install dependencies di komputer lokal dulu
+#### 1. Build ulang dependency yang kompatibel dengan PHP server
 ```bash
 cd laravel-backend
-composer install
+
+# hapus build dependency lama yang mungkin salah versi
+rm -rf vendor composer.lock
+
+# install ulang sesuai platform PHP server (7.4.10)
+composer install --no-dev --optimize-autoloader
 ```
+
+Jika Anda memakai Windows, hapus manual folder `vendor/` dan file `composer.lock` terlebih dahulu, lalu jalankan command `composer install --no-dev --optimize-autoloader`.
 
 #### 2. Pastikan folder `bootstrap/cache/` ada
 ```bash

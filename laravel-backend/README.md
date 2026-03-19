@@ -1,9 +1,11 @@
 # Backend Laravel 8 - Aplikasi Alih Media BPN
 
 ## Persyaratan
-- PHP 7.3+ atau 8.0+
+- PHP server produksi: 7.4.10
 - Composer 2.x
 - PostgreSQL 12+ (atau MySQL 5.7+)
+
+> Penting: jalankan `composer install` setelah menghapus `vendor/` dan `composer.lock` lama agar dependency yang terpasang tetap kompatibel dengan server produksi.
 
 ## ⚠️ Pisahkan Repo Backend
 
