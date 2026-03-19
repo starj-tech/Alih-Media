@@ -86,8 +86,8 @@ export default function PengajuanAlihmedia() {
   };
 
   const validateFileImage = (file: File): boolean => {
-    if (!['image/jpeg', 'image/jpg'].includes(file.type)) {
-      toast.error('File harus berformat JPG/JPEG');
+    if (!['image/jpeg', 'image/jpg', 'image/png'].includes(file.type)) {
+      toast.error('File harus berformat JPG/JPEG/PNG');
       return false;
     }
     if (file.size > 5 * 1024 * 1024) {
