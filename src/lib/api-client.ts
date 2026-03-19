@@ -195,11 +195,6 @@ export async function apiUploadChunked(
     const headers: Record<string, string> = {
       Accept: 'application/json',
       'Content-Type': 'application/octet-stream',
-      'X-Requested-With': 'XMLHttpRequest',
-      'X-Upload-Type': type,
-      'X-Upload-Id': uploadId,
-      'X-Chunk-Index': String(chunkIndex),
-      'X-Total-Chunks': String(totalChunks),
       ...authTokenHeaders(token),
     };
 
