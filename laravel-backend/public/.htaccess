@@ -36,7 +36,7 @@
     Header always merge Vary Origin
     Header always set Access-Control-Allow-Origin "%{CORS_ORIGIN}e" env=CORS_ORIGIN
     Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" env=CORS_ORIGIN
-    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, X-Access-Token, Accept, Origin" env=CORS_ORIGIN
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, X-Access-Token, X-Upload-Type, X-Upload-Id, X-Chunk-Index, X-Total-Chunks, X-File-Name, Accept, Origin" env=CORS_ORIGIN
     Header always set Access-Control-Allow-Credentials "true" env=CORS_ORIGIN
     Header always set Access-Control-Max-Age "86400" env=CORS_ORIGIN
 </IfModule>
