@@ -129,10 +129,16 @@ class FileController extends Controller
 
     private function readChunkBinaryContent(Request $request): ?string
     {
-        $binaryContent = $request->getContent();
+        $chunkBase64 = $request->input('chunk_base64', $request->input('chunkBase64'));
+        if (is_string($chunkBase64) && trim($chunkBase64) !== '') {
+            $normalizedBase64 = preg_replace('/^data:[^;]+;base64,/', '', trim($chunkBase64));
+            $decoded = base64_decode(str_replace(' ', '+', $normalizedBase64), true);
 
-        if (is_string($binaryContent) && $binaryContent !== '') {
-            return $binaryContent;
+            if (is_string($decoded) && $decoded !== '') {
+                return $decoded;
+            }
+
+            return null;
         }
 
         if ($request->hasFile('chunk')) {
@@ -145,9 +151,42 @@ class FileController extends Controller
             }
         }
 
+        $binaryContent = $request->getContent();
+        if (is_string($binaryContent) && $binaryContent !== '') {
+            return $binaryContent;
+        }
+
         $rawInput = @file_get_contents('php://input');
         if (is_string($rawInput) && $rawInput !== '') {
             return $rawInput;
+        }
+
+        return null;
+    }
+
+    private function validateAssembledFile(string $assembledPath, string $type, string $ext): ?string
+    {
+        if (!file_exists($assembledPath)) {
+            return 'File sementara tidak ditemukan';
+        }
+
+        if ($type === 'sertifikat') {
+            $header = @file_get_contents($assembledPath, false, null, 0, 5);
+            if (!is_string($header) || strpos($header, '%PDF-') !== 0 || $ext !== 'pdf') {
+                return 'File sertifikat hasil upload tidak valid. Silakan ulangi upload PDF.';
+            }
+
+            return null;
+        }
+
+        $imageInfo = @getimagesize($assembledPath);
+        $allowedMimes = ['image/jpeg', 'image/png'];
+        if (!is_array($imageInfo) || !isset($imageInfo['mime']) || !in_array($imageInfo['mime'], $allowedMimes, true)) {
+            return 'File gambar hasil upload tidak valid. Silakan ulangi upload JPG/PNG.';
+        }
+
+        if (!in_array($ext, ['jpg', 'jpeg', 'png'], true)) {
+            return 'Ekstensi file gambar tidak valid. Silakan ulangi upload JPG/PNG.';
         }
 
         return null;
@@ -350,6 +389,12 @@ class FileController extends Controller
             }
 
             fclose($writeHandle);
+
+            $assembledValidationError = $this->validateAssembledFile($assembledPath, $type, $ext);
+            if ($assembledValidationError) {
+                $this->cleanupChunkDirectory($chunkDir);
+                return response()->json(['error' => $assembledValidationError], 422);
+            }
 
             $finalPath = $user->id . '/' . $type . '/' . now()->format('YmdHis') . '-' . uniqid('', true) . '.' . $ext;
             Storage::disk('public')->makeDirectory($user->id . '/' . $type);
