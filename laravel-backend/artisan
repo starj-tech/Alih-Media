@@ -3,13 +3,20 @@
 
 define('LARAVEL_START', microtime(true));
 
+$autoloadPath = __DIR__.'/vendor/autoload.php';
+
+if (!file_exists($autoloadPath)) {
+    fwrite(STDERR, "[ERROR] Folder vendor tidak ditemukan. Jalankan composer install di direktori laravel-backend lalu upload kembali folder vendor ke server.\n");
+    exit(1);
+}
+
 /*
 |--------------------------------------------------------------------------
 | Register The Auto Loader
 |--------------------------------------------------------------------------
 */
 
-require __DIR__.'/vendor/autoload.php';
+require $autoloadPath;
 
 $app = require_once __DIR__.'/bootstrap/app.php';
 
