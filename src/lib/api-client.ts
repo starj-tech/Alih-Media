@@ -169,6 +169,60 @@ export async function apiUpload(
   }
 }
 
+function chunkRequestQuery(params: {
+  type: 'sertifikat' | 'ktp' | 'foto-bangunan';
+  uploadId: string;
+  chunkIndex: number;
+  totalChunks: number;
+  fileName: string;
+}) {
+  return new URLSearchParams({
+    type: params.type,
+    upload_id: params.uploadId,
+    chunk_index: String(params.chunkIndex),
+    total_chunks: String(params.totalChunks),
+    file_name: params.fileName,
+  });
+}
+
+function uint8ArrayToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  const step = 0x8000;
+
+  for (let index = 0; index < bytes.length; index += step) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + step));
+  }
+
+  return btoa(binary);
+}
+
+async function parseChunkUploadResponse(res: Response, fallbackMessage: string) {
+  const contentType = res.headers.get('content-type') || '';
+
+  if (contentType.includes('text/html')) {
+    if (res.status === 401) {
+      notifyAuthInvalid('Sesi tidak valid. Silakan login kembali.');
+      throw createUploadError('Sesi tidak valid. Silakan login kembali.');
+    }
+    if (res.status === 403) {
+      throw createUploadError('Akses ditolak.');
+    }
+    throw createUploadError(`${fallbackMessage}: server mengembalikan HTML (${res.status}).`);
+  }
+
+  const data = await res.json().catch(() => ({ error: res.statusText || fallbackMessage }));
+
+  if (!res.ok) {
+    const msg = extractApiError(data, `${fallbackMessage} (HTTP ${res.status})`);
+    if (res.status === 401) {
+      notifyAuthInvalid(msg || 'Sesi tidak valid. Silakan login kembali.');
+    }
+    throw createUploadError(msg);
+  }
+
+  return data;
+}
+
 export async function apiUploadChunked(
   endpoint: string,
   file: File,
@@ -179,54 +233,77 @@ export async function apiUploadChunked(
   const chunkSize = 512 * 1024;
   const totalChunks = Math.max(1, Math.ceil(file.size / chunkSize));
   const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const strategies = [
+    { key: 'json', label: 'JSON base64' },
+    { key: 'binary', label: 'binary stream' },
+  ] as const;
+  const errors: string[] = [];
 
-  for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-    const start = chunkIndex * chunkSize;
-    const end = Math.min(file.size, start + chunkSize);
-    const chunk = file.slice(start, end, 'application/octet-stream');
-    const query = new URLSearchParams({
-      type,
-      upload_id: uploadId,
-      chunk_index: String(chunkIndex),
-      total_chunks: String(totalChunks),
-      file_name: file.name,
-    });
-
-    const headers: Record<string, string> = {
-      Accept: 'application/json',
-      'Content-Type': 'application/octet-stream',
-      ...authTokenHeaders(token),
-    };
-
-    let res: Response;
+  for (const strategy of strategies) {
     try {
-      res = await fetch(`${LARAVEL_API_URL}${endpoint}?${query.toString()}`, {
-        method: 'POST',
-        headers,
-        body: chunk,
-      });
-    } catch {
-      throw createUploadError('Tidak dapat terhubung ke server saat upload bertahap. Periksa koneksi internet.');
-    }
+      for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+        const start = chunkIndex * chunkSize;
+        const end = Math.min(file.size, start + chunkSize);
+        const chunk = file.slice(start, end, 'application/octet-stream');
+        const query = chunkRequestQuery({
+          type,
+          uploadId,
+          chunkIndex,
+          totalChunks,
+          fileName: file.name,
+        });
 
-    const data = await res.json().catch(() => ({ error: res.statusText }));
+        let res: Response;
 
-    if (!res.ok) {
-      const msg = extractApiError(data, `Upload bertahap gagal (HTTP ${res.status})`);
-      if (res.status === 401) {
-        notifyAuthInvalid(msg || 'Sesi tidak valid. Silakan login kembali.');
+        try {
+          if (strategy.key === 'json') {
+            const buffer = await chunk.arrayBuffer();
+            const chunkBase64 = uint8ArrayToBase64(new Uint8Array(buffer));
+            res = await fetch(`${LARAVEL_API_URL}${endpoint}`, {
+              method: 'POST',
+              headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                ...authTokenHeaders(token),
+              },
+              body: JSON.stringify({
+                type,
+                upload_id: uploadId,
+                chunk_index: chunkIndex,
+                total_chunks: totalChunks,
+                file_name: file.name,
+                chunk_base64: chunkBase64,
+              }),
+            });
+          } else {
+            res = await fetch(`${LARAVEL_API_URL}${endpoint}?${query.toString()}`, {
+              method: 'POST',
+              headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/octet-stream',
+                ...authTokenHeaders(token),
+              },
+              body: chunk,
+            });
+          }
+        } catch {
+          throw createUploadError(`Tidak dapat terhubung ke server saat upload bertahap (${strategy.label}).`);
+        }
+
+        const data = await parseChunkUploadResponse(res, `Upload bertahap gagal (${strategy.label})`);
+        onProgress?.(Math.round(((chunkIndex + 1) / totalChunks) * 100));
+
+        if (chunkIndex === totalChunks - 1) {
+          return data;
+        }
       }
-      throw createUploadError(msg);
-    }
-
-    onProgress?.(Math.round(((chunkIndex + 1) / totalChunks) * 100));
-
-    if (chunkIndex === totalChunks - 1) {
-      return data;
+    } catch (error: any) {
+      const message = String(error?.message || '').trim();
+      errors.push(message ? `${strategy.label}: ${message}` : strategy.label);
     }
   }
 
-  throw createUploadError('Upload bertahap gagal diselesaikan.');
+  throw createUploadError(errors.join(' | ') || 'Upload bertahap gagal diselesaikan.');
 }
 
 async function apiUploadFetch(
