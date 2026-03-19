@@ -266,6 +266,80 @@ async function parseChunkUploadResponse(res: Response, fallbackMessage: string) 
   return normalizedText ? { message: normalizedText } : {};
 }
 
+async function postChunkWithStrategy(params: {
+  endpoint: string;
+  token: string | null;
+  query: URLSearchParams;
+  chunk: Blob;
+  chunkIndex: number;
+  strategy: 'urlencoded' | 'form-text' | 'json' | 'multipart' | 'binary';
+}): Promise<Response> {
+  const url = `${LARAVEL_API_URL}${params.endpoint}?${params.query.toString()}`;
+  const baseHeaders: Record<string, string> = {
+    Accept: 'application/json',
+    ...authTokenHeaders(params.token),
+  };
+
+  if (params.strategy === 'urlencoded') {
+    const buffer = await params.chunk.arrayBuffer();
+    const body = new URLSearchParams({
+      chunk_base64: uint8ArrayToBase64(new Uint8Array(buffer)),
+    });
+
+    return fetch(url, {
+      method: 'POST',
+      headers: baseHeaders,
+      body,
+    });
+  }
+
+  if (params.strategy === 'form-text') {
+    const buffer = await params.chunk.arrayBuffer();
+    const formData = new FormData();
+    formData.append('chunk_base64', uint8ArrayToBase64(new Uint8Array(buffer)));
+
+    return fetch(url, {
+      method: 'POST',
+      headers: baseHeaders,
+      body: formData,
+    });
+  }
+
+  if (params.strategy === 'json') {
+    const buffer = await params.chunk.arrayBuffer();
+    const chunkBase64 = uint8ArrayToBase64(new Uint8Array(buffer));
+
+    return fetch(url, {
+      method: 'POST',
+      headers: {
+        ...baseHeaders,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ chunk_base64: chunkBase64 }),
+    });
+  }
+
+  if (params.strategy === 'multipart') {
+    const formData = new FormData();
+    formData.append('chunk', params.chunk, `chunk-${params.chunkIndex}`);
+
+    return fetch(url, {
+      method: 'POST',
+      headers: baseHeaders,
+      body: formData,
+    });
+  }
+
+  return fetch(url, {
+    method: 'POST',
+    headers: {
+      ...baseHeaders,
+      'Content-Type': 'application/octet-stream',
+    },
+    body: params.chunk,
+  });
+}
+
 export async function apiUploadChunked(
   endpoint: string,
   file: File,
@@ -273,10 +347,12 @@ export async function apiUploadChunked(
   onProgress?: (percent: number) => void,
 ): Promise<any> {
   const token = getToken();
-  const chunkSize = 512 * 1024;
+  const chunkSize = 256 * 1024;
   const totalChunks = Math.max(1, Math.ceil(file.size / chunkSize));
   const uploadSessionId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   const strategies = [
+    { key: 'urlencoded', label: 'text urlencoded' },
+    { key: 'form-text', label: 'form text base64' },
     { key: 'json', label: 'JSON base64' },
     { key: 'multipart', label: 'multipart form-data' },
     { key: 'binary', label: 'binary stream' },
@@ -302,45 +378,14 @@ export async function apiUploadChunked(
         let res: Response;
 
         try {
-          if (strategy.key === 'json') {
-            const buffer = await chunk.arrayBuffer();
-            const chunkBase64 = uint8ArrayToBase64(new Uint8Array(buffer));
-            res = await fetch(`${LARAVEL_API_URL}${endpoint}?${query.toString()}`, {
-              method: 'POST',
-              headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                ...authTokenHeaders(token),
-              },
-              body: JSON.stringify({
-                chunk_base64: chunkBase64,
-              }),
-            });
-          } else if (strategy.key === 'multipart') {
-            const formData = new FormData();
-            formData.append('chunk', chunk, `chunk-${chunkIndex}`);
-            res = await fetch(`${LARAVEL_API_URL}${endpoint}?${query.toString()}`, {
-              method: 'POST',
-              headers: {
-                Accept: 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                ...authTokenHeaders(token),
-              },
-              body: formData,
-            });
-          } else {
-            res = await fetch(`${LARAVEL_API_URL}${endpoint}?${query.toString()}`, {
-              method: 'POST',
-              headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/octet-stream',
-                'X-Requested-With': 'XMLHttpRequest',
-                ...authTokenHeaders(token),
-              },
-              body: chunk,
-            });
-          }
+          res = await postChunkWithStrategy({
+            endpoint,
+            token,
+            query,
+            chunk,
+            chunkIndex,
+            strategy: strategy.key,
+          });
         } catch {
           throw createUploadError(`Tidak dapat terhubung ke server saat upload bertahap (${strategy.label}).`);
         }
