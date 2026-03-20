@@ -23,7 +23,7 @@ export default function FileDownloadCell({ url, label }: FileDownloadCellProps) 
         return;
       }
 
-      // Use anchor element to navigate - works reliably in iframes
+      const isBlobUrl = signedUrl.startsWith('blob:');
       const a = document.createElement('a');
       a.href = signedUrl;
       a.target = '_blank';
@@ -31,6 +31,10 @@ export default function FileDownloadCell({ url, label }: FileDownloadCellProps) 
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+
+      if (isBlobUrl) {
+        window.setTimeout(() => URL.revokeObjectURL(signedUrl), 60000);
+      }
     } catch (err) {
       console.error('Error opening file:', err);
       toast.error('Gagal membuka file. Terjadi kesalahan.');

@@ -264,11 +264,11 @@ export default function UserInformasi() {
               />
             </div>
             <div>
-              <Label className="text-xs">Upload KTP Pemegang Sertifikat (JPG, maks 5MB) - opsional</Label>
+              <Label className="text-xs">Upload KTP Pemegang Sertifikat (JPG/PNG, maks 5MB) - opsional</Label>
               <Input
                 ref={ktpRef}
                 type="file"
-                accept=".jpg,.jpeg"
+                accept=".jpg,.jpeg,.png"
                 className="mt-1 h-8 text-sm"
                 onChange={e => {
                   const file = e.target.files?.[0] || null;
@@ -278,11 +278,11 @@ export default function UserInformasi() {
               />
             </div>
             <div>
-              <Label className="text-xs">Upload Photo Bangunan / Lokasi Tanah dengan Geotag (JPG, maks 5MB) - opsional</Label>
+              <Label className="text-xs">Upload Photo Bangunan / Lokasi Tanah dengan Geotag (JPG/PNG, maks 5MB) - opsional</Label>
               <Input
                 ref={fotoBangunanRef}
                 type="file"
-                accept=".jpg,.jpeg"
+                accept=".jpg,.jpeg,.png"
                 className="mt-1 h-8 text-sm"
                 onChange={e => {
                   const file = e.target.files?.[0] || null;
