@@ -1,5 +1,5 @@
 // Data layer using Laravel REST API
-import { apiFetch, apiUpload, apiUploadChunked } from '@/lib/api-client';
+import { apiFetch, apiUpload, apiUploadChunked, LARAVEL_API_URL, getToken } from '@/lib/api-client';
 
 export type BerkasStatus = 'Proses' | 'Validasi SU & Bidang' | 'Validasi BT' | 'Selesai' | 'Ditolak';
 export type JenisHak = 'HM' | 'HGB' | 'HP' | 'HGU' | 'HMSRS' | 'HPL' | 'HW';
@@ -54,6 +54,38 @@ function formatDate(dateStr: string): string {
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
 }
 
+function isHttpUrl(value: string): boolean {
+  return /^https?:\/\//i.test(value);
+}
+
+function normalizeStoredFilePath(filePath?: string | null): string {
+  const raw = String(filePath || '').trim();
+  if (!raw) return '';
+
+  let normalized = raw;
+
+  if (isHttpUrl(normalized)) {
+    try {
+      normalized = decodeURIComponent(new URL(normalized).pathname);
+    } catch {
+      normalized = raw;
+    }
+  }
+
+  normalized = normalized.split('?')[0]?.split('#')[0] || normalized;
+
+  const storageMarkerIndex = normalized.toLowerCase().indexOf('/storage/');
+  if (storageMarkerIndex >= 0) {
+    normalized = normalized.slice(storageMarkerIndex + '/storage/'.length);
+  }
+
+  return normalized
+    .replace(/^\/+/, '')
+    .replace(/^storage\//i, '')
+    .replace(/^public\//i, '')
+    .trim();
+}
+
 function mapBerkasRow(row: any): Berkas {
   return {
     id: row.id,
@@ -69,9 +101,9 @@ function mapBerkasRow(row: any): Berkas {
     userId: row.user_id || row.userId,
     linkShareloc: row.link_shareloc || row.linkShareloc || undefined,
     catatanPenolakan: row.catatan_penolakan || row.catatanPenolakan || undefined,
-    fileSertifikatUrl: row.file_sertifikat_url || row.fileSertifikatUrl || undefined,
-    fileKtpUrl: row.file_ktp_url || row.fileKtpUrl || undefined,
-    fileFotoBangunanUrl: row.file_foto_bangunan_url || row.fileFotoBangunanUrl || undefined,
+    fileSertifikatUrl: normalizeStoredFilePath(row.file_sertifikat_url || row.fileSertifikatUrl || undefined) || undefined,
+    fileKtpUrl: normalizeStoredFilePath(row.file_ktp_url || row.fileKtpUrl || undefined) || undefined,
+    fileFotoBangunanUrl: normalizeStoredFilePath(row.file_foto_bangunan_url || row.fileFotoBangunanUrl || undefined) || undefined,
     validatedBy: row.validated_by || row.validatedBy || undefined,
     validatedAt: row.validated_at || row.validatedAt || undefined,
     namaPemilikSertifikat: row.nama_pemilik_sertifikat || row.namaPemilikSertifikat || undefined,
@@ -159,7 +191,7 @@ export async function getBerkasByStatus(status: string | string[]): Promise<Berk
 }
 
 function getUploadResultPath(data: any, fallbackMessage: string): string {
-  const result = data?.path || data?.url;
+  const result = normalizeStoredFilePath(data?.path || data?.url);
   if (!result) throw new Error(fallbackMessage);
   return result;
 }
@@ -236,6 +268,38 @@ function combineUploadErrors(messages: string[]): Error {
   );
 }
 
+function getAuthDownloadHeaders(): Record<string, string> {
+  const token = getToken();
+  return token
+    ? {
+        Accept: '*/*',
+        Authorization: `Bearer ${token}`,
+        'X-Access-Token': token,
+      }
+    : { Accept: '*/*' };
+}
+
+async function fetchAuthenticatedFileBlobUrl(filePath: string): Promise<string | null> {
+  const normalizedPath = normalizeStoredFilePath(filePath);
+  if (!normalizedPath) return null;
+
+  const response = await fetch(`${LARAVEL_API_URL}/files/download/${encodeURIComponent(normalizedPath)}`, {
+    method: 'GET',
+    headers: getAuthDownloadHeaders(),
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const blob = await response.blob();
+  if (!blob.size) {
+    return null;
+  }
+
+  return URL.createObjectURL(blob);
+}
+
 export async function uploadFile(
   file: File,
   _userId: string,
@@ -288,9 +352,10 @@ export async function uploadFile(
 }
 
 export async function deleteUploadedFileByPath(filePath: string): Promise<boolean> {
-  if (!filePath) return true;
+  const normalizedPath = normalizeStoredFilePath(filePath);
+  if (!normalizedPath) return true;
   try {
-    await apiFetch(`/files/${encodeURIComponent(filePath)}`, { method: 'DELETE' });
+    await apiFetch(`/files/${encodeURIComponent(normalizedPath)}`, { method: 'DELETE' });
     return true;
   } catch {
     return false;
@@ -299,12 +364,24 @@ export async function deleteUploadedFileByPath(filePath: string): Promise<boolea
 
 export async function getSignedFileUrl(filePath: string): Promise<string | null> {
   if (!filePath) return null;
+
+  const normalizedPath = normalizeStoredFilePath(filePath);
+
   try {
-    const data = await apiFetch<{ url: string }>(`/files/url/${encodeURIComponent(filePath)}`);
-    return data.url || null;
+    const blobUrl = await fetchAuthenticatedFileBlobUrl(normalizedPath);
+    if (blobUrl) return blobUrl;
   } catch {
-    return null;
+    // fallback below
   }
+
+  try {
+    const data = await apiFetch<{ url: string }>(`/files/url/${encodeURIComponent(normalizedPath)}`);
+    if (data.url) return data.url;
+  } catch {
+    // fallback below
+  }
+
+  return isHttpUrl(filePath) ? filePath : null;
 }
 
 function parseDateDDMMYYYY(dateStr: string): string {

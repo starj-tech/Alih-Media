@@ -212,6 +212,14 @@ function uint8ArrayToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+function tryParseJsonText(text: string): any | null {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
 async function parseChunkUploadResponse(res: Response, fallbackMessage: string) {
   const contentType = (res.headers.get('content-type') || '').toLowerCase();
 
@@ -248,9 +256,10 @@ async function parseChunkUploadResponse(res: Response, fallbackMessage: string) 
 
   const text = await res.text().catch(() => '');
   const normalizedText = text.trim();
+  const jsonFromText = normalizedText ? tryParseJsonText(normalizedText) : null;
 
   if (!res.ok) {
-    const message = normalizedText || `${fallbackMessage} (HTTP ${res.status})`;
+    const message = extractApiError(jsonFromText, normalizedText || `${fallbackMessage} (HTTP ${res.status})`);
 
     if (res.status === 401) {
       notifyAuthInvalid(message || 'Sesi tidak valid. Silakan login kembali.');
@@ -261,6 +270,10 @@ async function parseChunkUploadResponse(res: Response, fallbackMessage: string) 
     }
 
     throw createUploadError(message);
+  }
+
+  if (jsonFromText && typeof jsonFromText === 'object') {
+    return jsonFromText;
   }
 
   return normalizedText ? { message: normalizedText } : {};
@@ -277,6 +290,7 @@ async function postChunkWithStrategy(params: {
   const url = `${LARAVEL_API_URL}${params.endpoint}?${params.query.toString()}`;
   const baseHeaders: Record<string, string> = {
     Accept: 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
     ...authTokenHeaders(params.token),
   };
 
@@ -347,7 +361,7 @@ export async function apiUploadChunked(
   onProgress?: (percent: number) => void,
 ): Promise<any> {
   const token = getToken();
-  const chunkSize = 256 * 1024;
+  const chunkSize = 128 * 1024;
   const totalChunks = Math.max(1, Math.ceil(file.size / chunkSize));
   const uploadSessionId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   const strategies = [

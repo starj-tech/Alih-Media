@@ -197,6 +197,29 @@ class FileController extends Controller
         return is_dir($dirPath) || (@mkdir($dirPath, 0775, true) && is_dir($dirPath));
     }
 
+    private function normalizeStoredPath(string $path): string
+    {
+        $fullPath = trim(urldecode($path));
+
+        if ($fullPath === '') {
+            return '';
+        }
+
+        if (preg_match('/^https?:\/\//i', $fullPath)) {
+            $parsedPath = parse_url($fullPath, PHP_URL_PATH);
+            if (is_string($parsedPath) && $parsedPath !== '') {
+                $fullPath = $parsedPath;
+            }
+        }
+
+        $storagePosition = stripos($fullPath, '/storage/');
+        if ($storagePosition !== false) {
+            $fullPath = substr($fullPath, $storagePosition + 9);
+        }
+
+        return ltrim(preg_replace('/^public\//i', '', $fullPath), '/');
+    }
+
     private function cleanupChunkDirectory(string $dirPath): void
     {
         if (!is_dir($dirPath)) {
@@ -428,9 +451,9 @@ class FileController extends Controller
 
     public function download(Request $request, $path)
     {
-        $fullPath = urldecode($path);
+        $fullPath = $this->normalizeStoredPath($path);
 
-        if (!Storage::disk('public')->exists($fullPath)) {
+        if ($fullPath === '' || !Storage::disk('public')->exists($fullPath)) {
             return response()->json(['error' => 'File tidak ditemukan'], 404);
         }
 
@@ -439,9 +462,9 @@ class FileController extends Controller
 
     public function getUrl(Request $request, $path)
     {
-        $fullPath = urldecode($path);
+        $fullPath = $this->normalizeStoredPath($path);
 
-        if (!Storage::disk('public')->exists($fullPath)) {
+        if ($fullPath === '' || !Storage::disk('public')->exists($fullPath)) {
             return response()->json(['error' => 'File tidak ditemukan'], 404);
         }
 
@@ -452,9 +475,9 @@ class FileController extends Controller
 
     public function destroy(Request $request, $path)
     {
-        $fullPath = urldecode($path);
+        $fullPath = $this->normalizeStoredPath($path);
 
-        if (Storage::disk('public')->exists($fullPath)) {
+        if ($fullPath !== '' && Storage::disk('public')->exists($fullPath)) {
             Storage::disk('public')->delete($fullPath);
         }
 
