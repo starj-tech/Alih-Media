@@ -17,27 +17,32 @@ export default function FileDownloadCell({ url, label }: FileDownloadCellProps) 
   const handleClick = async () => {
     setLoading(true);
     try {
-      const signedUrl = await getSignedFileUrl(url);
-      if (!signedUrl) {
-        toast.error('Gagal membuka file. File tidak ditemukan di storage.');
+      const result = await getSignedFileUrl(url);
+
+      if (!result) {
+        toast.error(`File ${label} tidak ditemukan di server. Kemungkinan file sudah dihapus atau path berubah.`);
         return;
       }
 
-      const isBlobUrl = signedUrl.startsWith('blob:');
       const a = document.createElement('a');
-      a.href = signedUrl;
+      a.href = result;
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
 
-      if (isBlobUrl) {
-        window.setTimeout(() => URL.revokeObjectURL(signedUrl), 60000);
+      if (result.startsWith('blob:')) {
+        setTimeout(() => URL.revokeObjectURL(result), 60000);
       }
-    } catch (err) {
+    } catch (err: any) {
+      const msg = String(err?.message || '').toLowerCase();
+      if (msg.includes('sesi tidak valid') || msg.includes('unauthorized')) {
+        toast.error('Sesi login sudah berakhir. Silakan login kembali.');
+      } else {
+        toast.error(`Gagal membuka file ${label}. Coba lagi nanti.`);
+      }
       console.error('Error opening file:', err);
-      toast.error('Gagal membuka file. Terjadi kesalahan.');
     } finally {
       setLoading(false);
     }

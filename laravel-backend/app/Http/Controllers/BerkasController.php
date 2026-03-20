@@ -55,6 +55,33 @@ class BerkasController extends Controller
         return response()->json($berkas);
     }
 
+    /**
+     * Normalize a file path to relative-only format before saving to database.
+     * Strips absolute URLs, /storage/, public/ prefixes.
+     */
+    private function normalizeFilePath($path)
+    {
+        if (!$path || !is_string($path)) return null;
+        $clean = trim($path);
+        if ($clean === '') return null;
+
+        // Strip full URL
+        if (preg_match('/^https?:\/\//i', $clean)) {
+            $parsed = parse_url($clean, PHP_URL_PATH);
+            if (is_string($parsed) && $parsed !== '') {
+                $clean = $parsed;
+            }
+        }
+
+        // Strip /storage/ prefix
+        $pos = stripos($clean, '/storage/');
+        if ($pos !== false) {
+            $clean = substr($clean, $pos + 9);
+        }
+
+        return ltrim(preg_replace('/^public\//i', '', $clean), '/') ?: null;
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -102,9 +129,9 @@ class BerkasController extends Controller
             'no_telepon' => $request->no_telepon ? $request->no_telepon : '',
             'no_wa_pemohon' => $request->no_wa_pemohon,
             'link_shareloc' => $request->link_shareloc,
-            'file_sertifikat_url' => $request->file_sertifikat_url,
-            'file_ktp_url' => $request->file_ktp_url,
-            'file_foto_bangunan_url' => $request->file_foto_bangunan_url,
+            'file_sertifikat_url' => $this->normalizeFilePath($request->file_sertifikat_url),
+            'file_ktp_url' => $this->normalizeFilePath($request->file_ktp_url),
+            'file_foto_bangunan_url' => $this->normalizeFilePath($request->file_foto_bangunan_url),
         ]);
 
         return response()->json($berkas, 201);
@@ -125,7 +152,16 @@ class BerkasController extends Controller
             'file_sertifikat_url', 'file_ktp_url', 'file_foto_bangunan_url',
         ];
 
-        $berkas->update($request->only($allowed));
+        $data = $request->only($allowed);
+
+        // Normalize file paths
+        foreach (['file_sertifikat_url', 'file_ktp_url', 'file_foto_bangunan_url'] as $field) {
+            if (isset($data[$field])) {
+                $data[$field] = $this->normalizeFilePath($data[$field]);
+            }
+        }
+
+        $berkas->update($data);
 
         return response()->json($berkas);
     }
