@@ -32,6 +32,9 @@ Route::get('/health', function () {
     ]);
 });
 
+// Storage diagnostics (authenticated)
+Route::middleware('auth:sanctum')->get('/health/storage', [\App\Http\Controllers\FileController::class, 'storageHealth']);
+
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/register', [AuthController::class, 'register']);

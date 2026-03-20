@@ -152,7 +152,16 @@ class BerkasController extends Controller
             'file_sertifikat_url', 'file_ktp_url', 'file_foto_bangunan_url',
         ];
 
-        $berkas->update($request->only($allowed));
+        $data = $request->only($allowed);
+
+        // Normalize file paths
+        foreach (['file_sertifikat_url', 'file_ktp_url', 'file_foto_bangunan_url'] as $field) {
+            if (isset($data[$field])) {
+                $data[$field] = $this->normalizeFilePath($data[$field]);
+            }
+        }
+
+        $berkas->update($data);
 
         return response()->json($berkas);
     }
