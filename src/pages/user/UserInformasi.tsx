@@ -76,7 +76,7 @@ export default function UserInformasi() {
   };
 
   const validateFileImage = (file: File): boolean => {
-    if (!['image/jpeg', 'image/jpg'].includes(file.type)) { toast.error('File harus berformat JPG/JPEG'); return false; }
+    if (!['image/jpeg', 'image/jpg', 'image/png'].includes(file.type)) { toast.error('File harus berformat JPG/JPEG/PNG'); return false; }
     if (file.size > 5 * 1024 * 1024) { toast.error('Ukuran file maksimal 5MB'); return false; }
     return true;
   };
