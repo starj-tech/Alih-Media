@@ -54,17 +54,18 @@ function formatDate(dateStr: string): string {
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
 }
 
-function isHttpUrl(value: string): boolean {
-  return /^https?:\/\//i.test(value);
-}
-
+/**
+ * Normalize stored file path: strip absolute URLs, /storage/, public/ prefixes.
+ * Returns clean relative path like "uuid/sertifikat/file.pdf"
+ */
 function normalizeStoredFilePath(filePath?: string | null): string {
   const raw = String(filePath || '').trim();
   if (!raw) return '';
 
   let normalized = raw;
 
-  if (isHttpUrl(normalized)) {
+  // Strip full URL to pathname
+  if (/^https?:\/\//i.test(normalized)) {
     try {
       normalized = decodeURIComponent(new URL(normalized).pathname);
     } catch {
@@ -72,11 +73,13 @@ function normalizeStoredFilePath(filePath?: string | null): string {
     }
   }
 
+  // Remove query/hash
   normalized = normalized.split('?')[0]?.split('#')[0] || normalized;
 
-  const storageMarkerIndex = normalized.toLowerCase().indexOf('/storage/');
-  if (storageMarkerIndex >= 0) {
-    normalized = normalized.slice(storageMarkerIndex + '/storage/'.length);
+  // Strip /storage/ prefix
+  const idx = normalized.toLowerCase().indexOf('/storage/');
+  if (idx >= 0) {
+    normalized = normalized.slice(idx + '/storage/'.length);
   }
 
   return normalized
@@ -101,9 +104,9 @@ function mapBerkasRow(row: any): Berkas {
     userId: row.user_id || row.userId,
     linkShareloc: row.link_shareloc || row.linkShareloc || undefined,
     catatanPenolakan: row.catatan_penolakan || row.catatanPenolakan || undefined,
-    fileSertifikatUrl: normalizeStoredFilePath(row.file_sertifikat_url || row.fileSertifikatUrl || undefined) || undefined,
-    fileKtpUrl: normalizeStoredFilePath(row.file_ktp_url || row.fileKtpUrl || undefined) || undefined,
-    fileFotoBangunanUrl: normalizeStoredFilePath(row.file_foto_bangunan_url || row.fileFotoBangunanUrl || undefined) || undefined,
+    fileSertifikatUrl: normalizeStoredFilePath(row.file_sertifikat_url || row.fileSertifikatUrl) || undefined,
+    fileKtpUrl: normalizeStoredFilePath(row.file_ktp_url || row.fileKtpUrl) || undefined,
+    fileFotoBangunanUrl: normalizeStoredFilePath(row.file_foto_bangunan_url || row.fileFotoBangunanUrl) || undefined,
     validatedBy: row.validated_by || row.validatedBy || undefined,
     validatedAt: row.validated_at || row.validatedAt || undefined,
     namaPemilikSertifikat: row.nama_pemilik_sertifikat || row.namaPemilikSertifikat || undefined,
@@ -118,10 +121,6 @@ function extractRows(data: any): any[] {
   return [];
 }
 
-/**
- * Fetch berkas with server-side pagination.
- * Returns paginated response with metadata.
- */
 export async function fetchBerkasPaginated(options?: {
   status?: string;
   page?: number;
@@ -147,10 +146,6 @@ export async function fetchBerkasPaginated(options?: {
   }
 }
 
-/**
- * Fetch berkas - returns just the array (single page only).
- * For paginated usage, prefer fetchBerkasPaginated().
- */
 export async function fetchBerkas(options?: {
   status?: string;
   page?: number;
@@ -170,9 +165,6 @@ export async function getBerkasByUser(userId: string): Promise<Berkas[]> {
   return fetchBerkas();
 }
 
-/**
- * Fetch berkas filtered by specific status(es) - paginated
- */
 export async function getBerkasByStatusPaginated(
   status: string | string[],
   page = 1,
@@ -182,213 +174,115 @@ export async function getBerkasByStatusPaginated(
   return fetchBerkasPaginated({ status: statusStr, page, perPage });
 }
 
-/**
- * Fetch berkas filtered by specific status(es) - returns array (single page)
- */
 export async function getBerkasByStatus(status: string | string[]): Promise<Berkas[]> {
   const statusStr = Array.isArray(status) ? status.join(',') : status;
   return fetchBerkas({ status: statusStr });
 }
 
-function getUploadResultPath(data: any, fallbackMessage: string): string {
+// ==========================================
+// FILE UPLOAD
+// ==========================================
+
+function getUploadResultPath(data: any, fallback: string): string {
   const result = normalizeStoredFilePath(data?.path || data?.url);
-  if (!result) throw new Error(fallbackMessage);
+  if (!result) throw new Error(fallback);
   return result;
 }
 
-function normalizeUploadErrorMessage(error: unknown): string {
-  return String((error as any)?.message || '').replace(/\s+/g, ' ').trim();
-}
-
-function isNonRetryableUploadError(message: string): boolean {
-  const lower = message.toLowerCase();
-
-  return [
-    'file sertifikat harus berformat pdf',
-    'file harus berformat jpg/jpeg/png',
-    'format file tidak sesuai',
-    'tipe file tidak didukung',
-    'file wajib diunggah',
-    'sesi tidak valid',
-    'forbidden',
-    'unauthenticated',
-    'akses ditolak',
-  ].some(keyword => lower.includes(keyword));
-}
-
-function shouldRetryWithAlternateUpload(message: string): boolean {
-  if (!message) return true;
-  if (isNonRetryableUploadError(message)) return false;
-
-  const lower = message.toLowerCase();
-  return [
-    'validation.uploaded',
-    'file: uploaded',
-    'failed to upload',
-    'upload gagal',
-    'upload_transport_failed',
-    'upload file biasa',
-    'upload bertahap sebagai cadangan',
-    'server gagal memproses upload file biasa',
-    'gagal memproses upload file biasa',
-    'server error',
-    'respons tidak valid',
-    'http 0',
-    'status 0',
-    'koneksi',
-    'timeout',
-    'melebihi batas',
-    'too large',
-    'tidak dapat terhubung',
-    'chunk kosong',
-    'php://input',
-    '500',
-    '413',
-  ].some(keyword => lower.includes(keyword));
-}
-
-function combineUploadErrors(messages: string[]): Error {
-  const uniqueMessages = Array.from(new Set(messages.map(normalizeUploadErrorMessage).filter(Boolean)));
-
-  if (uniqueMessages.length === 0) {
-    return new Error('Upload file gagal pada semua metode yang tersedia.');
-  }
-
-  const primaryMessage = uniqueMessages.find(message => {
-    const lower = message.toLowerCase();
-    return lower.includes('folder vendor') || lower.includes('sesi tidak valid') || lower.includes('akses ditolak');
-  }) || uniqueMessages[0];
-
-  const secondaryMessages = uniqueMessages.filter(message => message !== primaryMessage);
-
-  return new Error(
-    secondaryMessages.length > 0
-      ? `${primaryMessage} | Detail: ${secondaryMessages.join(' | ')}`
-      : primaryMessage,
-  );
-}
-
-function getAuthDownloadHeaders(): Record<string, string> {
-  const token = getToken();
-  return token
-    ? {
-        Accept: '*/*',
-        Authorization: `Bearer ${token}`,
-        'X-Access-Token': token,
-      }
-    : { Accept: '*/*' };
-}
-
-async function fetchAuthenticatedFileBlobUrl(filePath: string): Promise<string | null> {
-  const normalizedPath = normalizeStoredFilePath(filePath);
-  if (!normalizedPath) return null;
-
-  const response = await fetch(`${LARAVEL_API_URL}/files/download/${encodeURIComponent(normalizedPath)}`, {
-    method: 'GET',
-    headers: getAuthDownloadHeaders(),
-  });
-
-  if (!response.ok) {
-    return null;
-  }
-
-  const blob = await response.blob();
-  if (!blob.size) {
-    return null;
-  }
-
-  return URL.createObjectURL(blob);
-}
-
+/**
+ * Upload a file. Strategy:
+ * 1. Chunked upload (primary - most reliable on restrictive servers)
+ * 2. Standard multipart (fallback)
+ */
 export async function uploadFile(
   file: File,
   _userId: string,
   type: 'sertifikat' | 'ktp' | 'foto-bangunan',
   onProgress?: (percent: number) => void,
 ): Promise<string> {
+  // Primary: chunked upload
+  try {
+    const data = await apiUploadChunked('/files/upload-chunk', file, type, onProgress);
+    return getUploadResultPath(data, 'Server tidak mengembalikan path file');
+  } catch (err: any) {
+    // If fatal (wrong type, auth), don't fallback
+    if (err?.fatal) throw err;
+    console.warn('[Upload] Chunked failed, trying standard:', err?.message);
+  }
+
+  // Fallback: standard multipart
   const formData = new FormData();
   formData.append('file', file);
   formData.append('type', type);
 
-  const uploadChunked = async () => {
-    const data = await apiUploadChunked('/files/upload-chunk', file, type, onProgress);
-    return getUploadResultPath(data, 'Server tidak mengembalikan path file dari upload bertahap');
-  };
-
-  const uploadStandard = async () => {
-    const data = await apiUpload('/files/upload', formData, onProgress);
-    return getUploadResultPath(data, 'Server tidak mengembalikan path file');
-  };
-
-  const errors: string[] = [];
-
-  try {
-    return await uploadChunked();
-  } catch (error) {
-    const chunkedErrorMessage = normalizeUploadErrorMessage(error);
-    if (chunkedErrorMessage) errors.push(`chunked-1: ${chunkedErrorMessage}`);
-    if (!shouldRetryWithAlternateUpload(chunkedErrorMessage)) {
-      throw error;
-    }
-  }
-
-  try {
-    return await uploadStandard();
-  } catch (error) {
-    const standardErrorMessage = normalizeUploadErrorMessage(error);
-    if (standardErrorMessage) errors.push(`standard: ${standardErrorMessage}`);
-    if (!shouldRetryWithAlternateUpload(standardErrorMessage)) {
-      throw error;
-    }
-  }
-
-  try {
-    return await uploadChunked();
-  } catch (error) {
-    const finalChunkedErrorMessage = normalizeUploadErrorMessage(error);
-    if (finalChunkedErrorMessage) errors.push(`chunked-2: ${finalChunkedErrorMessage}`);
-    throw combineUploadErrors(errors);
-  }
+  const data = await apiUpload('/files/upload', formData, onProgress);
+  return getUploadResultPath(data, 'Server tidak mengembalikan path file');
 }
 
 export async function deleteUploadedFileByPath(filePath: string): Promise<boolean> {
-  const normalizedPath = normalizeStoredFilePath(filePath);
-  if (!normalizedPath) return true;
+  const normalized = normalizeStoredFilePath(filePath);
+  if (!normalized) return true;
   try {
-    await apiFetch(`/files/${encodeURIComponent(normalizedPath)}`, { method: 'DELETE' });
+    await apiFetch(`/files/${encodeURIComponent(normalized)}`, { method: 'DELETE' });
     return true;
   } catch {
     return false;
   }
 }
 
+// ==========================================
+// FILE DOWNLOAD
+// ==========================================
+
+function getAuthHeaders(): Record<string, string> {
+  const token = getToken();
+  return token
+    ? { Accept: '*/*', Authorization: `Bearer ${token}`, 'X-Access-Token': token }
+    : { Accept: '*/*' };
+}
+
+/**
+ * Get a viewable URL for a stored file.
+ * Uses authenticated blob download as primary method (handles legacy paths via backend resolver).
+ */
 export async function getSignedFileUrl(filePath: string): Promise<string | null> {
   if (!filePath) return null;
+  const normalized = normalizeStoredFilePath(filePath);
+  if (!normalized) return null;
 
-  const normalizedPath = normalizeStoredFilePath(filePath);
-
+  // Primary: authenticated download -> blob URL
   try {
-    const blobUrl = await fetchAuthenticatedFileBlobUrl(normalizedPath);
-    if (blobUrl) return blobUrl;
+    const res = await fetch(
+      `${LARAVEL_API_URL}/files/download/${encodeURIComponent(normalized)}`,
+      { method: 'GET', headers: getAuthHeaders() },
+    );
+
+    if (res.ok) {
+      const blob = await res.blob();
+      if (blob.size > 0) return URL.createObjectURL(blob);
+    }
   } catch {
     // fallback below
   }
 
+  // Fallback: get URL from backend
   try {
-    const data = await apiFetch<{ url: string }>(`/files/url/${encodeURIComponent(normalizedPath)}`);
+    const data = await apiFetch<{ url: string }>(`/files/url/${encodeURIComponent(normalized)}`);
     if (data.url) return data.url;
   } catch {
     // fallback below
   }
 
-  return isHttpUrl(filePath) ? filePath : null;
+  return null;
 }
+
+// ==========================================
+// BERKAS CRUD
+// ==========================================
 
 function parseDateDDMMYYYY(dateStr: string): string {
   const parts = dateStr.split('/');
-  if (parts.length === 3) {
-    return `${parts[2]}-${parts[1]}-${parts[0]}`;
-  }
+  if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
   return dateStr;
 }
 
