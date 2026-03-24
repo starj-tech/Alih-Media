@@ -122,6 +122,14 @@ class FileController extends Controller
         }
         $results['sample_files'] = $sampleFiles;
 
+        // PHP limits (crucial for upload debugging)
+        $results['php_limits'] = [
+            'upload_max_filesize' => ini_get('upload_max_filesize'),
+            'post_max_size' => ini_get('post_max_size'),
+            'max_execution_time' => ini_get('max_execution_time'),
+            'memory_limit' => ini_get('memory_limit'),
+        ];
+
         return response()->json($results);
     }
 
@@ -301,7 +309,27 @@ class FileController extends Controller
 
     private function readChunkBinary(Request $request)
     {
-        // Priority 1: Base64 in body
+        // Priority 0: text/plain body → treat as raw base64 string
+        // This is the most reliable method because text/plain does NOT trigger CORS preflight
+        $contentType = strtolower((string) $request->header('Content-Type', ''));
+
+        if (strpos($contentType, 'text/plain') !== false) {
+            $raw = $request->getContent();
+            if (!is_string($raw) || trim($raw) === '') {
+                $raw = @file_get_contents('php://input');
+            }
+            if (is_string($raw) && trim($raw) !== '') {
+                $clean = preg_replace('/^data:[^;]+;base64,/', '', trim($raw));
+                $decoded = base64_decode(str_replace([' ', "\n", "\r"], ['+', '', ''], $clean), true);
+                if (is_string($decoded) && $decoded !== '') {
+                    Log::info('[FileController] Chunk read via text/plain base64 (' . strlen($decoded) . ' bytes)');
+                    return $decoded;
+                }
+                Log::warning('[FileController] text/plain body present but base64 decode failed, len=' . strlen($raw));
+            }
+        }
+
+        // Priority 1: Base64 in body (JSON or form-encoded)
         $b64 = $request->input('chunk_base64', $request->input('chunkBase64'));
         if (is_string($b64) && trim($b64) !== '') {
             $clean = preg_replace('/^data:[^;]+;base64,/', '', trim($b64));
@@ -312,7 +340,6 @@ class FileController extends Controller
         }
 
         // Priority 1b: raw octet-stream body
-        $contentType = strtolower((string) $request->header('Content-Type', ''));
         if (strpos($contentType, 'application/octet-stream') !== false) {
             $raw = $request->getContent();
             if (is_string($raw) && $raw !== '') return $raw;

@@ -204,8 +204,11 @@ export async function apiUploadChunked(
   const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   const errors: string[] = [];
 
-  // Strategies: raw binary (primary), JSON base64, urlencoded base64
-  const strategies = ['binary', 'json', 'urlencoded'] as const;
+  // Strategies ordered by reliability on restrictive shared hosting:
+  // 1. text/plain base64 — NO CORS preflight, no binary filter issues
+  // 2. application/json base64 — standard but triggers preflight
+  // 3. application/octet-stream raw — may be blocked by WAF/mod_security
+  const strategies = ['plain', 'json', 'binary'] as const;
 
   for (const strategy of strategies) {
     const sid = `${uploadId}-${strategy}`;
@@ -233,7 +236,14 @@ export async function apiUploadChunked(
         };
 
         let res: Response;
-        if (strategy === 'binary') {
+        if (strategy === 'plain') {
+          // text/plain does NOT trigger CORS preflight — most reliable on shared hosting
+          res = await fetch(url, {
+            method: 'POST',
+            headers: { ...headers, 'Content-Type': 'text/plain' },
+            body: b64,
+          });
+        } else if (strategy === 'binary') {
           res = await fetch(url, {
             method: 'POST',
             headers: { ...headers, 'Content-Type': 'application/octet-stream' },
@@ -245,12 +255,6 @@ export async function apiUploadChunked(
             headers: { ...headers, 'Content-Type': 'application/json' },
             body: JSON.stringify({ chunk_base64: b64 }),
           });
-        } else {
-          res = await fetch(url, {
-            method: 'POST',
-            headers,
-            body: new URLSearchParams({ chunk_base64: b64 }),
-          });
         }
 
         const data = await parseUploadResponse(res, `Upload chunk ${i + 1}/${totalChunks}`);
@@ -260,11 +264,9 @@ export async function apiUploadChunked(
       }
     } catch (err: any) {
       errors.push(`${strategy}: ${err?.message || 'gagal'}`);
-      // If it's a fatal error (wrong file type, auth), don't try next strategy
       if (err?.fatal) throw err;
-      // If it's the last strategy, throw
       if (strategy === strategies[strategies.length - 1]) throw err;
-      console.warn(`[Upload] Strategy "${strategy}" failed: ${err?.message}. Trying next...`);
+      console.warn(`[Upload] Chunked strategy "${strategy}" failed:`, err?.message, '→ trying next');
     }
   }
 

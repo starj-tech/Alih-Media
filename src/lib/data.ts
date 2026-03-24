@@ -191,8 +191,9 @@ function getUploadResultPath(data: any, fallback: string): string {
 
 /**
  * Upload a file. Strategy:
- * 1. Chunked raw-binary/base64 (paling tahan limit server produksi)
- * 2. Single-request base64 (fallback bila chunked ditolak server)
+ * 1. Chunked upload (text/plain → json → binary strategies)
+ *    128KB chunks stay well under any post_max_size limit.
+ * Single-request base64 removed — it fails when file exceeds post_max_size.
  */
 export async function uploadFile(
   file: File,
@@ -200,27 +201,10 @@ export async function uploadFile(
   type: 'sertifikat' | 'ktp' | 'foto-bangunan',
   onProgress?: (percent: number) => void,
 ): Promise<string> {
-  const errors: string[] = [];
-
-  // Primary: chunked upload
-  try {
-    const data = await apiUploadChunked('/files/upload-chunk', file, type, onProgress);
-    return getUploadResultPath(data, 'Server tidak mengembalikan path file');
-  } catch (err: any) {
-    errors.push(`chunked: ${err?.message || 'gagal'}`);
-    if (err?.fatal) throw err;
-    console.warn('[Upload] Chunked upload failed, trying single-request base64:', err?.message);
-  }
-
-  // Secondary fallback: single-request base64
-  try {
-    const data = await apiUploadBase64('/files/upload', file, type, onProgress);
-    return getUploadResultPath(data, 'Server tidak mengembalikan path file');
-  } catch (err: any) {
-    errors.push(`base64: ${err?.message || 'gagal'}`);
-    if (err?.fatal) throw err;
-    throw new Error(`Upload ${type} gagal. ${errors.join(' | ')}`);
-  }
+  // Only use chunked upload — it's the only reliable method on restrictive servers
+  // because each chunk (128KB) stays well under PHP post_max_size limits.
+  const data = await apiUploadChunked('/files/upload-chunk', file, type, onProgress);
+  return getUploadResultPath(data, 'Server tidak mengembalikan path file');
 }
 
 export async function deleteUploadedFileByPath(filePath: string): Promise<boolean> {
