@@ -11,6 +11,17 @@ class FileController extends Controller
     private const MAX_FILE_SIZE_BYTES = 5242880;
     private const MAX_CHUNK_SIZE_BYTES = 1048576;
 
+    private function buildPublicFileUrl($path)
+    {
+        $normalized = $this->normalizeStoredPath($path);
+        $baseUrl = rtrim((string) config('app.url'), '/');
+        $encodedSegments = array_map('rawurlencode', array_values(array_filter(explode('/', $normalized), function ($segment) {
+            return $segment !== null && $segment !== '';
+        })));
+
+        return $baseUrl . '/storage/' . implode('/', $encodedSegments);
+    }
+
     // ==========================================
     // STORAGE HEALTH DIAGNOSTIC
     // ==========================================
@@ -196,7 +207,7 @@ class FileController extends Controller
             }
         }
 
-        // Candidate 3: scan top-level user UUID directories for the basename
+        // Candidate 3: scan top-level user/user-id directories for the basename
         $publicRoot = storage_path('app/public');
         if (is_dir($publicRoot)) {
             $topDirs = @scandir($publicRoot);
@@ -213,6 +224,38 @@ class FileController extends Controller
                         }
                     }
                 }
+            }
+        }
+
+        // Candidate 4: suffix match anywhere in public storage
+        if (is_dir($publicRoot)) {
+            try {
+                $iterator = new \RecursiveIteratorIterator(
+                    new \RecursiveDirectoryIterator($publicRoot, \RecursiveDirectoryIterator::SKIP_DOTS),
+                    \RecursiveIteratorIterator::LEAVES_ONLY
+                );
+
+                $normalizedLower = strtolower(str_replace('\\', '/', $normalized));
+                $basenameLower = strtolower($basename);
+
+                foreach ($iterator as $file) {
+                    if (!$file->isFile()) continue;
+
+                    $full = str_replace('\\', '/', $file->getPathname());
+                    $relative = ltrim(str_replace(str_replace('\\', '/', $publicRoot), '', $full), '/');
+                    $relativeLower = strtolower($relative);
+
+                    if (
+                        $relativeLower === $normalizedLower
+                        || substr($relativeLower, -strlen($normalizedLower)) === $normalizedLower
+                        || basename($relativeLower) === $basenameLower
+                    ) {
+                        Log::info("[FileController] Resolved: recursive match '{$relative}'");
+                        return $relative;
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning('[FileController] Recursive resolver failed: ' . $e->getMessage());
             }
         }
 
@@ -332,7 +375,7 @@ class FileController extends Controller
             'path' => $finalPath,
             'response' => response()->json([
                 'path' => $finalPath,
-                'url' => Storage::disk('public')->url($finalPath),
+                'url' => $this->buildPublicFileUrl($finalPath),
             ]),
         ];
     }
@@ -586,7 +629,7 @@ class FileController extends Controller
             return $this->errorResponse('File tidak ditemukan', 404, 'file_not_found');
         }
 
-        return response()->json(['url' => Storage::disk('public')->url($resolved)]);
+        return response()->json(['url' => $this->buildPublicFileUrl($resolved)]);
     }
 
     public function destroy(Request $request, $path)

@@ -191,8 +191,9 @@ function getUploadResultPath(data: any, fallback: string): string {
 
 /**
  * Upload a file. Strategy:
- * 1. Chunked upload (primary - most reliable on restrictive servers)
- * 2. Standard multipart (fallback)
+ * 1. Single-request base64 (paling stabil di server produksi saat ini)
+ * 2. Chunked upload (fallback untuk kondisi tertentu)
+ * 3. Standard multipart (fallback terakhir)
  */
 export async function uploadFile(
   file: File,
@@ -200,23 +201,22 @@ export async function uploadFile(
   type: 'sertifikat' | 'ktp' | 'foto-bangunan',
   onProgress?: (percent: number) => void,
 ): Promise<string> {
-  // Primary: chunked upload
-  try {
-    const data = await apiUploadChunked('/files/upload-chunk', file, type, onProgress);
-    return getUploadResultPath(data, 'Server tidak mengembalikan path file');
-  } catch (err: any) {
-    // If fatal (wrong type, auth), don't fallback
-    if (err?.fatal) throw err;
-    console.warn('[Upload] Chunked failed, trying standard:', err?.message);
-  }
-
-  // Secondary fallback: single-request base64 (avoids multipart parsing issues on restrictive servers)
+  // Primary: single-request base64
   try {
     const data = await apiUploadBase64('/files/upload', file, type, onProgress);
     return getUploadResultPath(data, 'Server tidak mengembalikan path file');
   } catch (err: any) {
     if (err?.fatal) throw err;
-    console.warn('[Upload] Base64 fallback failed, trying standard multipart:', err?.message);
+    console.warn('[Upload] Base64 upload failed, trying chunked:', err?.message);
+  }
+
+  // Secondary fallback: chunked upload
+  try {
+    const data = await apiUploadChunked('/files/upload-chunk', file, type, onProgress);
+    return getUploadResultPath(data, 'Server tidak mengembalikan path file');
+  } catch (err: any) {
+    if (err?.fatal) throw err;
+    console.warn('[Upload] Chunked fallback failed, trying standard multipart:', err?.message);
   }
 
   // Fallback: standard multipart
@@ -250,6 +250,43 @@ function getAuthHeaders(): Record<string, string> {
     : { Accept: '*/*' };
 }
 
+function normalizePublicFileUrl(url?: string | null): string {
+  const raw = String(url || '').trim();
+  if (!raw) return '';
+
+  const fixedProtocol = raw.replace(/^(https?):(https?:\/\/)/i, '$2');
+
+  try {
+    return new URL(fixedProtocol).toString();
+  } catch {
+    try {
+      const apiOrigin = new URL(LARAVEL_API_URL).origin;
+      if (fixedProtocol.startsWith('/')) return new URL(fixedProtocol, apiOrigin).toString();
+      return new URL(`/${fixedProtocol.replace(/^\/+/, '')}`, apiOrigin).toString();
+    } catch {
+      return fixedProtocol;
+    }
+  }
+}
+
+function buildDirectStorageUrl(filePath: string): string | null {
+  const normalized = normalizeStoredFilePath(filePath);
+  if (!normalized) return null;
+
+  try {
+    const apiOrigin = new URL(LARAVEL_API_URL).origin;
+    const encodedPath = normalized
+      .split('/')
+      .filter(Boolean)
+      .map(segment => encodeURIComponent(segment))
+      .join('/');
+
+    return `${apiOrigin}/storage/${encodedPath}`;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Get a viewable URL for a stored file.
  * Uses authenticated blob download as primary method (handles legacy paths via backend resolver).
@@ -277,12 +314,12 @@ export async function getSignedFileUrl(filePath: string): Promise<string | null>
   // Fallback: get URL from backend
   try {
     const data = await apiFetch<{ url: string }>(`/files/url/${encodeURIComponent(normalized)}`);
-    if (data.url) return data.url;
+    if (data.url) return normalizePublicFileUrl(data.url);
   } catch {
     // fallback below
   }
 
-  return null;
+  return buildDirectStorageUrl(normalized);
 }
 
 // ==========================================
