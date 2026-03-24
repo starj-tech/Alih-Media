@@ -202,9 +202,10 @@ export async function apiUploadChunked(
   const chunkSize = 128 * 1024;
   const totalChunks = Math.max(1, Math.ceil(file.size / chunkSize));
   const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const errors: string[] = [];
 
-  // Two strategies: JSON base64 (primary), urlencoded base64 (fallback)
-  const strategies = ['json', 'urlencoded'] as const;
+  // Strategies: raw binary (primary), JSON base64, urlencoded base64
+  const strategies = ['binary', 'json', 'urlencoded'] as const;
 
   for (const strategy of strategies) {
     const sid = `${uploadId}-${strategy}`;
@@ -232,7 +233,13 @@ export async function apiUploadChunked(
         };
 
         let res: Response;
-        if (strategy === 'json') {
+        if (strategy === 'binary') {
+          res = await fetch(url, {
+            method: 'POST',
+            headers: { ...headers, 'Content-Type': 'application/octet-stream' },
+            body: buffer,
+          });
+        } else if (strategy === 'json') {
           res = await fetch(url, {
             method: 'POST',
             headers: { ...headers, 'Content-Type': 'application/json' },
@@ -252,6 +259,7 @@ export async function apiUploadChunked(
         if (i === totalChunks - 1) return data;
       }
     } catch (err: any) {
+      errors.push(`${strategy}: ${err?.message || 'gagal'}`);
       // If it's a fatal error (wrong file type, auth), don't try next strategy
       if (err?.fatal) throw err;
       // If it's the last strategy, throw
@@ -260,7 +268,7 @@ export async function apiUploadChunked(
     }
   }
 
-  throw new Error('Upload gagal pada semua metode.');
+  throw new Error(`Upload gagal pada semua metode chunked. ${errors.join(' | ')}`.trim());
 }
 
 export async function apiUploadBase64(
@@ -277,6 +285,7 @@ export async function apiUploadBase64(
   onProgress?.(45);
 
   const strategies = ['json', 'urlencoded'] as const;
+  const errors: string[] = [];
 
   for (const strategy of strategies) {
     try {
@@ -314,13 +323,14 @@ export async function apiUploadBase64(
       onProgress?.(100);
       return data;
     } catch (err: any) {
+      errors.push(`${strategy}: ${err?.message || 'gagal'}`);
       if (err?.fatal) throw err;
       if (strategy === strategies[strategies.length - 1]) throw err;
       console.warn(`[Upload] Base64 strategy "${strategy}" failed: ${err?.message}. Trying next...`);
     }
   }
 
-  throw new Error('Upload base64 gagal pada semua metode.');
+  throw new Error(`Upload base64 gagal pada semua metode. ${errors.join(' | ')}`.trim());
 }
 
 // ==========================================

@@ -191,9 +191,8 @@ function getUploadResultPath(data: any, fallback: string): string {
 
 /**
  * Upload a file. Strategy:
- * 1. Single-request base64 (paling stabil di server produksi saat ini)
- * 2. Chunked upload (fallback untuk kondisi tertentu)
- * 3. Standard multipart (fallback terakhir)
+ * 1. Chunked raw-binary/base64 (paling tahan limit server produksi)
+ * 2. Single-request base64 (fallback bila chunked ditolak server)
  */
 export async function uploadFile(
   file: File,
@@ -201,31 +200,27 @@ export async function uploadFile(
   type: 'sertifikat' | 'ktp' | 'foto-bangunan',
   onProgress?: (percent: number) => void,
 ): Promise<string> {
-  // Primary: single-request base64
-  try {
-    const data = await apiUploadBase64('/files/upload', file, type, onProgress);
-    return getUploadResultPath(data, 'Server tidak mengembalikan path file');
-  } catch (err: any) {
-    if (err?.fatal) throw err;
-    console.warn('[Upload] Base64 upload failed, trying chunked:', err?.message);
-  }
+  const errors: string[] = [];
 
-  // Secondary fallback: chunked upload
+  // Primary: chunked upload
   try {
     const data = await apiUploadChunked('/files/upload-chunk', file, type, onProgress);
     return getUploadResultPath(data, 'Server tidak mengembalikan path file');
   } catch (err: any) {
+    errors.push(`chunked: ${err?.message || 'gagal'}`);
     if (err?.fatal) throw err;
-    console.warn('[Upload] Chunked fallback failed, trying standard multipart:', err?.message);
+    console.warn('[Upload] Chunked upload failed, trying single-request base64:', err?.message);
   }
 
-  // Fallback: standard multipart
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('type', type);
-
-  const data = await apiUpload('/files/upload', formData, onProgress);
-  return getUploadResultPath(data, 'Server tidak mengembalikan path file');
+  // Secondary fallback: single-request base64
+  try {
+    const data = await apiUploadBase64('/files/upload', file, type, onProgress);
+    return getUploadResultPath(data, 'Server tidak mengembalikan path file');
+  } catch (err: any) {
+    errors.push(`base64: ${err?.message || 'gagal'}`);
+    if (err?.fatal) throw err;
+    throw new Error(`Upload ${type} gagal. ${errors.join(' | ')}`);
+  }
 }
 
 export async function deleteUploadedFileByPath(filePath: string): Promise<boolean> {
