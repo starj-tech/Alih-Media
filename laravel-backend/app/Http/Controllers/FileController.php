@@ -311,6 +311,16 @@ class FileController extends Controller
             return null;
         }
 
+        // Priority 1b: raw octet-stream body
+        $contentType = strtolower((string) $request->header('Content-Type', ''));
+        if (strpos($contentType, 'application/octet-stream') !== false) {
+            $raw = $request->getContent();
+            if (is_string($raw) && $raw !== '') return $raw;
+
+            $input = @file_get_contents('php://input');
+            if (is_string($input) && $input !== '') return $input;
+        }
+
         // Priority 2: multipart file
         if ($request->hasFile('chunk')) {
             $chunk = $request->file('chunk');
@@ -431,6 +441,11 @@ class FileController extends Controller
         }
 
         if (!$request->hasFile('file')) {
+            Log::warning('[FileController] file field missing on standard upload', [
+                'content_type' => $request->header('Content-Type'),
+                'content_length' => $request->header('Content-Length'),
+                'keys' => array_keys($request->all()),
+            ]);
             return $this->errorResponse('File wajib diunggah', 422, 'file_required');
         }
 
@@ -500,6 +515,13 @@ class FileController extends Controller
         // Read chunk binary
         $binary = $this->readChunkBinary($request);
         if (!is_string($binary) || $binary === '') {
+            Log::warning('[FileController] Empty chunk payload', [
+                'content_type' => $request->header('Content-Type'),
+                'content_length' => $request->header('Content-Length'),
+                'upload_id' => $uploadId,
+                'chunk_index' => $chunkIndex,
+                'has_chunk_base64' => $request->filled('chunk_base64') || $request->filled('chunkBase64'),
+            ]);
             return $this->errorResponse('Chunk kosong atau tidak valid', 422, 'empty_chunk');
         }
         if (strlen($binary) > self::MAX_CHUNK_SIZE_BYTES) {
