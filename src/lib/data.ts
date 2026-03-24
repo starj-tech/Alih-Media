@@ -250,6 +250,43 @@ function getAuthHeaders(): Record<string, string> {
     : { Accept: '*/*' };
 }
 
+function normalizePublicFileUrl(url?: string | null): string {
+  const raw = String(url || '').trim();
+  if (!raw) return '';
+
+  const fixedProtocol = raw.replace(/^(https?):(https?:\/\/)/i, '$2');
+
+  try {
+    return new URL(fixedProtocol).toString();
+  } catch {
+    try {
+      const apiOrigin = new URL(LARAVEL_API_URL).origin;
+      if (fixedProtocol.startsWith('/')) return new URL(fixedProtocol, apiOrigin).toString();
+      return new URL(`/${fixedProtocol.replace(/^\/+/, '')}`, apiOrigin).toString();
+    } catch {
+      return fixedProtocol;
+    }
+  }
+}
+
+function buildDirectStorageUrl(filePath: string): string | null {
+  const normalized = normalizeStoredFilePath(filePath);
+  if (!normalized) return null;
+
+  try {
+    const apiOrigin = new URL(LARAVEL_API_URL).origin;
+    const encodedPath = normalized
+      .split('/')
+      .filter(Boolean)
+      .map(segment => encodeURIComponent(segment))
+      .join('/');
+
+    return `${apiOrigin}/storage/${encodedPath}`;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Get a viewable URL for a stored file.
  * Uses authenticated blob download as primary method (handles legacy paths via backend resolver).
@@ -277,12 +314,12 @@ export async function getSignedFileUrl(filePath: string): Promise<string | null>
   // Fallback: get URL from backend
   try {
     const data = await apiFetch<{ url: string }>(`/files/url/${encodeURIComponent(normalized)}`);
-    if (data.url) return data.url;
+    if (data.url) return normalizePublicFileUrl(data.url);
   } catch {
     // fallback below
   }
 
-  return null;
+  return buildDirectStorageUrl(normalized);
 }
 
 // ==========================================
