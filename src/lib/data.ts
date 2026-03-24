@@ -191,8 +191,9 @@ function getUploadResultPath(data: any, fallback: string): string {
 
 /**
  * Upload a file. Strategy:
- * 1. Chunked upload (primary - most reliable on restrictive servers)
- * 2. Standard multipart (fallback)
+ * 1. Single-request base64 (paling stabil di server produksi saat ini)
+ * 2. Chunked upload (fallback untuk kondisi tertentu)
+ * 3. Standard multipart (fallback terakhir)
  */
 export async function uploadFile(
   file: File,
@@ -200,23 +201,22 @@ export async function uploadFile(
   type: 'sertifikat' | 'ktp' | 'foto-bangunan',
   onProgress?: (percent: number) => void,
 ): Promise<string> {
-  // Primary: chunked upload
-  try {
-    const data = await apiUploadChunked('/files/upload-chunk', file, type, onProgress);
-    return getUploadResultPath(data, 'Server tidak mengembalikan path file');
-  } catch (err: any) {
-    // If fatal (wrong type, auth), don't fallback
-    if (err?.fatal) throw err;
-    console.warn('[Upload] Chunked failed, trying standard:', err?.message);
-  }
-
-  // Secondary fallback: single-request base64 (avoids multipart parsing issues on restrictive servers)
+  // Primary: single-request base64
   try {
     const data = await apiUploadBase64('/files/upload', file, type, onProgress);
     return getUploadResultPath(data, 'Server tidak mengembalikan path file');
   } catch (err: any) {
     if (err?.fatal) throw err;
-    console.warn('[Upload] Base64 fallback failed, trying standard multipart:', err?.message);
+    console.warn('[Upload] Base64 upload failed, trying chunked:', err?.message);
+  }
+
+  // Secondary fallback: chunked upload
+  try {
+    const data = await apiUploadChunked('/files/upload-chunk', file, type, onProgress);
+    return getUploadResultPath(data, 'Server tidak mengembalikan path file');
+  } catch (err: any) {
+    if (err?.fatal) throw err;
+    console.warn('[Upload] Chunked fallback failed, trying standard multipart:', err?.message);
   }
 
   // Fallback: standard multipart
