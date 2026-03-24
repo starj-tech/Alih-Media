@@ -263,6 +263,66 @@ export async function apiUploadChunked(
   throw new Error('Upload gagal pada semua metode.');
 }
 
+export async function apiUploadBase64(
+  endpoint: string,
+  file: File,
+  type: 'sertifikat' | 'ktp' | 'foto-bangunan',
+  onProgress?: (percent: number) => void,
+): Promise<any> {
+  const token = getToken();
+  onProgress?.(10);
+
+  const buffer = await file.arrayBuffer();
+  const fileBase64 = uint8ArrayToBase64(new Uint8Array(buffer));
+  onProgress?.(45);
+
+  const strategies = ['json', 'urlencoded'] as const;
+
+  for (const strategy of strategies) {
+    try {
+      const headers: Record<string, string> = {
+        Accept: 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        ...authTokenHeaders(token),
+      };
+
+      let res: Response;
+      if (strategy === 'json') {
+        res = await fetch(`${LARAVEL_API_URL}${endpoint}`, {
+          method: 'POST',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type,
+            file_name: file.name,
+            file_base64: fileBase64,
+          }),
+        });
+      } else {
+        res = await fetch(`${LARAVEL_API_URL}${endpoint}`, {
+          method: 'POST',
+          headers,
+          body: new URLSearchParams({
+            type,
+            file_name: file.name,
+            file_base64: fileBase64,
+          }),
+        });
+      }
+
+      onProgress?.(80);
+      const data = await parseUploadResponse(res, 'Upload base64');
+      onProgress?.(100);
+      return data;
+    } catch (err: any) {
+      if (err?.fatal) throw err;
+      if (strategy === strategies[strategies.length - 1]) throw err;
+      console.warn(`[Upload] Base64 strategy "${strategy}" failed: ${err?.message}. Trying next...`);
+    }
+  }
+
+  throw new Error('Upload base64 gagal pada semua metode.');
+}
+
 // ==========================================
 // UPLOAD: Standard multipart (fallback)
 // ==========================================

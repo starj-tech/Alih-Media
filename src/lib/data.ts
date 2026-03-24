@@ -1,5 +1,5 @@
 // Data layer using Laravel REST API
-import { apiFetch, apiUpload, apiUploadChunked, LARAVEL_API_URL, getToken } from '@/lib/api-client';
+import { apiFetch, apiUpload, apiUploadBase64, apiUploadChunked, LARAVEL_API_URL, getToken } from '@/lib/api-client';
 
 export type BerkasStatus = 'Proses' | 'Validasi SU & Bidang' | 'Validasi BT' | 'Selesai' | 'Ditolak';
 export type JenisHak = 'HM' | 'HGB' | 'HP' | 'HGU' | 'HMSRS' | 'HPL' | 'HW';
@@ -208,6 +208,15 @@ export async function uploadFile(
     // If fatal (wrong type, auth), don't fallback
     if (err?.fatal) throw err;
     console.warn('[Upload] Chunked failed, trying standard:', err?.message);
+  }
+
+  // Secondary fallback: single-request base64 (avoids multipart parsing issues on restrictive servers)
+  try {
+    const data = await apiUploadBase64('/files/upload', file, type, onProgress);
+    return getUploadResultPath(data, 'Server tidak mengembalikan path file');
+  } catch (err: any) {
+    if (err?.fatal) throw err;
+    console.warn('[Upload] Base64 fallback failed, trying standard multipart:', err?.message);
   }
 
   // Fallback: standard multipart

@@ -310,6 +310,33 @@ class FileController extends Controller
         return null;
     }
 
+    private function storeBinaryToPublicDisk($userId, $type, $ext, $binary)
+    {
+        $timestamp = now()->format('YmdHis');
+        $finalPath = $userId . '/' . $type . '/' . $timestamp . '-' . uniqid('', true) . '.' . $ext;
+
+        Storage::disk('public')->makeDirectory($userId . '/' . $type);
+        $stored = Storage::disk('public')->put($finalPath, $binary);
+
+        if (!$stored) {
+            return [
+                'ok' => false,
+                'response' => $this->errorResponse('Gagal menyimpan file ke storage.', 500, 'storage_write_failed'),
+            ];
+        }
+
+        Log::info("[FileController] Upload success: {$finalPath}");
+
+        return [
+            'ok' => true,
+            'path' => $finalPath,
+            'response' => response()->json([
+                'path' => $finalPath,
+                'url' => Storage::disk('public')->url($finalPath),
+            ]),
+        ];
+    }
+
     // ==========================================
     // UPLOAD: STANDARD (SINGLE FILE)
     // ==========================================
@@ -322,6 +349,43 @@ class FileController extends Controller
         if (!$user) return $this->errorResponse('Unauthorized', 401, 'auth_missing');
 
         $type = (string) $request->input('type');
+
+        $fileBase64 = $request->input('file_base64');
+        $fileNameFromBody = basename((string) $request->input('file_name', 'upload.bin'));
+
+        if (is_string($fileBase64) && trim($fileBase64) !== '') {
+            $clean = preg_replace('/^data:[^;]+;base64,/', '', trim($fileBase64));
+            $binary = base64_decode(str_replace(' ', '+', $clean), true);
+
+            if (!is_string($binary) || $binary === '') {
+                return $this->errorResponse('Isi file base64 tidak valid.', 422, 'invalid_base64');
+            }
+
+            if (strlen($binary) > self::MAX_FILE_SIZE_BYTES) {
+                return $this->errorResponse('Ukuran file maksimal 5MB', 422, 'file_too_large');
+            }
+
+            $ext = strtolower(pathinfo($fileNameFromBody, PATHINFO_EXTENSION));
+            $typeErr = $this->validateTypeAndExtension($type, $ext);
+            if ($typeErr) return $this->errorResponse($typeErr, 422, 'invalid_file_type');
+
+            $tmpPath = storage_path('app/chunks/upload-single-' . uniqid('', true) . '.tmp');
+            @file_put_contents($tmpPath, $binary);
+
+            $valErr = $this->validateAssembledFile($tmpPath, $type, $ext);
+            @unlink($tmpPath);
+            if ($valErr) {
+                return $this->errorResponse($valErr, 422, 'assembled_validation_failed');
+            }
+
+            try {
+                $stored = $this->storeBinaryToPublicDisk($user->id, $type, $ext, $binary);
+                return $stored['response'];
+            } catch (\Throwable $e) {
+                Log::error('[FileController] upload base64 error: ' . $e->getMessage());
+                return $this->errorResponse('Gagal menyimpan file: ' . $e->getMessage(), 500, 'storage_write_failed');
+            }
+        }
 
         if (!$request->hasFile('file')) {
             return $this->errorResponse('File wajib diunggah', 422, 'file_required');
@@ -340,22 +404,18 @@ class FileController extends Controller
         $typeErr = $this->validateTypeAndExtension($type, $ext);
         if ($typeErr) return $this->errorResponse($typeErr, 422, 'invalid_file_type');
 
-        $timestamp = now()->format('YmdHis');
-        $path = $user->id . '/' . $type . '/' . $timestamp . '-' . uniqid('', true) . '.' . $ext;
-
         try {
-            Storage::disk('public')->makeDirectory($user->id . '/' . $type);
-            $stored = Storage::disk('public')->putFileAs('', $file, $path);
-            if (!$stored) {
-                return $this->errorResponse('Gagal menyimpan file ke storage.', 500, 'storage_write_failed');
+            $content = @file_get_contents($file->getRealPath());
+            if (!is_string($content) || $content === '') {
+                return $this->errorResponse('Upload gagal di server. File tidak dapat dibaca.', 500, 'upload_transport_failed');
             }
+
+            $stored = $this->storeBinaryToPublicDisk($user->id, $type, $ext, $content);
+            return $stored['response'];
         } catch (\Throwable $e) {
             Log::error('[FileController] upload error: ' . $e->getMessage());
             return $this->errorResponse('Gagal menyimpan file: ' . $e->getMessage(), 500, 'storage_write_failed');
         }
-
-        Log::info("[FileController] Upload success: {$path}");
-        return response()->json(['path' => $path, 'url' => Storage::disk('public')->url($path)]);
     }
 
     // ==========================================
@@ -476,28 +536,22 @@ class FileController extends Controller
             }
 
             // Move to final storage
-            $finalPath = $user->id . '/' . $type . '/' . now()->format('YmdHis') . '-' . uniqid('', true) . '.' . $ext;
-            Storage::disk('public')->makeDirectory($user->id . '/' . $type);
-
             $stream = fopen($assembledPath, 'rb');
             if ($stream === false) {
                 $this->cleanupChunkDirectory($chunkDir);
                 return $this->errorResponse('Gagal membaca file yang dirakit.', 500, 'assemble_read_failed');
             }
 
-            $stored = Storage::disk('public')->put($finalPath, $stream);
+            $stored = $this->storeBinaryToPublicDisk($user->id, $type, $ext, $stream);
             fclose($stream);
             $this->cleanupChunkDirectory($chunkDir);
 
-            if (!$stored) {
-                return $this->errorResponse('Gagal menyimpan file akhir ke storage.', 500, 'storage_write_failed');
+            if (!$stored['ok']) {
+                return $stored['response'];
             }
 
-            Log::info("[FileController] Chunked upload complete: {$finalPath} ({$finalSize} bytes)");
-            return response()->json([
-                'path' => $finalPath,
-                'url' => Storage::disk('public')->url($finalPath),
-            ]);
+            Log::info("[FileController] Chunked upload complete: {$stored['path']} ({$finalSize} bytes)");
+            return $stored['response'];
 
         } catch (\Throwable $e) {
             if (is_resource($wh)) fclose($wh);
