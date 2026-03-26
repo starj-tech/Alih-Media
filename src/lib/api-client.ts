@@ -213,6 +213,7 @@ export async function apiUploadChunked(
   for (const strategy of strategies) {
     const sid = `${uploadId}-${strategy}`;
     try {
+      console.log(`[Upload] Trying strategy "${strategy}" for ${file.name} (${file.size} bytes, ${totalChunks} chunks)`);
       for (let i = 0; i < totalChunks; i++) {
         const start = i * chunkSize;
         const end = Math.min(file.size, start + chunkSize);
@@ -267,6 +268,7 @@ export async function apiUploadChunked(
         }
 
         const data = await parseUploadResponse(res!, `Upload chunk ${i + 1}/${totalChunks}`);
+        console.log(`[Upload] Chunk ${i + 1}/${totalChunks} OK via "${strategy}"`);
         onProgress?.(Math.round(((i + 1) / totalChunks) * 100));
 
         if (i === totalChunks - 1) return data;
@@ -275,7 +277,7 @@ export async function apiUploadChunked(
       errors.push(`${strategy}: ${err?.message || 'gagal'}`);
       if (err?.fatal) throw err;
       if (strategy === strategies[strategies.length - 1]) throw err;
-      console.warn(`[Upload] Chunked strategy "${strategy}" failed:`, err?.message, '→ trying next');
+      console.warn(`[Upload] Strategy "${strategy}" failed:`, err?.message, '→ trying next');
     }
   }
 
