@@ -11,6 +11,64 @@ class FileController extends Controller
     private const MAX_FILE_SIZE_BYTES = 5242880;
     private const MAX_CHUNK_SIZE_BYTES = 1048576;
 
+    private function mergeRawPayloadIntoRequest(Request $request)
+    {
+        $raw = $request->getContent();
+        if (!is_string($raw) || trim($raw) === '') {
+            $raw = @file_get_contents('php://input');
+        }
+
+        if (!is_string($raw) || trim($raw) === '') {
+            return [];
+        }
+
+        $contentType = strtolower((string) $request->header('Content-Type', ''));
+        $parsed = [];
+
+        if (strpos($contentType, 'application/json') !== false || preg_match('/^\s*\{/', $raw)) {
+            $json = json_decode($raw, true);
+            if (is_array($json)) {
+                $parsed = $json;
+            }
+        }
+
+        if (empty($parsed) && (
+            strpos($contentType, 'application/x-www-form-urlencoded') !== false
+            || strpos($contentType, 'text/plain') !== false
+            || strpos($raw, '=') !== false
+        )) {
+            parse_str($raw, $form);
+            if (is_array($form) && !empty($form)) {
+                $parsed = $form;
+            }
+        }
+
+        if (!empty($parsed)) {
+            $request->merge($parsed);
+            Log::info('[FileController] Raw payload merged into request', [
+                'content_type' => $contentType,
+                'merged_keys' => array_keys($parsed),
+            ]);
+        }
+
+        return $parsed;
+    }
+
+    private function getMergedInput(Request $request, $key, $default = null)
+    {
+        $value = $request->input($key, $request->query($key));
+        if ($value !== null && $value !== '') {
+            return $value;
+        }
+
+        $raw = $this->mergeRawPayloadIntoRequest($request);
+        if (array_key_exists($key, $raw) && $raw[$key] !== null && $raw[$key] !== '') {
+            return $raw[$key];
+        }
+
+        return $default;
+    }
+
     private function buildPublicFileUrl($path)
     {
         $normalized = $this->normalizeStoredPath($path);
@@ -493,15 +551,24 @@ class FileController extends Controller
 
     public function upload(Request $request)
     {
-        $request->validate(['type' => 'required|in:sertifikat,ktp,foto-bangunan']);
+        $this->mergeRawPayloadIntoRequest($request);
 
         $user = $request->user();
         if (!$user) return $this->errorResponse('Unauthorized', 401, 'auth_missing');
 
-        $type = (string) $request->input('type');
+        $type = (string) $this->getMergedInput($request, 'type', '');
+        if (!in_array($type, ['sertifikat', 'ktp', 'foto-bangunan'], true)) {
+            Log::warning('[FileController] Upload type missing or invalid after payload merge', [
+                'content_type' => $request->header('Content-Type'),
+                'content_length' => $request->header('Content-Length'),
+                'input_keys' => array_keys($request->all()),
+                'file_keys' => array_keys($request->allFiles()),
+            ]);
+            return $this->errorResponse('Tipe file wajib diisi', 422, 'invalid_type');
+        }
 
-        $fileBase64 = $request->input('file_base64');
-        $fileNameFromBody = basename((string) $request->input('file_name', 'upload.bin'));
+        $fileBase64 = $this->getMergedInput($request, 'file_base64');
+        $fileNameFromBody = basename((string) $this->getMergedInput($request, 'file_name', 'upload.bin'));
 
         if (is_string($fileBase64) && trim($fileBase64) !== '') {
             $clean = preg_replace('/^data:[^;]+;base64,/', '', trim($fileBase64));
