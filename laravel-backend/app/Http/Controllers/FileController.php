@@ -69,6 +69,32 @@ class FileController extends Controller
         return $default;
     }
 
+    private function getRequestValue(Request $request, $keys, $headers = [], $default = null)
+    {
+        $keys = is_array($keys) ? $keys : [$keys];
+        $headers = is_array($headers) ? $headers : [$headers];
+
+        foreach ($keys as $key) {
+            $value = $this->getMergedInput($request, $key);
+            if ($value !== null && $value !== '') {
+                return $value;
+            }
+        }
+
+        foreach ($headers as $header) {
+            if (!is_string($header) || $header === '') {
+                continue;
+            }
+
+            $value = $request->header($header);
+            if ($value !== null && $value !== '') {
+                return $value;
+            }
+        }
+
+        return $default;
+    }
+
     private function buildPublicFileUrl($path)
     {
         $normalized = $this->normalizeStoredPath($path);
@@ -360,10 +386,7 @@ class FileController extends Controller
 
     private function getChunkValue(Request $request, $inputKey, $headerKey)
     {
-        $value = $request->input($inputKey, $request->query($inputKey));
-        if ($value === null || $value === '') {
-            $value = $request->header($headerKey, '');
-        }
+        $value = $this->getRequestValue($request, $inputKey, $headerKey, '');
         return is_string($value) ? trim($value) : '';
     }
 
@@ -422,6 +445,7 @@ class FileController extends Controller
 
     private function readChunkBinary(Request $request)
     {
+        $this->mergeRawPayloadIntoRequest($request);
         $contentType = strtolower((string) $request->header('Content-Type', ''));
 
         // Priority 0: multipart file upload (most reliable on shared hosting)
@@ -467,7 +491,7 @@ class FileController extends Controller
         }
 
         // Priority 2: Base64 in body (JSON or form-encoded)
-        $b64 = $request->input('chunk_base64', $request->input('chunkBase64'));
+        $b64 = $this->getRequestValue($request, ['chunk_base64', 'chunkBase64'], 'X-Chunk-Base64');
         if (is_string($b64) && trim($b64) !== '') {
             $clean = preg_replace('/^data:[^;]+;base64,/', '', trim($b64));
             $decoded = base64_decode(str_replace(' ', '+', $clean), true);
@@ -556,7 +580,7 @@ class FileController extends Controller
         $user = $request->user();
         if (!$user) return $this->errorResponse('Unauthorized', 401, 'auth_missing');
 
-        $type = (string) $this->getMergedInput($request, 'type', '');
+        $type = (string) $this->getRequestValue($request, 'type', 'X-Upload-Type', '');
         if (!in_array($type, ['sertifikat', 'ktp', 'foto-bangunan'], true)) {
             Log::warning('[FileController] Upload type missing or invalid after payload merge', [
                 'content_type' => $request->header('Content-Type'),
@@ -567,8 +591,8 @@ class FileController extends Controller
             return $this->errorResponse('Tipe file wajib diisi', 422, 'invalid_type');
         }
 
-        $fileBase64 = $this->getMergedInput($request, 'file_base64');
-        $fileNameFromBody = basename((string) $this->getMergedInput($request, 'file_name', 'upload.bin'));
+        $fileBase64 = $this->getRequestValue($request, ['file_base64', 'fileBase64']);
+        $fileNameFromBody = basename((string) $this->getRequestValue($request, ['file_name', 'fileName'], 'X-File-Name', 'upload.bin'));
 
         if (is_string($fileBase64) && trim($fileBase64) !== '') {
             $clean = preg_replace('/^data:[^;]+;base64,/', '', trim($fileBase64));
@@ -661,6 +685,8 @@ class FileController extends Controller
 
     public function uploadChunk(Request $request)
     {
+        $this->mergeRawPayloadIntoRequest($request);
+
         $user = $request->user();
         if (!$user) return $this->errorResponse('Unauthorized', 401, 'auth_missing');
 

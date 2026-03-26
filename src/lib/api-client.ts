@@ -48,6 +48,22 @@ function authHeaders(): Record<string, string> {
   };
 }
 
+function buildUploadMetaHeaders(meta: {
+  type?: string;
+  uploadId?: string;
+  chunkIndex?: number;
+  totalChunks?: number;
+  fileName?: string;
+}): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (meta.type) headers['X-Upload-Type'] = meta.type;
+  if (meta.uploadId) headers['X-Upload-Id'] = meta.uploadId;
+  if (typeof meta.chunkIndex === 'number') headers['X-Chunk-Index'] = String(meta.chunkIndex);
+  if (typeof meta.totalChunks === 'number') headers['X-Total-Chunks'] = String(meta.totalChunks);
+  if (meta.fileName) headers['X-File-Name'] = meta.fileName;
+  return headers;
+}
+
 const VALIDATION_MAP: Record<string, Record<string, string>> = {
   email: { 'validation.unique': 'Email sudah terdaftar. Silakan gunakan email lain atau login.', 'validation.email': 'Format email tidak valid', 'validation.required': 'Email harus diisi' },
   password: { 'validation.required': 'Password harus diisi', 'validation.min': 'Password minimal 6 karakter' },
@@ -223,7 +239,22 @@ export async function apiUploadChunked(
         const headers: Record<string, string> = {
           Accept: 'application/json',
           ...authTokenHeaders(token),
+          ...buildUploadMetaHeaders({
+            type,
+            uploadId: sid,
+            chunkIndex: i,
+            totalChunks,
+            fileName: file.name,
+          }),
         };
+
+        const qs = new URLSearchParams({
+          type,
+          upload_id: sid,
+          chunk_index: String(i),
+          total_chunks: String(totalChunks),
+          file_name: file.name,
+        });
 
         let res: Response;
         if (strategy === 'formdata') {
@@ -236,17 +267,13 @@ export async function apiUploadChunked(
           formData.append('total_chunks', String(totalChunks));
           formData.append('file_name', file.name);
 
-          res = await fetch(`${LARAVEL_API_URL}${endpoint}`, {
+          res = await fetch(`${LARAVEL_API_URL}${endpoint}?${qs.toString()}`, {
             method: 'POST',
             headers,
             body: formData,
           });
         } else if (strategy === 'plain') {
           const b64 = uint8ArrayToBase64(new Uint8Array(buffer));
-          const qs = new URLSearchParams({
-            type, upload_id: sid, chunk_index: String(i),
-            total_chunks: String(totalChunks), file_name: file.name,
-          });
           res = await fetch(`${LARAVEL_API_URL}${endpoint}?${qs.toString()}`, {
             method: 'POST',
             headers: { ...headers, 'Content-Type': 'text/plain' },
@@ -254,10 +281,6 @@ export async function apiUploadChunked(
           });
         } else if (strategy === 'json') {
           const b64 = uint8ArrayToBase64(new Uint8Array(buffer));
-          const qs = new URLSearchParams({
-            type, upload_id: sid, chunk_index: String(i),
-            total_chunks: String(totalChunks), file_name: file.name,
-          });
           res = await fetch(`${LARAVEL_API_URL}${endpoint}?${qs.toString()}`, {
             method: 'POST',
             headers: { ...headers, 'Content-Type': 'application/json' },
@@ -302,15 +325,21 @@ export async function apiUploadBase64(
 
   for (const strategy of strategies) {
     try {
+      const qs = new URLSearchParams({
+        type,
+        file_name: file.name,
+      });
+
       const headers: Record<string, string> = {
         Accept: 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
         ...authTokenHeaders(token),
+        ...buildUploadMetaHeaders({ type, fileName: file.name }),
       };
 
       let res: Response;
       if (strategy === 'json') {
-        res = await fetch(`${LARAVEL_API_URL}${endpoint}`, {
+        res = await fetch(`${LARAVEL_API_URL}${endpoint}?${qs.toString()}`, {
           method: 'POST',
           headers: { ...headers, 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -320,9 +349,9 @@ export async function apiUploadBase64(
           }),
         });
       } else {
-        res = await fetch(`${LARAVEL_API_URL}${endpoint}`, {
+        res = await fetch(`${LARAVEL_API_URL}${endpoint}?${qs.toString()}`, {
           method: 'POST',
-          headers,
+          headers: { ...headers, 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
           body: new URLSearchParams({
             type,
             file_name: file.name,
