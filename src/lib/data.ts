@@ -218,7 +218,7 @@ export async function uploadFile(
     const formData = new FormData();
     formData.append('type', type);
     formData.append('file', file, file.name);
-    const data = await apiUpload('/files/upload', formData, onProgress);
+    const data = await apiUpload(`/files/upload?type=${encodeURIComponent(type)}&file_name=${encodeURIComponent(file.name)}`, formData, onProgress);
     return getUploadResultPath(data, 'Server tidak mengembalikan path file dari upload multipart');
   } catch (error: any) {
     errors.push(`multipart: ${error?.message || 'gagal'}`);
