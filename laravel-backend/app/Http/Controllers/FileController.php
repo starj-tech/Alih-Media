@@ -309,10 +309,22 @@ class FileController extends Controller
 
     private function readChunkBinary(Request $request)
     {
-        // Priority 0: text/plain body → treat as raw base64 string
-        // This is the most reliable method because text/plain does NOT trigger CORS preflight
         $contentType = strtolower((string) $request->header('Content-Type', ''));
 
+        // Priority 0: multipart file upload (most reliable on shared hosting)
+        if ($request->hasFile('chunk')) {
+            $chunk = $request->file('chunk');
+            if ($chunk && $chunk->isValid()) {
+                $content = @file_get_contents($chunk->getRealPath());
+                if (is_string($content) && $content !== '') {
+                    Log::info('[FileController] Chunk read via multipart file (' . strlen($content) . ' bytes)');
+                    return $content;
+                }
+            }
+            Log::warning('[FileController] multipart chunk file present but empty/invalid');
+        }
+
+        // Priority 1: text/plain body → treat as raw base64 string
         if (strpos($contentType, 'text/plain') !== false) {
             $raw = $request->getContent();
             if (!is_string($raw) || trim($raw) === '') {
@@ -329,7 +341,7 @@ class FileController extends Controller
             }
         }
 
-        // Priority 1: Base64 in body (JSON or form-encoded)
+        // Priority 2: Base64 in body (JSON or form-encoded)
         $b64 = $request->input('chunk_base64', $request->input('chunkBase64'));
         if (is_string($b64) && trim($b64) !== '') {
             $clean = preg_replace('/^data:[^;]+;base64,/', '', trim($b64));
@@ -339,7 +351,7 @@ class FileController extends Controller
             return null;
         }
 
-        // Priority 1b: raw octet-stream body
+        // Priority 3: raw octet-stream body
         if (strpos($contentType, 'application/octet-stream') !== false) {
             $raw = $request->getContent();
             if (is_string($raw) && $raw !== '') return $raw;
@@ -348,20 +360,11 @@ class FileController extends Controller
             if (is_string($input) && $input !== '') return $input;
         }
 
-        // Priority 2: multipart file
-        if ($request->hasFile('chunk')) {
-            $chunk = $request->file('chunk');
-            if ($chunk && $chunk->isValid()) {
-                $content = @file_get_contents($chunk->getRealPath());
-                if (is_string($content) && $content !== '') return $content;
-            }
-        }
-
-        // Priority 3: raw body
+        // Priority 4: raw body
         $raw = $request->getContent();
         if (is_string($raw) && $raw !== '') return $raw;
 
-        // Priority 4: php://input
+        // Priority 5: php://input
         $input = @file_get_contents('php://input');
         if (is_string($input) && $input !== '') return $input;
 

@@ -205,59 +205,70 @@ export async function apiUploadChunked(
   const errors: string[] = [];
 
   // Strategies ordered by reliability on restrictive shared hosting:
-  // 1. text/plain base64 — NO CORS preflight, no binary filter issues
-  // 2. application/json base64 — standard but triggers preflight
-  // 3. application/octet-stream raw — may be blocked by WAF/mod_security
-  const strategies = ['plain', 'json', 'binary'] as const;
+  // 1. multipart/form-data — most universal, chunk as file attachment
+  // 2. text/plain base64 — simple request, no binary filter issues
+  // 3. application/json base64 — standard but triggers preflight
+  const strategies = ['formdata', 'plain', 'json'] as const;
 
   for (const strategy of strategies) {
     const sid = `${uploadId}-${strategy}`;
     try {
+      console.log(`[Upload] Trying strategy "${strategy}" for ${file.name} (${file.size} bytes, ${totalChunks} chunks)`);
       for (let i = 0; i < totalChunks; i++) {
         const start = i * chunkSize;
         const end = Math.min(file.size, start + chunkSize);
         const chunk = file.slice(start, end);
         const buffer = await chunk.arrayBuffer();
-        const b64 = uint8ArrayToBase64(new Uint8Array(buffer));
 
-        const qs = new URLSearchParams({
-          type,
-          upload_id: sid,
-          chunk_index: String(i),
-          total_chunks: String(totalChunks),
-          file_name: file.name,
-        });
-
-        const url = `${LARAVEL_API_URL}${endpoint}?${qs.toString()}`;
         const headers: Record<string, string> = {
           Accept: 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
           ...authTokenHeaders(token),
         };
 
         let res: Response;
-        if (strategy === 'plain') {
-          // text/plain does NOT trigger CORS preflight — most reliable on shared hosting
-          res = await fetch(url, {
+        if (strategy === 'formdata') {
+          // multipart/form-data with chunk as a file — most universally supported
+          const formData = new FormData();
+          formData.append('chunk', new Blob([buffer]), `chunk_${i}.bin`);
+          formData.append('type', type);
+          formData.append('upload_id', sid);
+          formData.append('chunk_index', String(i));
+          formData.append('total_chunks', String(totalChunks));
+          formData.append('file_name', file.name);
+
+          res = await fetch(`${LARAVEL_API_URL}${endpoint}`, {
+            method: 'POST',
+            headers,
+            body: formData,
+          });
+        } else if (strategy === 'plain') {
+          const b64 = uint8ArrayToBase64(new Uint8Array(buffer));
+          const qs = new URLSearchParams({
+            type, upload_id: sid, chunk_index: String(i),
+            total_chunks: String(totalChunks), file_name: file.name,
+          });
+          res = await fetch(`${LARAVEL_API_URL}${endpoint}?${qs.toString()}`, {
             method: 'POST',
             headers: { ...headers, 'Content-Type': 'text/plain' },
             body: b64,
           });
-        } else if (strategy === 'binary') {
-          res = await fetch(url, {
-            method: 'POST',
-            headers: { ...headers, 'Content-Type': 'application/octet-stream' },
-            body: buffer,
-          });
         } else if (strategy === 'json') {
-          res = await fetch(url, {
+          const b64 = uint8ArrayToBase64(new Uint8Array(buffer));
+          const qs = new URLSearchParams({
+            type, upload_id: sid, chunk_index: String(i),
+            total_chunks: String(totalChunks), file_name: file.name,
+          });
+          res = await fetch(`${LARAVEL_API_URL}${endpoint}?${qs.toString()}`, {
             method: 'POST',
             headers: { ...headers, 'Content-Type': 'application/json' },
             body: JSON.stringify({ chunk_base64: b64 }),
           });
+        } else {
+          continue;
         }
 
-        const data = await parseUploadResponse(res, `Upload chunk ${i + 1}/${totalChunks}`);
+        const data = await parseUploadResponse(res!, `Upload chunk ${i + 1}/${totalChunks}`);
+        console.log(`[Upload] Chunk ${i + 1}/${totalChunks} OK via "${strategy}"`);
         onProgress?.(Math.round(((i + 1) / totalChunks) * 100));
 
         if (i === totalChunks - 1) return data;
@@ -266,7 +277,7 @@ export async function apiUploadChunked(
       errors.push(`${strategy}: ${err?.message || 'gagal'}`);
       if (err?.fatal) throw err;
       if (strategy === strategies[strategies.length - 1]) throw err;
-      console.warn(`[Upload] Chunked strategy "${strategy}" failed:`, err?.message, '→ trying next');
+      console.warn(`[Upload] Strategy "${strategy}" failed:`, err?.message, '→ trying next');
     }
   }
 
