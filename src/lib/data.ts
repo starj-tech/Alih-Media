@@ -190,10 +190,11 @@ function getUploadResultPath(data: any, fallback: string): string {
 }
 
 /**
- * Upload a file. Strategy:
- * 1. Chunked upload (text/plain → json → binary strategies)
- *    128KB chunks stay well under any post_max_size limit.
- * Single-request base64 removed — it fails when file exceeds post_max_size.
+ * Upload a file.
+ * Strategy order is important for restrictive production hosting:
+ * 1. Standard multipart/form-data (most compatible with PHP/Laravel)
+ * 2. Chunked upload (fallback when normal multipart is filtered or unstable)
+ * 3. Base64 upload (last resort)
  */
 export async function uploadFile(
   file: File,
@@ -201,10 +202,33 @@ export async function uploadFile(
   type: 'sertifikat' | 'ktp' | 'foto-bangunan',
   onProgress?: (percent: number) => void,
 ): Promise<string> {
-  // Only use chunked upload — it's the only reliable method on restrictive servers
-  // because each chunk (128KB) stays well under PHP post_max_size limits.
-  const data = await apiUploadChunked('/files/upload-chunk', file, type, onProgress);
-  return getUploadResultPath(data, 'Server tidak mengembalikan path file');
+  const errors: string[] = [];
+
+  try {
+    const formData = new FormData();
+    formData.append('type', type);
+    formData.append('file', file, file.name);
+    const data = await apiUpload('/files/upload', formData, onProgress);
+    return getUploadResultPath(data, 'Server tidak mengembalikan path file dari upload multipart');
+  } catch (error: any) {
+    errors.push(`multipart: ${error?.message || 'gagal'}`);
+  }
+
+  try {
+    const data = await apiUploadChunked('/files/upload-chunk', file, type, onProgress);
+    return getUploadResultPath(data, 'Server tidak mengembalikan path file dari upload chunked');
+  } catch (error: any) {
+    errors.push(`chunked: ${error?.message || 'gagal'}`);
+  }
+
+  try {
+    const data = await apiUploadBase64('/files/upload', file, type, onProgress);
+    return getUploadResultPath(data, 'Server tidak mengembalikan path file dari upload base64');
+  } catch (error: any) {
+    errors.push(`base64: ${error?.message || 'gagal'}`);
+  }
+
+  throw new Error(`Semua metode upload gagal. ${errors.join(' | ')}`);
 }
 
 export async function deleteUploadedFileByPath(filePath: string): Promise<boolean> {

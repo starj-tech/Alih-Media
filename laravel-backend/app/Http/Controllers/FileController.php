@@ -307,6 +307,24 @@ class FileController extends Controller
         return is_string($value) ? trim($value) : '';
     }
 
+    private function extractFirstUploadedFile($files)
+    {
+        if ($files instanceof \Illuminate\Http\UploadedFile) {
+            return $files;
+        }
+
+        if (is_array($files)) {
+            foreach ($files as $file) {
+                $found = $this->extractFirstUploadedFile($file);
+                if ($found) {
+                    return $found;
+                }
+            }
+        }
+
+        return null;
+    }
+
     private function readChunkBinary(Request $request)
     {
         $contentType = strtolower((string) $request->header('Content-Type', ''));
@@ -472,13 +490,7 @@ class FileController extends Controller
 
         $file = $request->file('file');
         if (!$file) {
-            $allFiles = $request->allFiles();
-            if (is_array($allFiles) && !empty($allFiles)) {
-                $firstFile = reset($allFiles);
-                if ($firstFile) {
-                    $file = $firstFile;
-                }
-            }
+            $file = $this->extractFirstUploadedFile($request->allFiles());
         }
 
         if (!$file) {
@@ -562,6 +574,8 @@ class FileController extends Controller
                 'upload_id' => $uploadId,
                 'chunk_index' => $chunkIndex,
                 'has_chunk_base64' => $request->filled('chunk_base64') || $request->filled('chunkBase64'),
+                'input_keys' => array_keys($request->all()),
+                'file_keys' => array_keys($request->allFiles()),
             ]);
             return $this->errorResponse('Chunk kosong atau tidak valid', 422, 'empty_chunk');
         }
