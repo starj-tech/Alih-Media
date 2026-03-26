@@ -1,5 +1,5 @@
 // Data layer using Laravel REST API
-import { apiFetch, apiUpload, apiUploadBase64, apiUploadChunked, LARAVEL_API_URL, getToken } from '@/lib/api-client';
+import { apiFetch, apiUpload, apiUploadBase64, apiUploadBinary, apiUploadChunked, LARAVEL_API_URL, getToken } from '@/lib/api-client';
 
 export type BerkasStatus = 'Proses' | 'Validasi SU & Bidang' | 'Validasi BT' | 'Selesai' | 'Ditolak';
 export type JenisHak = 'HM' | 'HGB' | 'HP' | 'HGU' | 'HMSRS' | 'HPL' | 'HW';
@@ -203,6 +203,15 @@ export async function uploadFile(
   onProgress?: (percent: number) => void,
 ): Promise<string> {
   const errors: string[] = [];
+
+  // Strategy 0: raw binary stream (primary for restrictive production hosting)
+  try {
+    const data = await apiUploadBinary('/files/upload', file, type, onProgress);
+    return getUploadResultPath(data, 'Server tidak mengembalikan path file dari upload biner');
+  } catch (error: any) {
+    errors.push(`binary: ${error?.message || 'gagal'}`);
+    console.warn('[Upload] Binary failed:', error?.message, '→ trying base64');
+  }
 
   // Strategy 1: Base64 JSON (primary - most reliable on production server)
   try {
