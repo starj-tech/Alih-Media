@@ -271,11 +271,12 @@ export async function apiUploadChunked(
   const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   const errors: string[] = [];
 
-  // Strategies ordered by reliability on restrictive shared hosting:
-  // 1. multipart/form-data — most universal, chunk as file attachment
-  // 2. text/plain base64 — simple request, no binary filter issues
-  // 3. application/json base64 — standard but triggers preflight
-  const strategies = ['formdata', 'plain', 'json'] as const;
+  // Strategies ordered by reliability on the current production hosting:
+  // 1. urlencoded base64 — proven accepted by server body parser
+  // 2. multipart/form-data — fallback if parser is restored
+  // 3. text/plain base64 — fallback for strict filters
+  // 4. application/json base64 — last resort
+  const strategies = ['urlencoded', 'formdata', 'plain', 'json'] as const;
 
   for (const strategy of strategies) {
     const sid = `${uploadId}-${strategy}`;
@@ -308,7 +309,21 @@ export async function apiUploadChunked(
         });
 
         let res: Response;
-        if (strategy === 'formdata') {
+        if (strategy === 'urlencoded') {
+          const b64 = uint8ArrayToBase64(new Uint8Array(buffer));
+          res = await fetch(`${LARAVEL_API_URL}${endpoint}?${qs}`, {
+            method: 'POST',
+            headers: { ...headers, 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+            body: new URLSearchParams({
+              type,
+              upload_id: sid,
+              chunk_index: String(i),
+              total_chunks: String(totalChunks),
+              file_name: file.name,
+              chunk_base64: b64,
+            }),
+          });
+        } else if (strategy === 'formdata') {
           // multipart/form-data with chunk as a file — most universally supported
           const formData = new FormData();
           formData.append('chunk', new Blob([buffer]), `chunk_${i}.bin`);
