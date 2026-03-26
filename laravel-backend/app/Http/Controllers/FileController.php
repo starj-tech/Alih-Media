@@ -327,21 +327,68 @@ class FileController extends Controller
         return null;
     }
 
+    private function readUploadedFileBinary($file)
+    {
+        if (!$file instanceof \Illuminate\Http\UploadedFile) {
+            return null;
+        }
+
+        $paths = [];
+        $realPath = $file->getRealPath();
+        if (is_string($realPath) && $realPath !== '') {
+            $paths[] = $realPath;
+        }
+
+        $pathName = $file->getPathname();
+        if (is_string($pathName) && $pathName !== '') {
+            $paths[] = $pathName;
+        }
+
+        foreach (array_values(array_unique($paths)) as $path) {
+            if (!is_string($path) || $path === '') {
+                continue;
+            }
+
+            if (!file_exists($path) || !is_readable($path)) {
+                continue;
+            }
+
+            $content = @file_get_contents($path);
+            if (is_string($content) && $content !== '') {
+                return $content;
+            }
+        }
+
+        return null;
+    }
+
     private function readChunkBinary(Request $request)
     {
         $contentType = strtolower((string) $request->header('Content-Type', ''));
 
         // Priority 0: multipart file upload (most reliable on shared hosting)
-        if ($request->hasFile('chunk')) {
-            $chunk = $request->file('chunk');
-            if ($chunk && $chunk->isValid()) {
-                $content = @file_get_contents($chunk->getRealPath());
-                if (is_string($content) && $content !== '') {
-                    Log::info('[FileController] Chunk read via multipart file (' . strlen($content) . ' bytes)');
-                    return $content;
+        $chunk = $request->file('chunk');
+        if (!$chunk) {
+            $chunk = $this->extractFirstUploadedFile($request->allFiles());
+        }
+
+        if ($chunk instanceof \Illuminate\Http\UploadedFile) {
+            $content = $this->readUploadedFileBinary($chunk);
+            if (is_string($content) && $content !== '') {
+                if (!$chunk->isValid()) {
+                    Log::warning('[FileController] Chunk upload marked invalid by PHP but binary was recovered', [
+                        'error_code' => $chunk->getError(),
+                        'client_name' => $chunk->getClientOriginalName(),
+                    ]);
                 }
+                Log::info('[FileController] Chunk read via multipart file (' . strlen($content) . ' bytes)');
+                return $content;
             }
-            Log::warning('[FileController] multipart chunk file present but empty/invalid');
+
+            Log::warning('[FileController] multipart chunk file present but unreadable', [
+                'error_code' => $chunk->getError(),
+                'client_name' => $chunk->getClientOriginalName(),
+            ]);
         }
 
         // Priority 1: text/plain body → treat as raw base64 string
@@ -505,22 +552,32 @@ class FileController extends Controller
             return $this->errorResponse('File wajib diunggah', 422, 'file_required');
         }
 
-        if (!$file || !$file->isValid()) {
-            return $this->errorResponse('Upload gagal di server. Gunakan upload bertahap.', 500, 'upload_transport_failed');
-        }
-
-        if (($file->getSize() ?: 0) > self::MAX_FILE_SIZE_BYTES) {
-            return $this->errorResponse('Ukuran file maksimal 5MB', 422, 'file_too_large');
-        }
-
         $ext = strtolower($file->getClientOriginalExtension());
         $typeErr = $this->validateTypeAndExtension($type, $ext);
         if ($typeErr) return $this->errorResponse($typeErr, 422, 'invalid_file_type');
 
         try {
-            $content = @file_get_contents($file->getRealPath());
+            $content = $this->readUploadedFileBinary($file);
             if (!is_string($content) || $content === '') {
+                Log::warning('[FileController] Standard upload unreadable', [
+                    'error_code' => $file->getError(),
+                    'is_valid' => $file->isValid(),
+                    'client_name' => $file->getClientOriginalName(),
+                    'client_mime' => $file->getClientMimeType(),
+                    'reported_size' => $file->getSize(),
+                ]);
                 return $this->errorResponse('Upload gagal di server. File tidak dapat dibaca.', 500, 'upload_transport_failed');
+            }
+
+            if (strlen($content) > self::MAX_FILE_SIZE_BYTES) {
+                return $this->errorResponse('Ukuran file maksimal 5MB', 422, 'file_too_large');
+            }
+
+            if (!$file->isValid()) {
+                Log::warning('[FileController] Standard upload marked invalid by PHP but binary was recovered', [
+                    'error_code' => $file->getError(),
+                    'client_name' => $file->getClientOriginalName(),
+                ]);
             }
 
             $stored = $this->storeBinaryToPublicDisk($user->id, $type, $ext, $content);
