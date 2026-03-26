@@ -15,6 +15,8 @@ class FileController extends Controller
     {
         $normalized = $this->normalizeStoredPath($path);
         $baseUrl = rtrim((string) config('app.url'), '/');
+        // Fix double-protocol bug (e.g. "http:https://..." from misconfigured .env)
+        $baseUrl = preg_replace('/^https?:https?:\/\//i', 'https://', $baseUrl);
         $encodedSegments = array_map('rawurlencode', array_values(array_filter(explode('/', $normalized), function ($segment) {
             return $segment !== null && $segment !== '';
         })));

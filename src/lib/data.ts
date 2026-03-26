@@ -204,6 +204,16 @@ export async function uploadFile(
 ): Promise<string> {
   const errors: string[] = [];
 
+  // Strategy 1: Base64 JSON (primary - most reliable on production server)
+  try {
+    const data = await apiUploadBase64('/files/upload', file, type, onProgress);
+    return getUploadResultPath(data, 'Server tidak mengembalikan path file dari upload base64');
+  } catch (error: any) {
+    errors.push(`base64: ${error?.message || 'gagal'}`);
+    console.warn('[Upload] Base64 failed:', error?.message, '→ trying multipart');
+  }
+
+  // Strategy 2: Standard multipart (fallback)
   try {
     const formData = new FormData();
     formData.append('type', type);
@@ -214,18 +224,12 @@ export async function uploadFile(
     errors.push(`multipart: ${error?.message || 'gagal'}`);
   }
 
+  // Strategy 3: Chunked upload (last resort)
   try {
     const data = await apiUploadChunked('/files/upload-chunk', file, type, onProgress);
     return getUploadResultPath(data, 'Server tidak mengembalikan path file dari upload chunked');
   } catch (error: any) {
     errors.push(`chunked: ${error?.message || 'gagal'}`);
-  }
-
-  try {
-    const data = await apiUploadBase64('/files/upload', file, type, onProgress);
-    return getUploadResultPath(data, 'Server tidak mengembalikan path file dari upload base64');
-  } catch (error: any) {
-    errors.push(`base64: ${error?.message || 'gagal'}`);
   }
 
   throw new Error(`Semua metode upload gagal. ${errors.join(' | ')}`);
