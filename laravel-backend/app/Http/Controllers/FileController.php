@@ -95,6 +95,21 @@ class FileController extends Controller
         return $default;
     }
 
+    private function readRawRequestBody(Request $request)
+    {
+        $raw = $request->getContent();
+        if (is_string($raw) && $raw !== '') {
+            return $raw;
+        }
+
+        $input = @file_get_contents('php://input');
+        if (is_string($input) && $input !== '') {
+            return $input;
+        }
+
+        return null;
+    }
+
     private function buildPublicFileUrl($path)
     {
         $normalized = $this->normalizeStoredPath($path);
@@ -520,6 +535,22 @@ class FileController extends Controller
         return null;
     }
 
+    private function readSingleUploadBinary(Request $request)
+    {
+        $contentType = strtolower((string) $request->header('Content-Type', ''));
+        $transport = strtolower((string) $this->getRequestValue($request, 'transport', 'X-Upload-Transport', ''));
+
+        if ($transport === 'binary' || strpos($contentType, 'application/octet-stream') !== false) {
+            $raw = $this->readRawRequestBody($request);
+            if (is_string($raw) && $raw !== '') {
+                Log::info('[FileController] Standard upload read via raw binary body (' . strlen($raw) . ' bytes)');
+                return $raw;
+            }
+        }
+
+        return null;
+    }
+
     private function validateAssembledFile($path, $type, $ext)
     {
         if (!file_exists($path)) return 'File sementara tidak ditemukan';
@@ -593,6 +624,34 @@ class FileController extends Controller
 
         $fileBase64 = $this->getRequestValue($request, ['file_base64', 'fileBase64']);
         $fileNameFromBody = basename((string) $this->getRequestValue($request, ['file_name', 'fileName'], 'X-File-Name', 'upload.bin'));
+        $rawBinary = $this->readSingleUploadBinary($request);
+
+        if (is_string($rawBinary) && $rawBinary !== '') {
+            if (strlen($rawBinary) > self::MAX_FILE_SIZE_BYTES) {
+                return $this->errorResponse('Ukuran file maksimal 5MB', 422, 'file_too_large');
+            }
+
+            $ext = strtolower(pathinfo($fileNameFromBody, PATHINFO_EXTENSION));
+            $typeErr = $this->validateTypeAndExtension($type, $ext);
+            if ($typeErr) return $this->errorResponse($typeErr, 422, 'invalid_file_type');
+
+            $tmpPath = storage_path('app/chunks/upload-binary-' . uniqid('', true) . '.tmp');
+            @file_put_contents($tmpPath, $rawBinary);
+
+            $valErr = $this->validateAssembledFile($tmpPath, $type, $ext);
+            @unlink($tmpPath);
+            if ($valErr) {
+                return $this->errorResponse($valErr, 422, 'assembled_validation_failed');
+            }
+
+            try {
+                $stored = $this->storeBinaryToPublicDisk($user->id, $type, $ext, $rawBinary);
+                return $stored['response'];
+            } catch (\Throwable $e) {
+                Log::error('[FileController] upload binary error: ' . $e->getMessage());
+                return $this->errorResponse('Gagal menyimpan file: ' . $e->getMessage(), 500, 'storage_write_failed');
+            }
+        }
 
         if (is_string($fileBase64) && trim($fileBase64) !== '') {
             $clean = preg_replace('/^data:[^;]+;base64,/', '', trim($fileBase64));

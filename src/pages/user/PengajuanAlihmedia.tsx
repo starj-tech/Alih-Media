@@ -15,6 +15,37 @@ import { Send, FileUp, CalendarDays, ChevronsUpDown, Check, AlertTriangle } from
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
+function getUploadErrorMessage(label: string, message: string): string {
+  const lower = message.toLowerCase();
+
+  if (lower.includes('tipe file wajib diisi') || lower.includes('invalid_type') || lower.includes('type: required')) {
+    return `Gagal mengupload ${label}: metadata upload tidak terbaca di server. Coba kirim ulang; bila tetap gagal, backend produksi masih memblokir metadata request.`;
+  }
+
+  if (
+    lower.includes('file wajib diunggah')
+    || lower.includes('chunk kosong')
+    || lower.includes('tidak dapat dibaca')
+    || lower.includes('empty_chunk')
+    || lower.includes('upload_transport_failed')
+    || lower.includes('invalid_base64')
+  ) {
+    return `Gagal mengupload ${label}: file terkirim tetapi isi file tidak terbaca utuh oleh server.`;
+  }
+
+  if (
+    lower.includes('gagal menyimpan file')
+    || lower.includes('storage')
+    || lower.includes('chunk_dir_not_writable')
+    || lower.includes('chunk_write_failed')
+    || lower.includes('storage_write_failed')
+  ) {
+    return `Gagal mengupload ${label}: file terbaca, tetapi server gagal menyimpannya ke storage.`;
+  }
+
+  return `Gagal mengupload ${label}: ${message || 'Silakan coba lagi'}`;
+}
+
 const jenisHakOptions: { value: JenisHak; label: string }[] = [
   { value: 'HM', label: 'HM (Hak Milik)' },
   { value: 'HGB', label: 'HGB (Hak Guna Bangunan)' },
@@ -171,7 +202,7 @@ export default function PengajuanAlihmedia() {
           return url;
         } catch (err: any) {
           console.error(`[Upload] ${label} failed:`, err);
-          throw new Error(`Gagal mengupload ${label}: ${err?.message || 'Silakan coba lagi'}`);
+            throw new Error(getUploadErrorMessage(label, String(err?.message || 'Silakan coba lagi')));
         }
       };
 

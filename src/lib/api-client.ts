@@ -54,6 +54,7 @@ function buildUploadMetaHeaders(meta: {
   chunkIndex?: number;
   totalChunks?: number;
   fileName?: string;
+  transport?: string;
 }): Record<string, string> {
   const headers: Record<string, string> = {};
   if (meta.type) headers['X-Upload-Type'] = meta.type;
@@ -61,7 +62,26 @@ function buildUploadMetaHeaders(meta: {
   if (typeof meta.chunkIndex === 'number') headers['X-Chunk-Index'] = String(meta.chunkIndex);
   if (typeof meta.totalChunks === 'number') headers['X-Total-Chunks'] = String(meta.totalChunks);
   if (meta.fileName) headers['X-File-Name'] = meta.fileName;
+  if (meta.transport) headers['X-Upload-Transport'] = meta.transport;
   return headers;
+}
+
+function buildUploadQuery(meta: {
+  type?: string;
+  uploadId?: string;
+  chunkIndex?: number;
+  totalChunks?: number;
+  fileName?: string;
+  transport?: string;
+}): string {
+  const qs = new URLSearchParams();
+  if (meta.type) qs.set('type', meta.type);
+  if (meta.uploadId) qs.set('upload_id', meta.uploadId);
+  if (typeof meta.chunkIndex === 'number') qs.set('chunk_index', String(meta.chunkIndex));
+  if (typeof meta.totalChunks === 'number') qs.set('total_chunks', String(meta.totalChunks));
+  if (meta.fileName) qs.set('file_name', meta.fileName);
+  if (meta.transport) qs.set('transport', meta.transport);
+  return qs.toString();
 }
 
 const VALIDATION_MAP: Record<string, Record<string, string>> = {
@@ -208,6 +228,37 @@ async function parseUploadResponse(res: Response, context: string): Promise<any>
   return data;
 }
 
+export async function apiUploadBinary(
+  endpoint: string,
+  file: File,
+  type: 'sertifikat' | 'ktp' | 'foto-bangunan',
+  onProgress?: (percent: number) => void,
+): Promise<any> {
+  const token = getToken();
+  const query = buildUploadQuery({ type, fileName: file.name, transport: 'binary' });
+
+  onProgress?.(15);
+
+  const res = await fetch(`${LARAVEL_API_URL}${endpoint}?${query}`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/octet-stream',
+      'X-Requested-With': 'XMLHttpRequest',
+      ...authTokenHeaders(token),
+      ...buildUploadMetaHeaders({ type, fileName: file.name, transport: 'binary' }),
+    },
+    body: file,
+  }).catch(() => {
+    throw new Error('Tidak dapat terhubung ke server untuk upload biner.');
+  });
+
+  onProgress?.(75);
+  const data = await parseUploadResponse(res, 'Upload biner');
+  onProgress?.(100);
+  return data;
+}
+
 export async function apiUploadChunked(
   endpoint: string,
   file: File,
@@ -220,11 +271,12 @@ export async function apiUploadChunked(
   const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   const errors: string[] = [];
 
-  // Strategies ordered by reliability on restrictive shared hosting:
-  // 1. multipart/form-data — most universal, chunk as file attachment
-  // 2. text/plain base64 — simple request, no binary filter issues
-  // 3. application/json base64 — standard but triggers preflight
-  const strategies = ['formdata', 'plain', 'json'] as const;
+  // Strategies ordered by reliability on the current production hosting:
+  // 1. urlencoded base64 — proven accepted by server body parser
+  // 2. multipart/form-data — fallback if parser is restored
+  // 3. text/plain base64 — fallback for strict filters
+  // 4. application/json base64 — last resort
+  const strategies = ['urlencoded', 'formdata', 'plain', 'json'] as const;
 
   for (const strategy of strategies) {
     const sid = `${uploadId}-${strategy}`;
@@ -248,16 +300,30 @@ export async function apiUploadChunked(
           }),
         };
 
-        const qs = new URLSearchParams({
+        const qs = buildUploadQuery({
           type,
-          upload_id: sid,
-          chunk_index: String(i),
-          total_chunks: String(totalChunks),
-          file_name: file.name,
+          uploadId: sid,
+          chunkIndex: i,
+          totalChunks,
+          fileName: file.name,
         });
 
         let res: Response;
-        if (strategy === 'formdata') {
+        if (strategy === 'urlencoded') {
+          const b64 = uint8ArrayToBase64(new Uint8Array(buffer));
+          res = await fetch(`${LARAVEL_API_URL}${endpoint}?${qs}`, {
+            method: 'POST',
+            headers: { ...headers, 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+            body: new URLSearchParams({
+              type,
+              upload_id: sid,
+              chunk_index: String(i),
+              total_chunks: String(totalChunks),
+              file_name: file.name,
+              chunk_base64: b64,
+            }),
+          });
+        } else if (strategy === 'formdata') {
           // multipart/form-data with chunk as a file — most universally supported
           const formData = new FormData();
           formData.append('chunk', new Blob([buffer]), `chunk_${i}.bin`);
@@ -267,21 +333,21 @@ export async function apiUploadChunked(
           formData.append('total_chunks', String(totalChunks));
           formData.append('file_name', file.name);
 
-          res = await fetch(`${LARAVEL_API_URL}${endpoint}?${qs.toString()}`, {
+          res = await fetch(`${LARAVEL_API_URL}${endpoint}?${qs}`, {
             method: 'POST',
             headers,
             body: formData,
           });
         } else if (strategy === 'plain') {
           const b64 = uint8ArrayToBase64(new Uint8Array(buffer));
-          res = await fetch(`${LARAVEL_API_URL}${endpoint}?${qs.toString()}`, {
+          res = await fetch(`${LARAVEL_API_URL}${endpoint}?${qs}`, {
             method: 'POST',
             headers: { ...headers, 'Content-Type': 'text/plain' },
             body: b64,
           });
         } else if (strategy === 'json') {
           const b64 = uint8ArrayToBase64(new Uint8Array(buffer));
-          res = await fetch(`${LARAVEL_API_URL}${endpoint}?${qs.toString()}`, {
+          res = await fetch(`${LARAVEL_API_URL}${endpoint}?${qs}`, {
             method: 'POST',
             headers: { ...headers, 'Content-Type': 'application/json' },
             body: JSON.stringify({ chunk_base64: b64 }),
@@ -325,10 +391,7 @@ export async function apiUploadBase64(
 
   for (const strategy of strategies) {
     try {
-      const qs = new URLSearchParams({
-        type,
-        file_name: file.name,
-      });
+      const qs = buildUploadQuery({ type, fileName: file.name });
 
       const headers: Record<string, string> = {
         Accept: 'application/json',
@@ -339,7 +402,7 @@ export async function apiUploadBase64(
 
       let res: Response;
       if (strategy === 'json') {
-        res = await fetch(`${LARAVEL_API_URL}${endpoint}?${qs.toString()}`, {
+        res = await fetch(`${LARAVEL_API_URL}${endpoint}?${qs}`, {
           method: 'POST',
           headers: { ...headers, 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -349,7 +412,7 @@ export async function apiUploadBase64(
           }),
         });
       } else {
-        res = await fetch(`${LARAVEL_API_URL}${endpoint}?${qs.toString()}`, {
+        res = await fetch(`${LARAVEL_API_URL}${endpoint}?${qs}`, {
           method: 'POST',
           headers: { ...headers, 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
           body: new URLSearchParams({

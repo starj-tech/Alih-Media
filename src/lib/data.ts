@@ -1,5 +1,5 @@
 // Data layer using Laravel REST API
-import { apiFetch, apiUpload, apiUploadBase64, apiUploadChunked, LARAVEL_API_URL, getToken } from '@/lib/api-client';
+import { apiFetch, apiUpload, apiUploadBase64, apiUploadBinary, apiUploadChunked, LARAVEL_API_URL, getToken } from '@/lib/api-client';
 
 export type BerkasStatus = 'Proses' | 'Validasi SU & Bidang' | 'Validasi BT' | 'Selesai' | 'Ditolak';
 export type JenisHak = 'HM' | 'HGB' | 'HP' | 'HGU' | 'HMSRS' | 'HPL' | 'HW';
@@ -204,16 +204,34 @@ export async function uploadFile(
 ): Promise<string> {
   const errors: string[] = [];
 
-  // Strategy 1: Base64 JSON (primary - most reliable on production server)
+  // Strategy 1: Base64 urlencoded/json (primary - currently accepted on production server)
   try {
     const data = await apiUploadBase64('/files/upload', file, type, onProgress);
     return getUploadResultPath(data, 'Server tidak mengembalikan path file dari upload base64');
   } catch (error: any) {
     errors.push(`base64: ${error?.message || 'gagal'}`);
-    console.warn('[Upload] Base64 failed:', error?.message, '→ trying multipart');
+    console.warn('[Upload] Base64 failed:', error?.message, '→ trying chunked-url-encoded');
   }
 
-  // Strategy 2: Standard multipart (fallback)
+  // Strategy 2: Chunked upload via urlencoded/plain/json fallback
+  try {
+    const data = await apiUploadChunked('/files/upload-chunk', file, type, onProgress);
+    return getUploadResultPath(data, 'Server tidak mengembalikan path file dari upload chunked');
+  } catch (error: any) {
+    errors.push(`chunked: ${error?.message || 'gagal'}`);
+    console.warn('[Upload] Chunked failed:', error?.message, '→ trying binary');
+  }
+
+  // Strategy 3: raw binary stream fallback
+  try {
+    const data = await apiUploadBinary('/files/upload', file, type, onProgress);
+    return getUploadResultPath(data, 'Server tidak mengembalikan path file dari upload biner');
+  } catch (error: any) {
+    errors.push(`binary: ${error?.message || 'gagal'}`);
+    console.warn('[Upload] Binary failed:', error?.message, '→ trying multipart');
+  }
+
+  // Strategy 4: Standard multipart (fallback)
   try {
     const formData = new FormData();
     formData.append('type', type);
@@ -222,14 +240,6 @@ export async function uploadFile(
     return getUploadResultPath(data, 'Server tidak mengembalikan path file dari upload multipart');
   } catch (error: any) {
     errors.push(`multipart: ${error?.message || 'gagal'}`);
-  }
-
-  // Strategy 3: Chunked upload (last resort)
-  try {
-    const data = await apiUploadChunked('/files/upload-chunk', file, type, onProgress);
-    return getUploadResultPath(data, 'Server tidak mengembalikan path file dari upload chunked');
-  } catch (error: any) {
-    errors.push(`chunked: ${error?.message || 'gagal'}`);
   }
 
   throw new Error(`Semua metode upload gagal. ${errors.join(' | ')}`);
