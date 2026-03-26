@@ -467,16 +467,27 @@ class FileController extends Controller
             }
         }
 
-        if (!$request->hasFile('file')) {
+        $file = $request->file('file');
+        if (!$file) {
+            $allFiles = $request->allFiles();
+            if (is_array($allFiles) && !empty($allFiles)) {
+                $firstFile = reset($allFiles);
+                if ($firstFile) {
+                    $file = $firstFile;
+                }
+            }
+        }
+
+        if (!$file) {
             Log::warning('[FileController] file field missing on standard upload', [
                 'content_type' => $request->header('Content-Type'),
                 'content_length' => $request->header('Content-Length'),
-                'keys' => array_keys($request->all()),
+                'input_keys' => array_keys($request->all()),
+                'file_keys' => array_keys($request->allFiles()),
             ]);
             return $this->errorResponse('File wajib diunggah', 422, 'file_required');
         }
 
-        $file = $request->file('file');
         if (!$file || !$file->isValid()) {
             return $this->errorResponse('Upload gagal di server. Gunakan upload bertahap.', 500, 'upload_transport_failed');
         }
