@@ -55,6 +55,9 @@ function buildUploadMetaHeaders(meta: {
   totalChunks?: number;
   fileName?: string;
   transport?: string;
+  debugId?: string;
+  payloadBytes?: number;
+  encodedBytes?: number;
 }): Record<string, string> {
   const headers: Record<string, string> = {};
   if (meta.type) headers['X-Upload-Type'] = meta.type;
@@ -63,6 +66,9 @@ function buildUploadMetaHeaders(meta: {
   if (typeof meta.totalChunks === 'number') headers['X-Total-Chunks'] = String(meta.totalChunks);
   if (meta.fileName) headers['X-File-Name'] = meta.fileName;
   if (meta.transport) headers['X-Upload-Transport'] = meta.transport;
+  if (meta.debugId) headers['X-Upload-Debug-Id'] = meta.debugId;
+  if (typeof meta.payloadBytes === 'number') headers['X-Payload-Bytes'] = String(meta.payloadBytes);
+  if (typeof meta.encodedBytes === 'number') headers['X-Encoded-Bytes'] = String(meta.encodedBytes);
   return headers;
 }
 
@@ -73,6 +79,9 @@ function buildUploadQuery(meta: {
   totalChunks?: number;
   fileName?: string;
   transport?: string;
+  debugId?: string;
+  payloadBytes?: number;
+  encodedBytes?: number;
 }): string {
   const qs = new URLSearchParams();
   if (meta.type) qs.set('type', meta.type);
@@ -81,6 +90,9 @@ function buildUploadQuery(meta: {
   if (typeof meta.totalChunks === 'number') qs.set('total_chunks', String(meta.totalChunks));
   if (meta.fileName) qs.set('file_name', meta.fileName);
   if (meta.transport) qs.set('transport', meta.transport);
+  if (meta.debugId) qs.set('debug_id', meta.debugId);
+  if (typeof meta.payloadBytes === 'number') qs.set('payload_bytes', String(meta.payloadBytes));
+  if (typeof meta.encodedBytes === 'number') qs.set('encoded_bytes', String(meta.encodedBytes));
   return qs.toString();
 }
 
@@ -219,8 +231,11 @@ async function parseUploadResponse(res: Response, context: string): Promise<any>
     const msg = extractApiError(data, `${context} (HTTP ${res.status})`);
     if (res.status === 401) notifyAuthInvalid(msg);
 
-    const err = new Error(msg) as any;
+    const debugSuffix = data?.debug_id ? ` [ref: ${data.debug_id}]` : '';
+    const codeSuffix = data?.code ? ` [code: ${data.code}]` : '';
+    const err = new Error(`${msg}${codeSuffix}${debugSuffix}`.trim()) as any;
     err.backendCode = data?.code;
+    err.debugId = data?.debug_id;
     err.fatal = isFatalUploadError(data);
     throw err;
   }
@@ -235,7 +250,8 @@ export async function apiUploadBinary(
   onProgress?: (percent: number) => void,
 ): Promise<any> {
   const token = getToken();
-  const query = buildUploadQuery({ type, fileName: file.name, transport: 'binary' });
+  const debugId = `bin-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const query = buildUploadQuery({ type, fileName: file.name, transport: 'binary', debugId, payloadBytes: file.size });
 
   onProgress?.(15);
 
@@ -246,7 +262,7 @@ export async function apiUploadBinary(
       'Content-Type': 'application/octet-stream',
       'X-Requested-With': 'XMLHttpRequest',
       ...authTokenHeaders(token),
-      ...buildUploadMetaHeaders({ type, fileName: file.name, transport: 'binary' }),
+      ...buildUploadMetaHeaders({ type, fileName: file.name, transport: 'binary', debugId, payloadBytes: file.size }),
     },
     body: file,
   }).catch(() => {
@@ -266,7 +282,7 @@ export async function apiUploadChunked(
   onProgress?: (percent: number) => void,
 ): Promise<any> {
   const token = getToken();
-  const chunkSize = 128 * 1024;
+  const chunkSize = 24 * 1024;
   const totalChunks = Math.max(1, Math.ceil(file.size / chunkSize));
   const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   const errors: string[] = [];
@@ -287,6 +303,10 @@ export async function apiUploadChunked(
         const end = Math.min(file.size, start + chunkSize);
         const chunk = file.slice(start, end);
         const buffer = await chunk.arrayBuffer();
+        const payloadBytes = buffer.byteLength;
+        const debugId = `${sid}-${i}`;
+        const base64Chunk = strategy === 'formdata' ? '' : uint8ArrayToBase64(new Uint8Array(buffer));
+        const encodedBytes = base64Chunk ? base64Chunk.length : 0;
 
         const headers: Record<string, string> = {
           Accept: 'application/json',
@@ -297,6 +317,10 @@ export async function apiUploadChunked(
             chunkIndex: i,
             totalChunks,
             fileName: file.name,
+            transport: strategy,
+            debugId,
+            payloadBytes,
+            encodedBytes,
           }),
         };
 
@@ -306,11 +330,14 @@ export async function apiUploadChunked(
           chunkIndex: i,
           totalChunks,
           fileName: file.name,
+          transport: strategy,
+          debugId,
+          payloadBytes,
+          encodedBytes,
         });
 
         let res: Response;
         if (strategy === 'urlencoded') {
-          const b64 = uint8ArrayToBase64(new Uint8Array(buffer));
           res = await fetch(`${LARAVEL_API_URL}${endpoint}?${qs}`, {
             method: 'POST',
             headers: { ...headers, 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
@@ -320,7 +347,12 @@ export async function apiUploadChunked(
               chunk_index: String(i),
               total_chunks: String(totalChunks),
               file_name: file.name,
-              chunk_base64: b64,
+              transport: strategy,
+              debug_id: debugId,
+              payload_bytes: String(payloadBytes),
+              encoded_bytes: String(encodedBytes),
+              chunk_data: base64Chunk,
+              chunk_base64: base64Chunk,
             }),
           });
         } else if (strategy === 'formdata') {
@@ -332,6 +364,9 @@ export async function apiUploadChunked(
           formData.append('chunk_index', String(i));
           formData.append('total_chunks', String(totalChunks));
           formData.append('file_name', file.name);
+          formData.append('transport', strategy);
+          formData.append('debug_id', debugId);
+          formData.append('payload_bytes', String(payloadBytes));
 
           res = await fetch(`${LARAVEL_API_URL}${endpoint}?${qs}`, {
             method: 'POST',
@@ -339,18 +374,23 @@ export async function apiUploadChunked(
             body: formData,
           });
         } else if (strategy === 'plain') {
-          const b64 = uint8ArrayToBase64(new Uint8Array(buffer));
           res = await fetch(`${LARAVEL_API_URL}${endpoint}?${qs}`, {
             method: 'POST',
             headers: { ...headers, 'Content-Type': 'text/plain' },
-            body: b64,
+            body: base64Chunk,
           });
         } else if (strategy === 'json') {
-          const b64 = uint8ArrayToBase64(new Uint8Array(buffer));
           res = await fetch(`${LARAVEL_API_URL}${endpoint}?${qs}`, {
             method: 'POST',
             headers: { ...headers, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chunk_base64: b64 }),
+            body: JSON.stringify({
+              transport: strategy,
+              debug_id: debugId,
+              payload_bytes: payloadBytes,
+              encoded_bytes: encodedBytes,
+              chunk_data: base64Chunk,
+              chunk_base64: base64Chunk,
+            }),
           });
         } else {
           continue;
@@ -384,6 +424,7 @@ export async function apiUploadBase64(
 
   const buffer = await file.arrayBuffer();
   const fileBase64 = uint8ArrayToBase64(new Uint8Array(buffer));
+  const debugId = `b64-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   onProgress?.(45);
 
   const strategies = ['json', 'urlencoded'] as const;
@@ -391,13 +432,27 @@ export async function apiUploadBase64(
 
   for (const strategy of strategies) {
     try {
-      const qs = buildUploadQuery({ type, fileName: file.name });
+      const qs = buildUploadQuery({
+        type,
+        fileName: file.name,
+        transport: `single-${strategy}`,
+        debugId,
+        payloadBytes: file.size,
+        encodedBytes: fileBase64.length,
+      });
 
       const headers: Record<string, string> = {
         Accept: 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
         ...authTokenHeaders(token),
-        ...buildUploadMetaHeaders({ type, fileName: file.name }),
+        ...buildUploadMetaHeaders({
+          type,
+          fileName: file.name,
+          transport: `single-${strategy}`,
+          debugId,
+          payloadBytes: file.size,
+          encodedBytes: fileBase64.length,
+        }),
       };
 
       let res: Response;
@@ -407,7 +462,12 @@ export async function apiUploadBase64(
           headers: { ...headers, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type,
+            transport: `single-${strategy}`,
+            debug_id: debugId,
+            payload_bytes: file.size,
+            encoded_bytes: fileBase64.length,
             file_name: file.name,
+            file_data: fileBase64,
             file_base64: fileBase64,
           }),
         });
@@ -417,7 +477,12 @@ export async function apiUploadBase64(
           headers: { ...headers, 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
           body: new URLSearchParams({
             type,
+            transport: `single-${strategy}`,
+            debug_id: debugId,
+            payload_bytes: String(file.size),
+            encoded_bytes: String(fileBase64.length),
             file_name: file.name,
+            file_data: fileBase64,
             file_base64: fileBase64,
           }),
         });
