@@ -61,7 +61,7 @@ export default function DashboardLayout({ role, children, onLogout }: DashboardL
               <PanelLeft className="h-4 w-4" />
             </button>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground">Aplikasi Alih Media</p>
+              <p className="text-sm font-semibold text-foreground">VISA - Validasi Instrumen Sertifikat Analog</p>
               <p className="text-xs text-muted-foreground">Tampilan sudah dioptimalkan untuk desktop dan handphone</p>
             </div>
           </div>

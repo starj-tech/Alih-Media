@@ -252,7 +252,7 @@ export default function AppSidebar({
 
         {(!collapsed || isMobile) && (
           <div className="border-t border-[hsl(var(--sidebar-border))] px-4 py-3">
-            <p className="text-center text-[10px] uppercase tracking-widest text-[hsl(var(--sidebar-foreground))] opacity-45">Alih Media</p>
+            <p className="text-center text-[10px] uppercase tracking-widest text-[hsl(var(--sidebar-foreground))] opacity-45">VISA</p>
             <p className="text-center text-[10px] text-[hsl(var(--sidebar-foreground))] opacity-45">Kantah Kab. Bogor II</p>
           </div>
         )}
