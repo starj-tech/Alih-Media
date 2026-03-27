@@ -88,8 +88,9 @@ export default function LoginPage() {
           <div className="w-72 h-72 mx-auto mb-4">
             <img src={logoBpn} alt="Logo BPN" className="w-full h-full object-contain" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Login Aplikasi</h1>
-          <p className="text-white/80 mt-1">Aplikasi Alih Media - Kantor Pertanahan Kab. Bogor II</p>
+          <h1 className="text-2xl font-bold text-white">VISA</h1>
+          <p className="text-white/80 mt-1">Validasi Instrumen Sertifikat Analog</p>
+          <p className="text-white/60 text-sm mt-0.5">Kantor Pertanahan Kab. Bogor II</p>
         </div>
 
         <div className="glass-card rounded-2xl p-8 shadow-xl">

@@ -313,29 +313,7 @@ export async function getSignedFileUrl(filePath: string): Promise<string | null>
   const normalized = normalizeStoredFilePath(filePath);
   if (!normalized) return null;
 
-  // Primary: authenticated download -> blob URL
-  try {
-    const res = await fetch(
-      `${LARAVEL_API_URL}/files/download/${encodeURIComponent(normalized)}`,
-      { method: 'GET', headers: getAuthHeaders() },
-    );
-
-    if (res.ok) {
-      const blob = await res.blob();
-      if (blob.size > 0) return URL.createObjectURL(blob);
-    }
-  } catch {
-    // fallback below
-  }
-
-  // Fallback: get URL from backend
-  try {
-    const data = await apiFetch<{ url: string }>(`/files/url/${encodeURIComponent(normalized)}`);
-    if (data.url) return normalizePublicFileUrl(data.url);
-  } catch {
-    // fallback below
-  }
-
+  // Direct /storage/ URL (public symlink, protected by backend middleware if needed)
   return buildDirectStorageUrl(normalized);
 }
 

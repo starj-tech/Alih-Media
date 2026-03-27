@@ -163,11 +163,14 @@ export default function AppSidebar({
   return (
     <>
       {isMobile && mobileOpen && (
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={-1}
           aria-label="Tutup menu"
           onClick={onCloseMobile}
+          onTouchEnd={(e) => { e.preventDefault(); onCloseMobile(); }}
           className="fixed inset-0 z-40 bg-[hsl(var(--foreground))]/35 backdrop-blur-[1px]"
+          style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
         />
       )}
 
@@ -196,8 +199,10 @@ export default function AppSidebar({
           <button
             type="button"
             onClick={isMobile ? onCloseMobile : onToggleCollapse}
+            onTouchEnd={(e) => { e.preventDefault(); (isMobile ? onCloseMobile : onToggleCollapse)(); }}
             className="rounded-md p-2 text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))] hover:text-[hsl(var(--sidebar-accent-foreground))]"
             aria-label={isMobile ? 'Tutup menu' : collapsed ? 'Buka menu' : 'Collapse menu'}
+            style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
           >
             {isMobile ? <X className="h-4 w-4" /> : collapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
           </button>
@@ -247,7 +252,7 @@ export default function AppSidebar({
 
         {(!collapsed || isMobile) && (
           <div className="border-t border-[hsl(var(--sidebar-border))] px-4 py-3">
-            <p className="text-center text-[10px] uppercase tracking-widest text-[hsl(var(--sidebar-foreground))] opacity-45">Alih Media</p>
+            <p className="text-center text-[10px] uppercase tracking-widest text-[hsl(var(--sidebar-foreground))] opacity-45">VISA</p>
             <p className="text-center text-[10px] text-[hsl(var(--sidebar-foreground))] opacity-45">Kantah Kab. Bogor II</p>
           </div>
         )}
