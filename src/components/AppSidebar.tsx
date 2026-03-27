@@ -199,8 +199,10 @@ export default function AppSidebar({
           <button
             type="button"
             onClick={isMobile ? onCloseMobile : onToggleCollapse}
+            onTouchEnd={(e) => { e.preventDefault(); (isMobile ? onCloseMobile : onToggleCollapse)(); }}
             className="rounded-md p-2 text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))] hover:text-[hsl(var(--sidebar-accent-foreground))]"
             aria-label={isMobile ? 'Tutup menu' : collapsed ? 'Buka menu' : 'Collapse menu'}
+            style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
           >
             {isMobile ? <X className="h-4 w-4" /> : collapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
           </button>
