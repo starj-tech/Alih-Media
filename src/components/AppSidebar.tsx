@@ -163,11 +163,14 @@ export default function AppSidebar({
   return (
     <>
       {isMobile && mobileOpen && (
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={-1}
           aria-label="Tutup menu"
           onClick={onCloseMobile}
+          onTouchEnd={(e) => { e.preventDefault(); onCloseMobile(); }}
           className="fixed inset-0 z-40 bg-[hsl(var(--foreground))]/35 backdrop-blur-[1px]"
+          style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
         />
       )}
 
