@@ -540,7 +540,7 @@ class FileController extends Controller
         }
 
         // Priority 2: Base64 in body (JSON or form-encoded)
-        $b64 = $this->getRequestValue($request, ['chunk_base64', 'chunkBase64'], 'X-Chunk-Base64');
+        $b64 = $this->getRequestValue($request, ['chunk_base64', 'chunkBase64', 'chunk_data', 'chunkData'], 'X-Chunk-Base64');
         if (is_string($b64) && trim($b64) !== '') {
             $clean = preg_replace('/^data:[^;]+;base64,/', '', trim($b64));
             $decoded = base64_decode(str_replace(' ', '+', $clean), true);
