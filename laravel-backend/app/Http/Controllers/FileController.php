@@ -11,6 +11,40 @@ class FileController extends Controller
     private const MAX_FILE_SIZE_BYTES = 5242880;
     private const MAX_CHUNK_SIZE_BYTES = 1048576;
 
+    private function getUploadDebugId(Request $request)
+    {
+        return (string) $this->getRequestValue($request, ['debug_id', 'debugId'], 'X-Upload-Debug-Id', 'n/a');
+    }
+
+    private function logUploadDiagnostic(Request $request, $stage, array $extra = [], $level = 'info')
+    {
+        $message = '[FileController][' . $stage . '] Upload diagnostic';
+        $context = array_merge([
+            'debug_id' => $this->getUploadDebugId($request),
+            'method' => $request->method(),
+            'path' => $request->path(),
+            'content_type' => (string) $request->header('Content-Type', ''),
+            'content_length' => (string) $request->header('Content-Length', ''),
+            'transport' => (string) $this->getRequestValue($request, 'transport', 'X-Upload-Transport', ''),
+            'payload_bytes' => (string) $this->getRequestValue($request, ['payload_bytes', 'payloadBytes'], 'X-Payload-Bytes', ''),
+            'encoded_bytes' => (string) $this->getRequestValue($request, ['encoded_bytes', 'encodedBytes'], 'X-Encoded-Bytes', ''),
+            'input_keys' => array_keys($request->all()),
+            'file_keys' => array_keys($request->allFiles()),
+        ], $extra);
+
+        if ($level === 'warning') {
+            Log::warning($message, $context);
+            return;
+        }
+
+        if ($level === 'error') {
+            Log::error($message, $context);
+            return;
+        }
+
+        Log::info($message, $context);
+    }
+
     private function mergeRawPayloadIntoRequest(Request $request)
     {
         $raw = $request->getContent();
@@ -506,7 +540,7 @@ class FileController extends Controller
         }
 
         // Priority 2: Base64 in body (JSON or form-encoded)
-        $b64 = $this->getRequestValue($request, ['chunk_base64', 'chunkBase64'], 'X-Chunk-Base64');
+        $b64 = $this->getRequestValue($request, ['chunk_base64', 'chunkBase64', 'chunk_data', 'chunkData'], 'X-Chunk-Base64');
         if (is_string($b64) && trim($b64) !== '') {
             $clean = preg_replace('/^data:[^;]+;base64,/', '', trim($b64));
             $decoded = base64_decode(str_replace(' ', '+', $clean), true);
@@ -607,22 +641,22 @@ class FileController extends Controller
     public function upload(Request $request)
     {
         $this->mergeRawPayloadIntoRequest($request);
+        $this->logUploadDiagnostic($request, 'standard-entry');
 
         $user = $request->user();
         if (!$user) return $this->errorResponse('Unauthorized', 401, 'auth_missing');
 
         $type = (string) $this->getRequestValue($request, 'type', 'X-Upload-Type', '');
         if (!in_array($type, ['sertifikat', 'ktp', 'foto-bangunan'], true)) {
-            Log::warning('[FileController] Upload type missing or invalid after payload merge', [
-                'content_type' => $request->header('Content-Type'),
-                'content_length' => $request->header('Content-Length'),
-                'input_keys' => array_keys($request->all()),
-                'file_keys' => array_keys($request->allFiles()),
-            ]);
-            return $this->errorResponse('Tipe file wajib diisi', 422, 'invalid_type');
+            $this->logUploadDiagnostic($request, 'standard-invalid-type', [], 'warning');
+            return response()->json([
+                'error' => 'Tipe file wajib diisi',
+                'code' => 'invalid_type',
+                'debug_id' => $this->getUploadDebugId($request),
+            ], 422);
         }
 
-        $fileBase64 = $this->getRequestValue($request, ['file_base64', 'fileBase64']);
+        $fileBase64 = $this->getRequestValue($request, ['file_base64', 'fileBase64', 'file_data', 'fileData']);
         $fileNameFromBody = basename((string) $this->getRequestValue($request, ['file_name', 'fileName'], 'X-File-Name', 'upload.bin'));
         $rawBinary = $this->readSingleUploadBinary($request);
 
@@ -648,8 +682,14 @@ class FileController extends Controller
                 $stored = $this->storeBinaryToPublicDisk($user->id, $type, $ext, $rawBinary);
                 return $stored['response'];
             } catch (\Throwable $e) {
-                Log::error('[FileController] upload binary error: ' . $e->getMessage());
-                return $this->errorResponse('Gagal menyimpan file: ' . $e->getMessage(), 500, 'storage_write_failed');
+                $this->logUploadDiagnostic($request, 'standard-binary-store-failed', [
+                    'error' => $e->getMessage(),
+                ], 'error');
+                return response()->json([
+                    'error' => 'Gagal menyimpan file: ' . $e->getMessage(),
+                    'code' => 'storage_write_failed',
+                    'debug_id' => $this->getUploadDebugId($request),
+                ], 500);
             }
         }
 
@@ -682,8 +722,14 @@ class FileController extends Controller
                 $stored = $this->storeBinaryToPublicDisk($user->id, $type, $ext, $binary);
                 return $stored['response'];
             } catch (\Throwable $e) {
-                Log::error('[FileController] upload base64 error: ' . $e->getMessage());
-                return $this->errorResponse('Gagal menyimpan file: ' . $e->getMessage(), 500, 'storage_write_failed');
+                $this->logUploadDiagnostic($request, 'standard-base64-store-failed', [
+                    'error' => $e->getMessage(),
+                ], 'error');
+                return response()->json([
+                    'error' => 'Gagal menyimpan file: ' . $e->getMessage(),
+                    'code' => 'storage_write_failed',
+                    'debug_id' => $this->getUploadDebugId($request),
+                ], 500);
             }
         }
 
@@ -693,13 +739,12 @@ class FileController extends Controller
         }
 
         if (!$file) {
-            Log::warning('[FileController] file field missing on standard upload', [
-                'content_type' => $request->header('Content-Type'),
-                'content_length' => $request->header('Content-Length'),
-                'input_keys' => array_keys($request->all()),
-                'file_keys' => array_keys($request->allFiles()),
-            ]);
-            return $this->errorResponse('File wajib diunggah', 422, 'file_required');
+            $this->logUploadDiagnostic($request, 'standard-file-missing', [], 'warning');
+            return response()->json([
+                'error' => 'File wajib diunggah',
+                'code' => 'file_required',
+                'debug_id' => $this->getUploadDebugId($request),
+            ], 422);
         }
 
         $ext = strtolower($file->getClientOriginalExtension());
@@ -709,14 +754,19 @@ class FileController extends Controller
         try {
             $content = $this->readUploadedFileBinary($file);
             if (!is_string($content) || $content === '') {
-                Log::warning('[FileController] Standard upload unreadable', [
+                $this->logUploadDiagnostic($request, 'standard-unreadable', [
                     'error_code' => $file->getError(),
                     'is_valid' => $file->isValid(),
                     'client_name' => $file->getClientOriginalName(),
                     'client_mime' => $file->getClientMimeType(),
                     'reported_size' => $file->getSize(),
-                ]);
-                return $this->errorResponse('Upload gagal di server. File tidak dapat dibaca.', 500, 'upload_transport_failed');
+                ], 'warning');
+                return response()->json([
+                    'error' => 'Upload gagal di server. File tidak dapat dibaca.',
+                    'code' => 'upload_transport_failed',
+                    'debug_id' => $this->getUploadDebugId($request),
+                    'php_upload_error' => $file->getError(),
+                ], 500);
             }
 
             if (strlen($content) > self::MAX_FILE_SIZE_BYTES) {
@@ -733,8 +783,14 @@ class FileController extends Controller
             $stored = $this->storeBinaryToPublicDisk($user->id, $type, $ext, $content);
             return $stored['response'];
         } catch (\Throwable $e) {
-            Log::error('[FileController] upload error: ' . $e->getMessage());
-            return $this->errorResponse('Gagal menyimpan file: ' . $e->getMessage(), 500, 'storage_write_failed');
+            $this->logUploadDiagnostic($request, 'standard-exception', [
+                'error' => $e->getMessage(),
+            ], 'error');
+            return response()->json([
+                'error' => 'Gagal menyimpan file: ' . $e->getMessage(),
+                'code' => 'storage_write_failed',
+                'debug_id' => $this->getUploadDebugId($request),
+            ], 500);
         }
     }
 
@@ -745,6 +801,7 @@ class FileController extends Controller
     public function uploadChunk(Request $request)
     {
         $this->mergeRawPayloadIntoRequest($request);
+        $this->logUploadDiagnostic($request, 'chunk-entry');
 
         $user = $request->user();
         if (!$user) return $this->errorResponse('Unauthorized', 401, 'auth_missing');
@@ -779,16 +836,17 @@ class FileController extends Controller
         // Read chunk binary
         $binary = $this->readChunkBinary($request);
         if (!is_string($binary) || $binary === '') {
-            Log::warning('[FileController] Empty chunk payload', [
-                'content_type' => $request->header('Content-Type'),
-                'content_length' => $request->header('Content-Length'),
+            $this->logUploadDiagnostic($request, 'chunk-empty', [
                 'upload_id' => $uploadId,
                 'chunk_index' => $chunkIndex,
-                'has_chunk_base64' => $request->filled('chunk_base64') || $request->filled('chunkBase64'),
-                'input_keys' => array_keys($request->all()),
-                'file_keys' => array_keys($request->allFiles()),
-            ]);
-            return $this->errorResponse('Chunk kosong atau tidak valid', 422, 'empty_chunk');
+                'has_chunk_base64' => $request->filled('chunk_base64') || $request->filled('chunkBase64') || $request->filled('chunk_data') || $request->filled('chunkData'),
+                'raw_body_len' => strlen((string) $this->readRawRequestBody($request)),
+            ], 'warning');
+            return response()->json([
+                'error' => 'Chunk kosong atau tidak valid',
+                'code' => 'empty_chunk',
+                'debug_id' => $this->getUploadDebugId($request),
+            ], 422);
         }
         if (strlen($binary) > self::MAX_CHUNK_SIZE_BYTES) {
             return $this->errorResponse('Ukuran chunk melebihi 1MB', 422, 'chunk_too_large');
