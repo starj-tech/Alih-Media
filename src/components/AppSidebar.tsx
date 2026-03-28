@@ -74,7 +74,7 @@ function getMenu(role: UserRole): MenuItem[] {
       return [
         { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
         { label: 'Arsip Verifikasi BT/SU', path: '/admin/arsip-verifikasi', icon: Archive },
-        { label: 'Informasi Alihmedia', path: '/admin/informasi', icon: Info },
+        { label: 'Informasi Berkas', path: '/admin/informasi', icon: Info },
         { label: 'Bantuan', path: '/admin/bantuan', icon: HelpCircle },
       ];
     case 'admin_validasi_su':
