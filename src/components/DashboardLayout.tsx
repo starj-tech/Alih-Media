@@ -62,7 +62,7 @@ export default function DashboardLayout({ role, children, onLogout }: DashboardL
             </button>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-foreground">VISA - Validasi Instrumen Sertifikat Analog</p>
-              <p className="text-xs text-muted-foreground">Tampilan sudah dioptimalkan untuk desktop dan handphone</p>
+              <p className="text-xs text-muted-foreground">Kantor Pertanahan Kab. Bogor II</p>
             </div>
           </div>
         </header>

@@ -80,8 +80,8 @@ export default function AdminInformasi() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Informasi Alihmedia</h1>
-        <p className="text-muted-foreground">Monitoring seluruh berkas alihmedia</p>
+        <h1 className="text-2xl font-bold text-foreground">Informasi Berkas</h1>
+        <p className="text-muted-foreground">Monitoring seluruh berkas VISA</p>
       </div>
 
       <DataTable<Berkas>
@@ -108,7 +108,7 @@ export default function AdminInformasi() {
                 ))}
               </SelectContent>
             </Select>
-            <ExportExcelButton data={paginated.data} fileName="informasi-alihmedia" sheetName="Informasi" />
+            <ExportExcelButton data={paginated.data} fileName="informasi-visa" sheetName="Informasi" />
           </div>
         }
         columns={[

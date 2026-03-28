@@ -153,12 +153,12 @@ export default function UserInformasi() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Informasi Alihmedia</h1>
-        <p className="text-muted-foreground">Monitoring berkas alihmedia anda</p>
+        <h1 className="text-2xl font-bold text-foreground">Informasi Berkas</h1>
+        <p className="text-muted-foreground">Monitoring berkas VISA anda</p>
       </div>
 
       <DataTable<Berkas>
-        title="Monitoring Berkas Alihmedia"
+        title="Monitoring Berkas VISA"
         searchKeys={['noHak', 'desa']}
         serverPagination={{
           currentPage: paginated.current_page,
