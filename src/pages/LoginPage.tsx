@@ -89,7 +89,7 @@ export default function LoginPage() {
             <img src={logoBpn} alt="Logo BPN" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-bold text-white">VISA</h1>
-          <p className="text-white/80 mt-1">Validasi Instrumen Sertifikat Analog</p>
+          <p className="text-white/80 mt-1">Validasi Instrumen Sertipikat Analog</p>
           <p className="text-white/60 text-sm mt-0.5">Kantor Pertanahan Kab. Bogor II</p>
         </div>
 
