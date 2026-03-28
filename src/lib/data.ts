@@ -306,15 +306,24 @@ function buildDirectStorageUrl(filePath: string): string | null {
 
 /**
  * Get a viewable URL for a stored file.
- * Uses authenticated blob download as primary method (handles legacy paths via backend resolver).
+ * Uses /storage/ path with auth token as query parameter for middleware protection.
  */
 export async function getSignedFileUrl(filePath: string): Promise<string | null> {
   if (!filePath) return null;
   const normalized = normalizeStoredFilePath(filePath);
   if (!normalized) return null;
 
-  // Direct /storage/ URL (public symlink, protected by backend middleware if needed)
-  return buildDirectStorageUrl(normalized);
+  const directUrl = buildDirectStorageUrl(normalized);
+  if (!directUrl) return null;
+
+  // Append auth token as query parameter for middleware verification
+  const token = getToken();
+  if (token) {
+    const separator = directUrl.includes('?') ? '&' : '?';
+    return `${directUrl}${separator}token=${encodeURIComponent(token)}`;
+  }
+
+  return directUrl;
 }
 
 // ==========================================

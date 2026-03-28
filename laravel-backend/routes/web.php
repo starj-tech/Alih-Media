@@ -17,6 +17,24 @@ Route::get('/login', function () {
 })->name('login');
 
 // ============================================
+// Protected Storage Route — file hanya bisa diakses jika login
+// ============================================
+Route::middleware('storage.auth')->get('/storage/{path}', function (\Illuminate\Http\Request $request, $path) {
+    $storagePath = storage_path('app/public/' . $path);
+
+    if (!file_exists($storagePath)) {
+        return response()->json(['error' => 'File tidak ditemukan'], 404);
+    }
+
+    $mimeType = mime_content_type($storagePath) ?: 'application/octet-stream';
+
+    return response()->file($storagePath, [
+        'Content-Type' => $mimeType,
+        'Cache-Control' => 'private, max-age=3600',
+    ]);
+})->where('path', '.*');
+
+// ============================================
 // Route Diagnostik SMTP (HAPUS SETELAH TESTING!)
 // Akses: https://api-alihmedia.kantahkabbogor.id/test-smtp?email=test@example.com
 // ============================================

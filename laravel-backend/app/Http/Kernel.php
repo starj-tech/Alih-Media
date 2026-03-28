@@ -53,6 +53,7 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'admin' => \App\Http\Middleware\AdminMiddleware::class,
         'role' => \App\Http\Middleware\RoleMiddleware::class,
+        'storage.auth' => \App\Http\Middleware\StorageAuth::class,
     ];
 }
 
