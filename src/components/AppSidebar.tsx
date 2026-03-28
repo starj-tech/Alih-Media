@@ -66,7 +66,7 @@ function getMenu(role: UserRole): MenuItem[] {
         { label: 'Arsip Verifikasi BT/SU', path: '/admin/arsip-verifikasi', icon: Archive },
         { label: 'Validasi SU & Bidang', path: '/admin/validasi-su', icon: FileSearch },
         { label: 'Validasi Buku Tanah', path: '/admin/validasi-bt', icon: CheckSquare },
-        { label: 'Informasi Alihmedia', path: '/admin/informasi', icon: Info },
+        { label: 'Informasi Berkas', path: '/admin/informasi', icon: Info },
         { label: 'Kelola User', path: '/admin/users', icon: Users },
         { label: 'Bantuan', path: '/admin/bantuan', icon: HelpCircle },
       ];
