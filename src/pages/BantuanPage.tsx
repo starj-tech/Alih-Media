@@ -10,7 +10,7 @@ export default function BantuanPage() {
           <HelpCircle className="w-6 h-6 text-primary" />
           Bantuan & Panduan
         </h1>
-        <p className="text-muted-foreground mt-1">Panduan penggunaan aplikasi Alih Media BPN Kab. Bogor II</p>
+        <p className="text-muted-foreground mt-1">Panduan penggunaan aplikasi VISA - Kantor Pertanahan Kab. Bogor II</p>
       </div>
 
       {/* Registration Guide */}

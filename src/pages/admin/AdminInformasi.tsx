@@ -108,7 +108,7 @@ export default function AdminInformasi() {
                 ))}
               </SelectContent>
             </Select>
-            <ExportExcelButton data={paginated.data} fileName="informasi-alihmedia" sheetName="Informasi" />
+            <ExportExcelButton data={paginated.data} fileName="informasi-visa" sheetName="Informasi" />
           </div>
         }
         columns={[

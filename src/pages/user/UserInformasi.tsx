@@ -158,7 +158,7 @@ export default function UserInformasi() {
       </div>
 
       <DataTable<Berkas>
-        title="Monitoring Berkas Alihmedia"
+        title="Monitoring Berkas VISA"
         searchKeys={['noHak', 'desa']}
         serverPagination={{
           currentPage: paginated.current_page,

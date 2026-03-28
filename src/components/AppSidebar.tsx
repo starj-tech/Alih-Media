@@ -96,8 +96,8 @@ function getMenu(role: UserRole): MenuItem[] {
     default:
       return [
         { label: 'Dashboard', path: '/user/dashboard', icon: LayoutDashboard },
-        { label: 'Pengajuan Alihmedia', path: '/user/pengajuan', icon: Send },
-        { label: 'Informasi Alihmedia', path: '/user/informasi', icon: Info },
+        { label: 'Pengajuan Berkas', path: '/user/pengajuan', icon: Send },
+        { label: 'Informasi Berkas', path: '/user/informasi', icon: Info },
         { label: 'Bantuan', path: '/user/bantuan', icon: HelpCircle },
       ];
   }
