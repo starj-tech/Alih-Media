@@ -156,9 +156,18 @@ export default function PengajuanAlihmedia() {
       return;
     }
 
-    const noSuNumber = sanitized.noSuTahun.split('/')[0]?.replace(/\D/g, '') || '';
+    // Validasi format: harus ada "/" diikuti tahun (4 digit)
+    const suParts = sanitized.noSuTahun.split('/');
+    const noSuNumber = (suParts[0] || '').replace(/\D/g, '');
+    const tahunPart = (suParts[1] || '').trim();
+    
     if (noSuNumber.length < 5) {
       toast.error('No SU harus minimal 5 digit');
+      return;
+    }
+    
+    if (!tahunPart || !/^\d{4}$/.test(tahunPart)) {
+      toast.error('Format No.SU/Tahun harus diisi lengkap dengan tahun, contoh: 00028/2008');
       return;
     }
 
