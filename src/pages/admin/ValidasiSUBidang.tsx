@@ -157,22 +157,55 @@ export default function ValidasiSUBidang() {
         data={paginated.data}
       />
 
-      <Dialog open={!!tolakId} onOpenChange={(open) => { if (!open) setTolakId(null); }}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Catatan Penolakan</DialogTitle></DialogHeader>
-          <div className="space-y-3">
+      <Dialog open={!!tolakId} onOpenChange={(open) => { if (!open) resetTolakForm(); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Penolakan Berkas</DialogTitle></DialogHeader>
+          <div className="space-y-4">
             {tolakBerkas?.catatanPenolakan && (
               <div className="p-3 rounded bg-destructive/10 border border-destructive/20">
                 <p className="text-xs font-semibold text-destructive mb-1">Catatan sebelumnya:</p>
                 <p className="text-sm text-destructive">{tolakBerkas.catatanPenolakan}</p>
               </div>
             )}
-            <Label>Alasan penolakan</Label>
-            <Textarea value={catatan} onChange={e => setCatatan(e.target.value)} placeholder="Masukkan alasan penolakan berkas..." rows={4} />
+
+            <div className="space-y-2">
+              <Label className="font-semibold">1. Pilih Jenis Penolakan</Label>
+              <RadioGroup value={jenisPenolakan} onValueChange={(v) => setJenisPenolakan(v as 'aplikasi' | 'whatsapp')}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="aplikasi" id="tolak-app" />
+                  <Label htmlFor="tolak-app" className="cursor-pointer">Tolak Melalui Aplikasi</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="whatsapp" id="tolak-wa" />
+                  <Label htmlFor="tolak-wa" className="cursor-pointer">Tolak Melalui WhatsApp</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="font-semibold">2. Pilih Keterangan Penolakan</Label>
+              <Select value={keteranganPenolakan} onValueChange={setKeteranganPenolakan}>
+                <SelectTrigger>
+                  <SelectValue placeholder="-- Pilih Keterangan --" />
+                </SelectTrigger>
+                <SelectContent>
+                  {KETERANGAN_PENOLAKAN.map(k => (
+                    <SelectItem key={k} value={k}>{k}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="font-semibold">3. Catatan Penolakan</Label>
+              <Textarea value={catatan} onChange={e => setCatatan(e.target.value)} placeholder="Masukkan catatan penolakan berkas..." rows={3} />
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setTolakId(null)}>Batal</Button>
-            <Button variant="destructive" onClick={handleTolak}>Tolak Berkas</Button>
+            <Button variant="outline" onClick={resetTolakForm}>Batal</Button>
+            <Button variant="destructive" onClick={handleTolak}>
+              <Send className="w-3 h-3 mr-1" /> Kirim
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
