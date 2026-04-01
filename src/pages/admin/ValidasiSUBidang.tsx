@@ -12,6 +12,18 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const KETERANGAN_PENOLAKAN = [
+  'Pendaftaran Pelayanan',
+  'Penataan Batas',
+  'Pengukuran Ulang',
+  'Perubahan Nama KTP',
+  'Pemekaran Desa',
+  'Pemekaran Kecamatan',
+  'Revisi Double Nomor Hak',
+];
 
 export default function ValidasiSUBidang() {
   const { user } = useAuth();
