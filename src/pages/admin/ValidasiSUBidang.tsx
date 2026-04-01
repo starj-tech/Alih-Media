@@ -63,14 +63,39 @@ export default function ValidasiSUBidang() {
     }
   };
 
+  const resetTolakForm = () => {
+    setTolakId(null);
+    setJenisPenolakan('aplikasi');
+    setKeteranganPenolakan('');
+    setCatatan('');
+  };
+
   const handleTolak = async () => {
     if (!tolakId) return;
-    if (!catatan.trim()) { toast.error('Masukkan catatan penolakan'); return; }
-    const currentStatus = paginated.data.find(b => b.id === tolakId)?.status;
-    await updateBerkasStatus(tolakId, 'Ditolak', catatan.trim(), user?.id, currentStatus);
+    if (!keteranganPenolakan) { toast.error('Pilih keterangan penolakan'); return; }
+
+    const berkas = paginated.data.find(b => b.id === tolakId);
+    const fullCatatan = catatan.trim()
+      ? `${keteranganPenolakan} - ${catatan.trim()}`
+      : keteranganPenolakan;
+
+    if (jenisPenolakan === 'whatsapp' && berkas) {
+      // Build WhatsApp message
+      const namaPemilik = berkas.namaPemilikSertifikat || berkas.namaPemegangHak;
+      const noWa = berkas.noWaPemohon || berkas.noTelepon || '';
+      const phone = noWa.replace(/\D/g, '').replace(/^0/, '62');
+
+      const message = `Yth Bapak/Ibu ${namaPemilik},\n\nBerkas Pengajuan Validasi Alihmedia dengan nomor Hak ${berkas.noHak} Jenis Hak ${berkas.jenisHak} Desa ${berkas.desa} Kecamatan ${berkas.kecamatan} harus dilakukan ${keteranganPenolakan}${catatan.trim() ? `, dengan penjelasan : ${catatan.trim()}` : ''}\n\nSilahkan untuk melakukan pendaftaran Pelayanan di Kantor Pertanahan Kabupaten Bogor II,\n\nAlamat : Jl. Alternatif Cibubur no. 6 Cileungsi, Kecamatan Cileungsi, Kabupaten Bogor, Jawa Barat 16820\n\nTerima Kasih`;
+
+      const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+      window.open(waUrl, '_blank');
+    }
+
+    // Save rejection to backend regardless of type
+    const currentStatus = berkas?.status;
+    await updateBerkasStatus(tolakId, 'Ditolak', fullCatatan, user?.id, currentStatus);
     toast.success('Berkas ditolak');
-    setTolakId(null);
-    setCatatan('');
+    resetTolakForm();
     loadData();
   };
 
