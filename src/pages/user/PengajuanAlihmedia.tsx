@@ -346,15 +346,43 @@ export default function PengajuanAlihmedia() {
               <Label className="text-xs">No.SU/Tahun <span className="text-destructive">*</span></Label>
               <Input
                 value={form.noSuTahun}
-                onChange={e => setForm(f => ({ ...f, noSuTahun: e.target.value }))}
+                onChange={e => {
+                  let val = e.target.value;
+                  // Hanya izinkan angka dan satu garis miring
+                  val = val.replace(/[^0-9/]/g, '');
+                  // Pastikan hanya ada satu /
+                  const slashCount = (val.match(/\//g) || []).length;
+                  if (slashCount > 1) {
+                    const firstSlash = val.indexOf('/');
+                    val = val.substring(0, firstSlash + 1) + val.substring(firstSlash + 1).replace(/\//g, '');
+                  }
+                  setForm(f => ({ ...f, noSuTahun: val }));
+                }}
                 placeholder="Contoh: 03360/2026"
                 className="mt-1 h-8 text-sm"
-                minLength={5}
-                maxLength={50}
+                minLength={10}
+                maxLength={20}
               />
-              {(form.noSuTahun.split('/')[0]?.replace(/\D/g, '') || '').length > 0 && (form.noSuTahun.split('/')[0]?.replace(/\D/g, '') || '').length < 5 && (
-                <p className="text-xs text-destructive mt-1">No SU harus minimal 5 digit</p>
-              )}
+              {(() => {
+                const parts = form.noSuTahun.split('/');
+                const noSu = (parts[0] || '').replace(/\D/g, '');
+                const tahun = (parts[1] || '').trim();
+                const hasInput = form.noSuTahun.length > 0;
+                if (!hasInput) return null;
+                if (noSu.length > 0 && noSu.length < 5) {
+                  return <p className="text-xs text-destructive mt-1">No SU harus minimal 5 digit</p>;
+                }
+                if (!form.noSuTahun.includes('/')) {
+                  return <p className="text-xs text-destructive mt-1">Wajib diisi dengan format: No.SU/Tahun (contoh: 03360/2026)</p>;
+                }
+                if (tahun.length > 0 && !/^\d{4}$/.test(tahun)) {
+                  return <p className="text-xs text-destructive mt-1">Tahun harus 4 digit angka (contoh: 2026)</p>;
+                }
+                if (tahun.length === 0) {
+                  return <p className="text-xs text-destructive mt-1">Tahun wajib diisi setelah garis miring (/)</p>;
+                }
+                return null;
+              })()}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
