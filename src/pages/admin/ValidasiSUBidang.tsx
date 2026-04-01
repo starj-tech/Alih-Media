@@ -32,6 +32,8 @@ export default function ValidasiSUBidang() {
   const [perPage, setPerPage] = useState(10);
   const [loading, setLoading] = useState(false);
   const [tolakId, setTolakId] = useState<string | null>(null);
+  const [jenisPenolakan, setJenisPenolakan] = useState<'aplikasi' | 'whatsapp'>('aplikasi');
+  const [keteranganPenolakan, setKeteranganPenolakan] = useState('');
   const [catatan, setCatatan] = useState('');
   const [kembalikanId, setKembalikanId] = useState<string | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
