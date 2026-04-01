@@ -4,15 +4,13 @@ import StatusBadge from '@/components/StatusBadge';
 import FileDownloadCell from '@/components/FileDownloadCell';
 import ExternalLinkCell from '@/components/ExternalLinkCell';
 import ExportExcelButton from '@/components/ExportExcelButton';
+import TolakBerkasDialog from '@/components/TolakBerkasDialog';
 import { getBerkasByStatusPaginated, updateBerkasStatus, isDueDateOverdue, Berkas, getUsers, ManagedUser, PaginatedResponse } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Send, XCircle, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
-
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 
 export default function ValidasiBukuTanah() {
   const { user } = useAuth();
@@ -22,7 +20,6 @@ export default function ValidasiBukuTanah() {
   const [perPage, setPerPage] = useState(10);
   const [loading, setLoading] = useState(false);
   const [tolakId, setTolakId] = useState<string | null>(null);
-  const [catatan, setCatatan] = useState('');
   const [kembalikanId, setKembalikanId] = useState<string | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
   const [confirmKirimId, setConfirmKirimId] = useState<string | null>(null);
@@ -47,52 +44,56 @@ export default function ValidasiBukuTanah() {
     if (processing) return;
     setProcessing(id);
     try {
-    const item = paginated.data.find(b => b.id === id);
-    await updateBerkasStatus(id, 'Selesai', undefined, user?.id);
-    toast.success('Berkas selesai divalidasi');
+      const item = paginated.data.find(b => b.id === id);
+      await updateBerkasStatus(id, 'Selesai', undefined, user?.id);
+      toast.success('Berkas selesai divalidasi');
 
-    // Determine WhatsApp number and name
-    let waNumber = '';
-    let namaPenerima = '';
-    
-    if (item?.noWaPemohon) {
-      waNumber = item.noWaPemohon;
-      namaPenerima = item.namaPemilikSertifikat || item.namaPemegangHak;
-    } else if (item) {
-      const submitter = users.find(u => u.id === item.userId);
-      waNumber = submitter?.noTelepon || '';
-      namaPenerima = item.namaPemegangHak;
-    }
+      let waNumber = '';
+      let namaPenerima = '';
+      if (item?.noWaPemohon) {
+        waNumber = item.noWaPemohon;
+        namaPenerima = item.namaPemilikSertifikat || item.namaPemegangHak;
+      } else if (item) {
+        const submitter = users.find(u => u.id === item.userId);
+        waNumber = submitter?.noTelepon || '';
+        namaPenerima = item.namaPemegangHak;
+      }
 
-    if (waNumber) {
-      const noHak = item?.noHak || '';
-      const jenisHak = item?.jenisHak || '';
-      const desa = item?.desa || '';
-      const kecamatan = item?.kecamatan || '';
-      const message = `Yth Bapak/Ibu ${namaPenerima.toUpperCase()},\n\nBerkas Pengajuan Validasi Alihmedia dengan nomor hak ${noHak} jenis hak ${jenisHak} desa ${desa} kecamatan ${kecamatan} sudah selesai, silahkan untuk melakukan pendaftaran Pelayanan di Kantor Pertanahan Kabupaten Bogor II,\n\nPertanyaan, saran dan keluhan dapat menghubungi Kantor Pertanahan Kabupaten Bogor II\n\nAlamat : Jl. Alternatif Cibubur no. 6 Cileungsi, Kecamatan Cileungsi, Kabupaten Bogor , Jawa Barat 16820\n\nTerima Kasih`;
+      if (waNumber) {
+        const message = `Yth Bapak/Ibu ${namaPenerima.toUpperCase()},\n\nBerkas Pengajuan Validasi Alihmedia dengan nomor hak ${item?.noHak || ''} jenis hak ${item?.jenisHak || ''} desa ${item?.desa || ''} kecamatan ${item?.kecamatan || ''} sudah selesai, silahkan untuk melakukan pendaftaran Pelayanan di Kantor Pertanahan Kabupaten Bogor II,\n\nPertanyaan, saran dan keluhan dapat menghubungi Kantor Pertanahan Kabupaten Bogor II\n\nAlamat : Jl. Alternatif Cibubur no. 6 Cileungsi, Kecamatan Cileungsi, Kabupaten Bogor , Jawa Barat 16820\n\nTerima Kasih`;
+        let cleaned = waNumber.replace(/\D/g, '');
+        if (cleaned.startsWith('0')) cleaned = '62' + cleaned.slice(1);
+        if (!cleaned.startsWith('62')) cleaned = '62' + cleaned;
+        window.open(`https://wa.me/${cleaned}?text=${encodeURIComponent(message)}`, '_blank');
+      }
 
-      let cleaned = waNumber.replace(/\D/g, '');
-      if (cleaned.startsWith('0')) cleaned = '62' + cleaned.slice(1);
-      if (!cleaned.startsWith('62')) cleaned = '62' + cleaned;
-
-      const waUrl = `https://wa.me/${cleaned}?text=${encodeURIComponent(message)}`;
-      window.open(waUrl, '_blank');
-    }
-
-    loadData();
+      loadData();
     } finally {
       setProcessing(null);
     }
   };
 
-  const handleTolak = async () => {
+  const handleTolak = async (params: { jenisPenolakan: 'aplikasi' | 'whatsapp'; keteranganPenolakan: string; catatan: string }) => {
     if (!tolakId) return;
-    if (!catatan.trim()) { toast.error('Masukkan catatan penolakan'); return; }
-    const currentStatus = paginated.data.find(b => b.id === tolakId)?.status;
-    await updateBerkasStatus(tolakId, 'Ditolak', catatan.trim(), user?.id, currentStatus);
+    if (!params.keteranganPenolakan) { toast.error('Pilih keterangan penolakan'); return; }
+
+    const berkas = paginated.data.find(b => b.id === tolakId);
+    const fullCatatan = params.catatan.trim()
+      ? `${params.keteranganPenolakan} - ${params.catatan.trim()}`
+      : params.keteranganPenolakan;
+
+    if (params.jenisPenolakan === 'whatsapp' && berkas) {
+      const namaPemilik = berkas.namaPemilikSertifikat || berkas.namaPemegangHak;
+      const noWa = berkas.noWaPemohon || berkas.noTelepon || '';
+      const phone = noWa.replace(/\D/g, '').replace(/^0/, '62');
+      const message = `Yth Bapak/Ibu ${namaPemilik},\n\nBerkas Pengajuan Validasi Alihmedia dengan nomor Hak ${berkas.noHak} Jenis Hak ${berkas.jenisHak} Desa ${berkas.desa} Kecamatan ${berkas.kecamatan} harus dilakukan ${params.keteranganPenolakan}${params.catatan.trim() ? `, dengan penjelasan : ${params.catatan.trim()}` : ''}\n\nSilahkan untuk melakukan pendaftaran Pelayanan di Kantor Pertanahan Kabupaten Bogor II,\n\nAlamat : Jl. Alternatif Cibubur no. 6 Cileungsi, Kecamatan Cileungsi, Kabupaten Bogor, Jawa Barat 16820\n\nTerima Kasih`;
+      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+    }
+
+    const currentStatus = berkas?.status;
+    await updateBerkasStatus(tolakId, 'Ditolak', fullCatatan, user?.id, currentStatus);
     toast.success('Berkas ditolak');
     setTolakId(null);
-    setCatatan('');
     loadData();
   };
 
@@ -146,7 +147,7 @@ export default function ValidasiBukuTanah() {
           { header: 'Aksi', accessor: (row) => (
             <div className="flex gap-1">
               <Button size="sm" className="gap-1" disabled={processing === row.id} onClick={() => setConfirmKirimId(row.id)}><Send className="w-3 h-3" /> Kirim</Button>
-              <Button size="sm" variant="destructive" className="gap-1" onClick={() => { setTolakId(row.id); setCatatan(row.catatanPenolakan || ''); }}><XCircle className="w-3 h-3" /> Tolak</Button>
+              <Button size="sm" variant="destructive" className="gap-1" onClick={() => setTolakId(row.id)}><XCircle className="w-3 h-3" /> Tolak</Button>
               <Button size="sm" variant="outline" className="gap-1" onClick={() => setKembalikanId(row.id)}><Undo2 className="w-3 h-3" /></Button>
             </div>
           )},
@@ -154,25 +155,12 @@ export default function ValidasiBukuTanah() {
         data={paginated.data}
       />
 
-      <Dialog open={!!tolakId} onOpenChange={(open) => { if (!open) setTolakId(null); }}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Catatan Penolakan</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            {tolakBerkas?.catatanPenolakan && (
-              <div className="p-3 rounded bg-destructive/10 border border-destructive/20">
-                <p className="text-xs font-semibold text-destructive mb-1">Catatan sebelumnya:</p>
-                <p className="text-sm text-destructive">{tolakBerkas.catatanPenolakan}</p>
-              </div>
-            )}
-            <Label>Alasan penolakan</Label>
-            <Textarea value={catatan} onChange={e => setCatatan(e.target.value)} placeholder="Masukkan alasan penolakan berkas..." rows={4} />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setTolakId(null)}>Batal</Button>
-            <Button variant="destructive" onClick={handleTolak}>Tolak Berkas</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <TolakBerkasDialog
+        open={!!tolakId}
+        onOpenChange={(open) => { if (!open) setTolakId(null); }}
+        berkas={tolakBerkas}
+        onSubmit={handleTolak}
+      />
 
       <Dialog open={!!kembalikanId} onOpenChange={(open) => { if (!open) setKembalikanId(null); }}>
         <DialogContent>

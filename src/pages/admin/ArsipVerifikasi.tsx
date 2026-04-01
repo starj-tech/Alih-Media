@@ -4,14 +4,13 @@ import StatusBadge from '@/components/StatusBadge';
 import FileDownloadCell from '@/components/FileDownloadCell';
 import ExternalLinkCell from '@/components/ExternalLinkCell';
 import ExportExcelButton from '@/components/ExportExcelButton';
+import TolakBerkasDialog from '@/components/TolakBerkasDialog';
 import { getBerkasByStatusPaginated, updateBerkasStatus, isDueDateOverdue, Berkas, PaginatedResponse } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Send, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 
 export default function ArsipVerifikasi() {
   const { user } = useAuth();
@@ -20,7 +19,6 @@ export default function ArsipVerifikasi() {
   const [perPage, setPerPage] = useState(10);
   const [loading, setLoading] = useState(false);
   const [tolakId, setTolakId] = useState<string | null>(null);
-  const [catatan, setCatatan] = useState('');
   const [processing, setProcessing] = useState<string | null>(null);
   const [confirmKirimId, setConfirmKirimId] = useState<string | null>(null);
 
@@ -48,14 +46,28 @@ export default function ArsipVerifikasi() {
     }
   };
 
-  const handleTolak = async () => {
+  const handleTolak = async (params: { jenisPenolakan: 'aplikasi' | 'whatsapp'; keteranganPenolakan: string; catatan: string }) => {
     if (!tolakId) return;
-    if (!catatan.trim()) { toast.error('Masukkan catatan penolakan'); return; }
-    const currentStatus = paginated.data.find(b => b.id === tolakId)?.status;
-    await updateBerkasStatus(tolakId, 'Ditolak', catatan.trim(), user?.id, currentStatus);
+    if (!params.keteranganPenolakan) { toast.error('Pilih keterangan penolakan'); return; }
+
+    const berkas = paginated.data.find(b => b.id === tolakId);
+    const fullCatatan = params.catatan.trim()
+      ? `${params.keteranganPenolakan} - ${params.catatan.trim()}`
+      : params.keteranganPenolakan;
+
+    if (params.jenisPenolakan === 'whatsapp' && berkas) {
+      const namaPemilik = berkas.namaPemilikSertifikat || berkas.namaPemegangHak;
+      const noWa = berkas.noWaPemohon || berkas.noTelepon || '';
+      const phone = noWa.replace(/\D/g, '').replace(/^0/, '62');
+      const message = `Yth Bapak/Ibu ${namaPemilik},\n\nBerkas Pengajuan Validasi Alihmedia dengan nomor Hak ${berkas.noHak} Jenis Hak ${berkas.jenisHak} Desa ${berkas.desa} Kecamatan ${berkas.kecamatan} harus dilakukan ${params.keteranganPenolakan}${params.catatan.trim() ? `, dengan penjelasan : ${params.catatan.trim()}` : ''}\n\nSilahkan untuk melakukan pendaftaran Pelayanan di Kantor Pertanahan Kabupaten Bogor II,\n\nAlamat : Jl. Alternatif Cibubur no. 6 Cileungsi, Kecamatan Cileungsi, Kabupaten Bogor, Jawa Barat 16820\n\nTerima Kasih`;
+      const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+      window.open(waUrl, '_blank');
+    }
+
+    const currentStatus = berkas?.status;
+    await updateBerkasStatus(tolakId, 'Ditolak', fullCatatan, user?.id, currentStatus);
     toast.success('Berkas ditolak');
     setTolakId(null);
-    setCatatan('');
     loadData();
   };
 
@@ -101,32 +113,19 @@ export default function ArsipVerifikasi() {
           { header: 'Aksi', accessor: (row) => (
             <div className="flex gap-1">
               <Button size="sm" className="gap-1" disabled={processing === row.id} onClick={() => setConfirmKirimId(row.id)}><Send className="w-3 h-3" /> Kirim</Button>
-              <Button size="sm" variant="destructive" className="gap-1" onClick={() => { setTolakId(row.id); setCatatan(row.catatanPenolakan || ''); }}><XCircle className="w-3 h-3" /> Tolak</Button>
+              <Button size="sm" variant="destructive" className="gap-1" onClick={() => setTolakId(row.id)}><XCircle className="w-3 h-3" /> Tolak</Button>
             </div>
           )},
         ]}
         data={paginated.data}
       />
 
-      <Dialog open={!!tolakId} onOpenChange={(open) => { if (!open) setTolakId(null); }}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Catatan Penolakan</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            {tolakBerkas?.catatanPenolakan && (
-              <div className="p-3 rounded bg-destructive/10 border border-destructive/20">
-                <p className="text-xs font-semibold text-destructive mb-1">Catatan sebelumnya:</p>
-                <p className="text-sm text-destructive">{tolakBerkas.catatanPenolakan}</p>
-              </div>
-            )}
-            <Label>Alasan penolakan</Label>
-            <Textarea value={catatan} onChange={e => setCatatan(e.target.value)} placeholder="Masukkan alasan penolakan berkas..." rows={4} />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setTolakId(null)}>Batal</Button>
-            <Button variant="destructive" onClick={handleTolak}>Tolak Berkas</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <TolakBerkasDialog
+        open={!!tolakId}
+        onOpenChange={(open) => { if (!open) setTolakId(null); }}
+        berkas={tolakBerkas}
+        onSubmit={handleTolak}
+      />
 
       <Dialog open={!!confirmKirimId} onOpenChange={(open) => { if (!open) setConfirmKirimId(null); }}>
         <DialogContent>
