@@ -4,26 +4,13 @@ import StatusBadge from '@/components/StatusBadge';
 import FileDownloadCell from '@/components/FileDownloadCell';
 import ExternalLinkCell from '@/components/ExternalLinkCell';
 import ExportExcelButton from '@/components/ExportExcelButton';
+import TolakBerkasDialog from '@/components/TolakBerkasDialog';
 import { getBerkasByStatusPaginated, updateBerkasStatus, isDueDateOverdue, Berkas, PaginatedResponse } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Send, XCircle, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
-const KETERANGAN_PENOLAKAN = [
-  'Pendaftaran Pelayanan',
-  'Penataan Batas',
-  'Pengukuran Ulang',
-  'Perubahan Nama KTP',
-  'Pemekaran Desa',
-  'Pemekaran Kecamatan',
-  'Revisi Double Nomor Hak',
-];
 
 export default function ValidasiSUBidang() {
   const { user } = useAuth();
@@ -32,9 +19,6 @@ export default function ValidasiSUBidang() {
   const [perPage, setPerPage] = useState(10);
   const [loading, setLoading] = useState(false);
   const [tolakId, setTolakId] = useState<string | null>(null);
-  const [jenisPenolakan, setJenisPenolakan] = useState<'aplikasi' | 'whatsapp'>('aplikasi');
-  const [keteranganPenolakan, setKeteranganPenolakan] = useState('');
-  const [catatan, setCatatan] = useState('');
   const [kembalikanId, setKembalikanId] = useState<string | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
   const [confirmKirimId, setConfirmKirimId] = useState<string | null>(null);
@@ -63,39 +47,27 @@ export default function ValidasiSUBidang() {
     }
   };
 
-  const resetTolakForm = () => {
-    setTolakId(null);
-    setJenisPenolakan('aplikasi');
-    setKeteranganPenolakan('');
-    setCatatan('');
-  };
-
-  const handleTolak = async () => {
+  const handleTolak = async (params: { jenisPenolakan: 'aplikasi' | 'whatsapp'; keteranganPenolakan: string; catatan: string }) => {
     if (!tolakId) return;
-    if (!keteranganPenolakan) { toast.error('Pilih keterangan penolakan'); return; }
+    if (!params.keteranganPenolakan) { toast.error('Pilih keterangan penolakan'); return; }
 
     const berkas = paginated.data.find(b => b.id === tolakId);
-    const fullCatatan = catatan.trim()
-      ? `${keteranganPenolakan} - ${catatan.trim()}`
-      : keteranganPenolakan;
+    const fullCatatan = params.catatan.trim()
+      ? `${params.keteranganPenolakan} - ${params.catatan.trim()}`
+      : params.keteranganPenolakan;
 
-    if (jenisPenolakan === 'whatsapp' && berkas) {
-      // Build WhatsApp message
+    if (params.jenisPenolakan === 'whatsapp' && berkas) {
       const namaPemilik = berkas.namaPemilikSertifikat || berkas.namaPemegangHak;
       const noWa = berkas.noWaPemohon || berkas.noTelepon || '';
       const phone = noWa.replace(/\D/g, '').replace(/^0/, '62');
-
-      const message = `Yth Bapak/Ibu ${namaPemilik},\n\nBerkas Pengajuan Validasi Alihmedia dengan nomor Hak ${berkas.noHak} Jenis Hak ${berkas.jenisHak} Desa ${berkas.desa} Kecamatan ${berkas.kecamatan} harus dilakukan ${keteranganPenolakan}${catatan.trim() ? `, dengan penjelasan : ${catatan.trim()}` : ''}\n\nSilahkan untuk melakukan pendaftaran Pelayanan di Kantor Pertanahan Kabupaten Bogor II,\n\nAlamat : Jl. Alternatif Cibubur no. 6 Cileungsi, Kecamatan Cileungsi, Kabupaten Bogor, Jawa Barat 16820\n\nTerima Kasih`;
-
-      const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-      window.open(waUrl, '_blank');
+      const message = `Yth Bapak/Ibu ${namaPemilik},\n\nBerkas Pengajuan Validasi Alihmedia dengan nomor Hak ${berkas.noHak} Jenis Hak ${berkas.jenisHak} Desa ${berkas.desa} Kecamatan ${berkas.kecamatan} harus dilakukan ${params.keteranganPenolakan}${params.catatan.trim() ? `, dengan penjelasan : ${params.catatan.trim()}` : ''}\n\nSilahkan untuk melakukan pendaftaran Pelayanan di Kantor Pertanahan Kabupaten Bogor II,\n\nAlamat : Jl. Alternatif Cibubur no. 6 Cileungsi, Kecamatan Cileungsi, Kabupaten Bogor, Jawa Barat 16820\n\nTerima Kasih`;
+      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
     }
 
-    // Save rejection to backend regardless of type
     const currentStatus = berkas?.status;
     await updateBerkasStatus(tolakId, 'Ditolak', fullCatatan, user?.id, currentStatus);
     toast.success('Berkas ditolak');
-    resetTolakForm();
+    setTolakId(null);
     loadData();
   };
 
@@ -149,7 +121,7 @@ export default function ValidasiSUBidang() {
           { header: 'Aksi', accessor: (row) => (
             <div className="flex gap-1">
               <Button size="sm" className="gap-1" disabled={processing === row.id} onClick={() => setConfirmKirimId(row.id)}><Send className="w-3 h-3" /> Kirim</Button>
-              <Button size="sm" variant="destructive" className="gap-1" onClick={() => { setTolakId(row.id); setJenisPenolakan('aplikasi'); setKeteranganPenolakan(''); setCatatan(''); }}><XCircle className="w-3 h-3" /> Tolak</Button>
+              <Button size="sm" variant="destructive" className="gap-1" onClick={() => setTolakId(row.id)}><XCircle className="w-3 h-3" /> Tolak</Button>
               <Button size="sm" variant="outline" className="gap-1" onClick={() => setKembalikanId(row.id)}><Undo2 className="w-3 h-3" /></Button>
             </div>
           )},
@@ -157,58 +129,12 @@ export default function ValidasiSUBidang() {
         data={paginated.data}
       />
 
-      <Dialog open={!!tolakId} onOpenChange={(open) => { if (!open) resetTolakForm(); }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Penolakan Berkas</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            {tolakBerkas?.catatanPenolakan && (
-              <div className="p-3 rounded bg-destructive/10 border border-destructive/20">
-                <p className="text-xs font-semibold text-destructive mb-1">Catatan sebelumnya:</p>
-                <p className="text-sm text-destructive">{tolakBerkas.catatanPenolakan}</p>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label className="font-semibold">1. Pilih Jenis Penolakan</Label>
-              <RadioGroup value={jenisPenolakan} onValueChange={(v) => setJenisPenolakan(v as 'aplikasi' | 'whatsapp')}>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="aplikasi" id="tolak-app" />
-                  <Label htmlFor="tolak-app" className="cursor-pointer">Tolak Melalui Aplikasi</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="whatsapp" id="tolak-wa" />
-                  <Label htmlFor="tolak-wa" className="cursor-pointer">Tolak Melalui WhatsApp</Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="font-semibold">2. Pilih Keterangan Penolakan</Label>
-              <Select value={keteranganPenolakan} onValueChange={setKeteranganPenolakan}>
-                <SelectTrigger>
-                  <SelectValue placeholder="-- Pilih Keterangan --" />
-                </SelectTrigger>
-                <SelectContent>
-                  {KETERANGAN_PENOLAKAN.map(k => (
-                    <SelectItem key={k} value={k}>{k}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="font-semibold">3. Catatan Penolakan</Label>
-              <Textarea value={catatan} onChange={e => setCatatan(e.target.value)} placeholder="Masukkan catatan penolakan berkas..." rows={3} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={resetTolakForm}>Batal</Button>
-            <Button variant="destructive" onClick={handleTolak}>
-              <Send className="w-3 h-3 mr-1" /> Kirim
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <TolakBerkasDialog
+        open={!!tolakId}
+        onOpenChange={(open) => { if (!open) setTolakId(null); }}
+        berkas={tolakBerkas}
+        onSubmit={handleTolak}
+      />
 
       <Dialog open={!!kembalikanId} onOpenChange={(open) => { if (!open) setKembalikanId(null); }}>
         <DialogContent>
