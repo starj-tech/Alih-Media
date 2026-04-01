@@ -149,7 +149,7 @@ export default function ValidasiSUBidang() {
           { header: 'Aksi', accessor: (row) => (
             <div className="flex gap-1">
               <Button size="sm" className="gap-1" disabled={processing === row.id} onClick={() => setConfirmKirimId(row.id)}><Send className="w-3 h-3" /> Kirim</Button>
-              <Button size="sm" variant="destructive" className="gap-1" onClick={() => { setTolakId(row.id); setCatatan(row.catatanPenolakan || ''); }}><XCircle className="w-3 h-3" /> Tolak</Button>
+              <Button size="sm" variant="destructive" className="gap-1" onClick={() => { setTolakId(row.id); setJenisPenolakan('aplikasi'); setKeteranganPenolakan(''); setCatatan(''); }}><XCircle className="w-3 h-3" /> Tolak</Button>
               <Button size="sm" variant="outline" className="gap-1" onClick={() => setKembalikanId(row.id)}><Undo2 className="w-3 h-3" /></Button>
             </div>
           )},
