@@ -132,6 +132,7 @@ class BerkasController extends Controller
             'file_sertifikat_url' => $this->normalizeFilePath($request->file_sertifikat_url),
             'file_ktp_url' => $this->normalizeFilePath($request->file_ktp_url),
             'file_foto_bangunan_url' => $this->normalizeFilePath($request->file_foto_bangunan_url),
+            'ip_address' => $request->ip(),
         ]);
 
         return response()->json($berkas, 201);
