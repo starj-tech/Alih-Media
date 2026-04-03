@@ -23,6 +23,7 @@ export type Database = {
           file_ktp_url: string | null
           file_sertifikat_url: string | null
           id: string
+          ip_address: string | null
           jenis_hak: Database["public"]["Enums"]["jenis_hak"]
           kecamatan: string
           link_shareloc: string | null
@@ -48,6 +49,7 @@ export type Database = {
           file_ktp_url?: string | null
           file_sertifikat_url?: string | null
           id?: string
+          ip_address?: string | null
           jenis_hak: Database["public"]["Enums"]["jenis_hak"]
           kecamatan: string
           link_shareloc?: string | null
@@ -73,6 +75,7 @@ export type Database = {
           file_ktp_url?: string | null
           file_sertifikat_url?: string | null
           id?: string
+          ip_address?: string | null
           jenis_hak?: Database["public"]["Enums"]["jenis_hak"]
           kecamatan?: string
           link_shareloc?: string | null
