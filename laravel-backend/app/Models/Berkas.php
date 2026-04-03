@@ -33,6 +33,7 @@ class Berkas extends Model
         'validated_at',
         'catatan_penolakan',
         'rejected_from_status',
+        'ip_address',
     ];
 
     protected $casts = [

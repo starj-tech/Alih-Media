@@ -26,6 +26,7 @@ export interface Berkas {
   namaPemilikSertifikat?: string;
   noWaPemohon?: string;
   rejectedFromStatus?: string;
+  ipAddress?: string;
 }
 
 export interface PaginatedResponse<T> {
@@ -112,6 +113,7 @@ function mapBerkasRow(row: any): Berkas {
     namaPemilikSertifikat: row.nama_pemilik_sertifikat || row.namaPemilikSertifikat || undefined,
     noWaPemohon: row.no_wa_pemohon || row.noWaPemohon || undefined,
     rejectedFromStatus: row.rejected_from_status || row.rejectedFromStatus || undefined,
+    ipAddress: row.ip_address || row.ipAddress || undefined,
   };
 }
 
