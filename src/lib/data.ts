@@ -26,6 +26,7 @@ export interface Berkas {
   namaPemilikSertifikat?: string;
   noWaPemohon?: string;
   rejectedFromStatus?: string;
+  ipAddress?: string;
 }
 
 export interface PaginatedResponse<T> {
