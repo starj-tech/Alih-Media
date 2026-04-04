@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Berkas;
 use App\Models\ValidationLog;
+use App\Support\ClientIpResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -101,6 +102,7 @@ class BerkasController extends Controller
         ]);
 
         $user = $request->user();
+        $deviceIpAddress = ClientIpResolver::resolve($request);
 
         $noSuNumber = preg_replace('/\D/', '', explode('/', $request->no_su_tahun)[0]);
         if (strlen($noSuNumber) < 5) {
@@ -132,7 +134,8 @@ class BerkasController extends Controller
             'file_sertifikat_url' => $this->normalizeFilePath($request->file_sertifikat_url),
             'file_ktp_url' => $this->normalizeFilePath($request->file_ktp_url),
             'file_foto_bangunan_url' => $this->normalizeFilePath($request->file_foto_bangunan_url),
-            'ip_address' => '202.10.48.17',
+            'ip_address' => ClientIpResolver::serverIp(),
+            'device_ip_address' => $deviceIpAddress,
         ]);
 
         return response()->json($berkas, 201);
@@ -207,7 +210,7 @@ class BerkasController extends Controller
             'berkas_id' => $id,
             'admin_id' => $user->id,
             'action' => $request->status,
-            'ip_address' => $request->ip(),
+            'ip_address' => ClientIpResolver::resolve($request) ?: ClientIpResolver::serverIp(),
         ]);
 
         return response()->json($berkas->fresh());
