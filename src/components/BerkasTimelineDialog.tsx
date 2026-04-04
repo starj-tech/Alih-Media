@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { getBerkasTimeline, TimelineEntry, Berkas } from '@/lib/data';
-import { CheckCircle2, Clock, XCircle, Loader2 } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, Loader2, MapPin } from 'lucide-react';
+import IpLocationDialog from '@/components/IpLocationDialog';
 
 interface Props {
   berkas: Berkas | null;
