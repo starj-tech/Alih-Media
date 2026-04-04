@@ -34,6 +34,7 @@ class Berkas extends Model
         'catatan_penolakan',
         'rejected_from_status',
         'ip_address',
+        'device_ip_address',
     ];
 
     protected $casts = [

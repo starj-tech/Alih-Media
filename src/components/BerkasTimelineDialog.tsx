@@ -70,7 +70,8 @@ export default function BerkasTimelineDialog({ berkas, open, onOpenChange }: Pro
             {berkas.namaPemilikSertifikat && (
               <p><span className="text-muted-foreground">No HP Pemilik Sertifikat (Offline):</span> <span className="font-medium">{berkas.noTelepon || '-'}</span></p>
             )}
-            <p><span className="text-muted-foreground">IP Pengajuan:</span> <span className="font-medium">{berkas.ipAddress || '-'}</span></p>
+            <p><span className="text-muted-foreground">IP Server Pengajuan:</span> <span className="font-medium">{berkas.ipAddress || '-'}</span></p>
+            <p><span className="text-muted-foreground">IP Perangkat Pengajuan:</span> <span className="font-medium">{berkas.deviceIpAddress || '-'}</span></p>
           </div>
         )}
 
