@@ -84,7 +84,7 @@ export default function ValidasiBukuTanah() {
 
     if (params.jenisPenolakan === 'whatsapp' && berkas) {
       const namaPemilik = berkas.namaPemilikSertifikat || berkas.namaPemegangHak;
-      const noWa = berkas.noWaPemohon || berkas.noTelepon || '';
+      const noWa = berkas.noWaPemohon || berkas.profileNoTelepon || berkas.noTelepon || '';
       const phone = noWa.replace(/\D/g, '').replace(/^0/, '62');
       const message = `Yth Bapak/Ibu ${namaPemilik},\n\nBerkas Pengajuan Validasi Alihmedia dengan nomor Hak ${berkas.noHak} Jenis Hak ${berkas.jenisHak} Desa ${berkas.desa} Kecamatan ${berkas.kecamatan} harus dilakukan ${params.keteranganPenolakan}${params.catatan.trim() ? `, dengan penjelasan : ${params.catatan.trim()}` : ''}\n\nSilahkan untuk melakukan pendaftaran ${params.keteranganPenolakan} di Kantor Pertanahan Kabupaten Bogor II,\n\nAlamat : Jl. Alternatif Cibubur no. 6 Cileungsi, Kecamatan Cileungsi, Kabupaten Bogor, Jawa Barat 16820\n\nTerima Kasih`;
       window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
