@@ -28,6 +28,7 @@ export interface Berkas {
   rejectedFromStatus?: string;
   ipAddress?: string;
   deviceIpAddress?: string;
+  profileNoTelepon?: string;
 }
 
 export interface PaginatedResponse<T> {
