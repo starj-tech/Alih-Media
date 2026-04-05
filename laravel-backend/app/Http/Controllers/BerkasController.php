@@ -62,6 +62,12 @@ class BerkasController extends Controller
             return response()->json(['error' => 'Forbidden'], 403);
         }
 
+        $berkas->load('user.profile');
+        $berkas->profile_no_telepon = $berkas->user && $berkas->user->profile
+            ? $berkas->user->profile->no_telepon
+            : null;
+        unset($berkas->user);
+
         return response()->json($berkas);
     }
 
