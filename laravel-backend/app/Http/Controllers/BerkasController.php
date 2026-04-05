@@ -14,7 +14,7 @@ class BerkasController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $query = Berkas::query()->orderBy('created_at', 'desc');
+        $query = Berkas::query()->with('user.profile')->orderBy('created_at', 'desc');
 
         if (!$user->isAdmin()) {
             $query->where('user_id', $user->id);
@@ -41,6 +41,15 @@ class BerkasController extends Controller
         $perPage = min((int) ($request->per_page ?? 10), 100);
         $paginated = $query->paginate($perPage);
 
+        // Append profile phone number to each berkas
+        $paginated->getCollection()->transform(function ($berkas) {
+            $berkas->profile_no_telepon = $berkas->user && $berkas->user->profile
+                ? $berkas->user->profile->no_telepon
+                : null;
+            unset($berkas->user); // Don't expose full user data
+            return $berkas;
+        });
+
         return response()->json($paginated);
     }
 
@@ -52,6 +61,12 @@ class BerkasController extends Controller
         if (!$user->isAdmin() && $berkas->user_id !== $user->id) {
             return response()->json(['error' => 'Forbidden'], 403);
         }
+
+        $berkas->load('user.profile');
+        $berkas->profile_no_telepon = $berkas->user && $berkas->user->profile
+            ? $berkas->user->profile->no_telepon
+            : null;
+        unset($berkas->user);
 
         return response()->json($berkas);
     }

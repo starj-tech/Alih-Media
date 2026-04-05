@@ -28,6 +28,7 @@ export interface Berkas {
   rejectedFromStatus?: string;
   ipAddress?: string;
   deviceIpAddress?: string;
+  profileNoTelepon?: string;
 }
 
 export interface PaginatedResponse<T> {
@@ -116,6 +117,7 @@ function mapBerkasRow(row: any): Berkas {
     rejectedFromStatus: row.rejected_from_status || row.rejectedFromStatus || undefined,
     ipAddress: row.ip_address || row.ipAddress || undefined,
     deviceIpAddress: row.device_ip_address || row.deviceIpAddress || undefined,
+    profileNoTelepon: row.profile_no_telepon || row.profileNoTelepon || undefined,
   };
 }
 
