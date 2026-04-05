@@ -41,6 +41,15 @@ class BerkasController extends Controller
         $perPage = min((int) ($request->per_page ?? 10), 100);
         $paginated = $query->paginate($perPage);
 
+        // Append profile phone number to each berkas
+        $paginated->getCollection()->transform(function ($berkas) {
+            $berkas->profile_no_telepon = $berkas->user && $berkas->user->profile
+                ? $berkas->user->profile->no_telepon
+                : null;
+            unset($berkas->user); // Don't expose full user data
+            return $berkas;
+        });
+
         return response()->json($paginated);
     }
 
