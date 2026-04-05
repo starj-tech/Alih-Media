@@ -14,7 +14,7 @@ class BerkasController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $query = Berkas::query()->orderBy('created_at', 'desc');
+        $query = Berkas::query()->with('user.profile')->orderBy('created_at', 'desc');
 
         if (!$user->isAdmin()) {
             $query->where('user_id', $user->id);
