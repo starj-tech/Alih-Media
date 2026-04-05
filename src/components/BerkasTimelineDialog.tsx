@@ -89,7 +89,7 @@ export default function BerkasTimelineDialog({ berkas, open, onOpenChange }: Pro
               {berkas.namaPemilikSertifikat && (
                 <p><span className="text-muted-foreground">Nama Pemilik Sertipikat:</span> <span className="font-medium">{berkas.namaPemilikSertifikat}</span></p>
               )}
-              <p><span className="text-muted-foreground">No HP Pemohon (Online):</span> <span className="font-medium">{berkas.noWaPemohon || berkas.noTelepon || '-'}</span></p>
+              <p><span className="text-muted-foreground">No HP Pemohon (Online):</span> <span className="font-medium">{berkas.noWaPemohon || berkas.profileNoTelepon || berkas.noTelepon || '-'}</span></p>
               {berkas.namaPemilikSertifikat && (
                 <p><span className="text-muted-foreground">No HP Pemilik Sertifikat (Offline):</span> <span className="font-medium">{berkas.noTelepon || '-'}</span></p>
               )}
