@@ -125,6 +125,7 @@ export default function ValidasiBukuTanah() {
           perPage,
           onPageChange: setPage,
           onPerPageChange: (n) => { setPerPage(n); setPage(1); },
+          onSearchChange: (val) => { setSearch(val); setPage(1); },
           loading,
         }}
         headerActions={<ExportExcelButton data={paginated.data} fileName="validasi-buku-tanah" sheetName="Validasi BT" />}
