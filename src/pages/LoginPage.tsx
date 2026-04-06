@@ -17,13 +17,12 @@ import loginBg from '@/assets/login-bg.jpeg';
 
 const penggunaOptions = [
   'Perorangan',
-  'Staf PPAT',
   'Notaris/PPAT',
   'Bank',
   'PT/Badan Hukum',
 ] as const;
 
-const needsInstansi = (val: string) => ['Staf PPAT', 'Bank', 'PT/Badan Hukum'].includes(val);
+const needsInstansi = (val: string) => ['Bank', 'PT/Badan Hukum'].includes(val);
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
