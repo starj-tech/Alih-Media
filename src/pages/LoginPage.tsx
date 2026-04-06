@@ -17,7 +17,6 @@ import loginBg from '@/assets/login-bg.jpeg';
 
 const penggunaOptions = [
   'Perorangan',
-  'Staf PPAT',
   'Notaris/PPAT',
   'Bank',
   'PT/Badan Hukum',
