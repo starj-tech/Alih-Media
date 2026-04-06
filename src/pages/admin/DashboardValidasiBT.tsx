@@ -13,6 +13,7 @@ export default function DashboardValidasiBT() {
   const [paginated, setPaginated] = useState<PaginatedResponse<Berkas>>({ data: [], current_page: 1, last_page: 1, per_page: 10, total: 0 });
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({ validasiBt: 0, selesai: 0, ditolak: 0 });
   const [myCount, setMyCount] = useState(0);
@@ -20,12 +21,12 @@ export default function DashboardValidasiBT() {
   const loadBerkas = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getBerkasByStatusPaginated('Validasi BT', page, perPage);
+      const result = await getBerkasByStatusPaginated('Validasi BT', page, perPage, search || undefined);
       setPaginated(result);
     } finally {
       setLoading(false);
     }
-  }, [page, perPage]);
+  }, [page, perPage, search]);
 
   useEffect(() => { loadBerkas(); }, [loadBerkas]);
 
@@ -60,6 +61,7 @@ export default function DashboardValidasiBT() {
           perPage,
           onPageChange: setPage,
           onPerPageChange: (n) => { setPerPage(n); setPage(1); },
+          onSearchChange: (val) => { setSearch(val); setPage(1); },
           loading,
         }}
         headerActions={<ExportExcelButton data={paginated.data} fileName="dashboard-validasi-bt" sheetName="Validasi BT" />}

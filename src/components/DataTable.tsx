@@ -1,4 +1,4 @@
-import { ReactNode, useState, useMemo } from 'react';
+import { ReactNode, useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
@@ -16,6 +16,7 @@ export interface ServerPagination {
   perPage: number;
   onPageChange: (page: number) => void;
   onPerPageChange?: (perPage: number) => void;
+  onSearchChange?: (search: string) => void;
   loading?: boolean;
 }
 
@@ -63,6 +64,11 @@ export default function DataTable<T extends Record<string, any>>({
   const filteredData = useMemo(() => {
     let result = data;
 
+    // Skip client-side filtering when server handles search
+    if (isServerPaginated && serverPagination.onSearchChange) {
+      return result;
+    }
+
     // Apply per-column filters (client-side, works on current page data)
     Object.entries(columnFilters).forEach(([key, value]) => {
       if (value) {
@@ -82,7 +88,7 @@ export default function DataTable<T extends Record<string, any>>({
     }
 
     return result;
-  }, [data, columnFilters, globalSearch, searchKeys]);
+  }, [data, columnFilters, globalSearch, searchKeys, isServerPaginated, serverPagination]);
 
   const handleColumnFilter = (key: string, val: string) => {
     setColumnFilters(prev => ({ ...prev, [key]: val }));
@@ -98,10 +104,23 @@ export default function DataTable<T extends Record<string, any>>({
     if (!isServerPaginated) setCurrentPage(1);
   };
 
-  const handleGlobalSearch = (val: string) => {
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const handleGlobalSearch = useCallback((val: string) => {
     setGlobalSearch(val);
-    if (!isServerPaginated) setCurrentPage(1);
-  };
+    if (isServerPaginated && serverPagination?.onSearchChange) {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        serverPagination.onSearchChange!(val);
+      }, 400);
+    } else if (!isServerPaginated) {
+      setCurrentPage(1);
+    }
+  }, [isServerPaginated, serverPagination]);
+
+  useEffect(() => {
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, []);
 
   // Pagination values
   const activePage = isServerPaginated ? serverPagination.currentPage : currentPage;

@@ -18,6 +18,7 @@ export default function ValidasiBukuTanah() {
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [tolakId, setTolakId] = useState<string | null>(null);
   const [kembalikanId, setKembalikanId] = useState<string | null>(null);
@@ -28,7 +29,7 @@ export default function ValidasiBukuTanah() {
     setLoading(true);
     try {
       const [result, allUsers] = await Promise.all([
-        getBerkasByStatusPaginated('Validasi BT', page, perPage),
+        getBerkasByStatusPaginated('Validasi BT', page, perPage, search || undefined),
         getUsers(),
       ]);
       setPaginated(result);
@@ -36,7 +37,7 @@ export default function ValidasiBukuTanah() {
     } finally {
       setLoading(false);
     }
-  }, [page, perPage]);
+  }, [page, perPage, search]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -124,6 +125,7 @@ export default function ValidasiBukuTanah() {
           perPage,
           onPageChange: setPage,
           onPerPageChange: (n) => { setPerPage(n); setPage(1); },
+          onSearchChange: (val) => { setSearch(val); setPage(1); },
           loading,
         }}
         headerActions={<ExportExcelButton data={paginated.data} fileName="validasi-buku-tanah" sheetName="Validasi BT" />}

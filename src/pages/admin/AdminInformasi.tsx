@@ -34,6 +34,7 @@ export default function AdminInformasi() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [timelineBerkas, setTimelineBerkas] = useState<Berkas | null>(null);
   const [kembalikanBerkas, setKembalikanBerkas] = useState<Berkas | null>(null);
@@ -44,12 +45,12 @@ export default function AdminInformasi() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await fetchBerkasPaginated({ status: statusFilter === 'all' ? undefined : statusFilter, page, perPage });
+      const result = await fetchBerkasPaginated({ status: statusFilter === 'all' ? undefined : statusFilter, page, perPage, search: search || undefined });
       setPaginated(result);
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, page, perPage]);
+  }, [statusFilter, page, perPage, search]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -94,6 +95,7 @@ export default function AdminInformasi() {
           perPage,
           onPageChange: setPage,
           onPerPageChange: (n) => { setPerPage(n); setPage(1); },
+          onSearchChange: (val) => { setSearch(val); setPage(1); },
           loading,
         }}
         headerActions={

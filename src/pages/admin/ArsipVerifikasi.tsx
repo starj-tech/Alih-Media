@@ -17,6 +17,7 @@ export default function ArsipVerifikasi() {
   const [paginated, setPaginated] = useState<PaginatedResponse<Berkas>>({ data: [], current_page: 1, last_page: 1, per_page: 10, total: 0 });
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [tolakId, setTolakId] = useState<string | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
@@ -25,12 +26,12 @@ export default function ArsipVerifikasi() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getBerkasByStatusPaginated('Proses', page, perPage);
+      const result = await getBerkasByStatusPaginated('Proses', page, perPage, search || undefined);
       setPaginated(result);
     } finally {
       setLoading(false);
     }
-  }, [page, perPage]);
+  }, [page, perPage, search]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -90,6 +91,7 @@ export default function ArsipVerifikasi() {
           perPage,
           onPageChange: setPage,
           onPerPageChange: (n) => { setPerPage(n); setPage(1); },
+          onSearchChange: (val) => { setSearch(val); setPage(1); },
           loading,
         }}
         headerActions={<ExportExcelButton data={paginated.data} fileName="arsip-verifikasi" sheetName="Arsip Verifikasi" />}

@@ -131,9 +131,11 @@ export async function fetchBerkasPaginated(options?: {
   status?: string;
   page?: number;
   perPage?: number;
+  search?: string;
 }): Promise<PaginatedResponse<Berkas>> {
   const params = new URLSearchParams();
   if (options?.status && options.status !== 'all') params.set('status', options.status);
+  if (options?.search) params.set('search', options.search);
   params.set('per_page', String(options?.perPage ?? 10));
   params.set('page', String(options?.page ?? 1));
 
@@ -175,9 +177,10 @@ export async function getBerkasByStatusPaginated(
   status: string | string[],
   page = 1,
   perPage = 10,
+  search?: string,
 ): Promise<PaginatedResponse<Berkas>> {
   const statusStr = Array.isArray(status) ? status.join(',') : status;
-  return fetchBerkasPaginated({ status: statusStr, page, perPage });
+  return fetchBerkasPaginated({ status: statusStr, page, perPage, search });
 }
 
 export async function getBerkasByStatus(status: string | string[]): Promise<Berkas[]> {

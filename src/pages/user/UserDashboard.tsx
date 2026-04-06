@@ -23,6 +23,7 @@ export default function UserDashboard() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({ total: 0, selesai: 0, ditolak: 0 });
 
@@ -30,12 +31,12 @@ export default function UserDashboard() {
     if (!user) return;
     setLoading(true);
     try {
-      const result = await fetchBerkasPaginated({ status: statusFilter === 'all' ? undefined : statusFilter, page, perPage });
+      const result = await fetchBerkasPaginated({ status: statusFilter === 'all' ? undefined : statusFilter, page, perPage, search: search || undefined });
       setPaginated(result);
     } finally {
       setLoading(false);
     }
-  }, [user, statusFilter, page, perPage]);
+  }, [user, statusFilter, page, perPage, search]);
 
   useEffect(() => { loadData(); }, [loadData]);
   useEffect(() => { if (user) getStats().then(setStats); }, [user]);
@@ -68,6 +69,7 @@ export default function UserDashboard() {
           perPage,
           onPageChange: setPage,
           onPerPageChange: (n) => { setPerPage(n); setPage(1); },
+          onSearchChange: (val) => { setSearch(val); setPage(1); },
           loading,
         }}
         headerActions={
