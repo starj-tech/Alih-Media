@@ -106,7 +106,11 @@ export default function DataTable<T extends Record<string, any>>({
 
   const handleGlobalSearch = (val: string) => {
     setGlobalSearch(val);
-    if (!isServerPaginated) setCurrentPage(1);
+    if (isServerPaginated && serverPagination.onSearchChange) {
+      serverPagination.onSearchChange(val);
+    } else if (!isServerPaginated) {
+      setCurrentPage(1);
+    }
   };
 
   // Pagination values
