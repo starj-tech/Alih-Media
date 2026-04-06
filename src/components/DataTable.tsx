@@ -64,6 +64,11 @@ export default function DataTable<T extends Record<string, any>>({
   const filteredData = useMemo(() => {
     let result = data;
 
+    // Skip client-side filtering when server handles search
+    if (isServerPaginated && serverPagination.onSearchChange) {
+      return result;
+    }
+
     // Apply per-column filters (client-side, works on current page data)
     Object.entries(columnFilters).forEach(([key, value]) => {
       if (value) {
@@ -83,7 +88,7 @@ export default function DataTable<T extends Record<string, any>>({
     }
 
     return result;
-  }, [data, columnFilters, globalSearch, searchKeys]);
+  }, [data, columnFilters, globalSearch, searchKeys, isServerPaginated, serverPagination]);
 
   const handleColumnFilter = (key: string, val: string) => {
     setColumnFilters(prev => ({ ...prev, [key]: val }));
