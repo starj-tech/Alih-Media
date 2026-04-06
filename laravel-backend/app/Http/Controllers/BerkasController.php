@@ -37,6 +37,18 @@ class BerkasController extends Controller
             $query->where('jenis_hak', $request->jenis_hak);
         }
 
+        // Server-side search across key columns
+        if ($request->has('search') && $request->search !== '') {
+            $searchTerm = $request->search;
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('no_hak', 'like', "%{$searchTerm}%")
+                  ->orWhere('no_su_tahun', 'like', "%{$searchTerm}%")
+                  ->orWhere('desa', 'like', "%{$searchTerm}%")
+                  ->orWhere('kecamatan', 'like', "%{$searchTerm}%")
+                  ->orWhere('nama_pemegang_hak', 'like', "%{$searchTerm}%");
+            });
+        }
+
         // Pagination: default 10 per page, max 100
         $perPage = min((int) ($request->per_page ?? 10), 100);
         $paginated = $query->paginate($perPage);
