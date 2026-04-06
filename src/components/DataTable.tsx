@@ -1,4 +1,4 @@
-import { ReactNode, useState, useMemo } from 'react';
+import { ReactNode, useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
