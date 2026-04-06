@@ -104,14 +104,23 @@ export default function DataTable<T extends Record<string, any>>({
     if (!isServerPaginated) setCurrentPage(1);
   };
 
-  const handleGlobalSearch = (val: string) => {
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const handleGlobalSearch = useCallback((val: string) => {
     setGlobalSearch(val);
-    if (isServerPaginated && serverPagination.onSearchChange) {
-      serverPagination.onSearchChange(val);
+    if (isServerPaginated && serverPagination?.onSearchChange) {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        serverPagination.onSearchChange!(val);
+      }, 400);
     } else if (!isServerPaginated) {
       setCurrentPage(1);
     }
-  };
+  }, [isServerPaginated, serverPagination]);
+
+  useEffect(() => {
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, []);
 
   // Pagination values
   const activePage = isServerPaginated ? serverPagination.currentPage : currentPage;
