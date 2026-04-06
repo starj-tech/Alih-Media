@@ -16,6 +16,7 @@ export interface ServerPagination {
   perPage: number;
   onPageChange: (page: number) => void;
   onPerPageChange?: (perPage: number) => void;
+  onSearchChange?: (search: string) => void;
   loading?: boolean;
 }
 
