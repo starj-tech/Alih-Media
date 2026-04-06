@@ -28,6 +28,7 @@ export default function SuperAdminDashboard() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -36,12 +37,12 @@ export default function SuperAdminDashboard() {
   const loadBerkas = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await fetchBerkasPaginated({ status: statusFilter === 'all' ? undefined : statusFilter, page, perPage });
+      const result = await fetchBerkasPaginated({ status: statusFilter === 'all' ? undefined : statusFilter, page, perPage, search: search || undefined });
       setPaginated(result);
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, page, perPage]);
+  }, [statusFilter, page, perPage, search]);
 
   useEffect(() => {
     getAdminStats().then(setStats);
