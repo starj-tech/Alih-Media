@@ -21,7 +21,7 @@ const ROLES: { value: UserRole; label: string }[] = [
   { value: 'user', label: 'User' },
 ];
 
-const PENGGUNA_OPTIONS = ['Perorangan', 'Staf PPAT', 'Notaris/PPAT', 'Bank', 'PT/Badan Hukum'];
+const PENGGUNA_OPTIONS = ['Perorangan', 'Notaris/PPAT', 'Bank', 'PT/Badan Hukum'];
 const SHOW_INSTANSI = ['Notaris/PPAT', 'Bank', 'PT/Badan Hukum'];
 
 export default function KelolaUser() {

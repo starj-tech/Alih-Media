@@ -22,7 +22,7 @@ const penggunaOptions = [
   'PT/Badan Hukum',
 ] as const;
 
-const needsInstansi = (val: string) => ['Staf PPAT', 'Bank', 'PT/Badan Hukum'].includes(val);
+const needsInstansi = (val: string) => ['Bank', 'PT/Badan Hukum'].includes(val);
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');

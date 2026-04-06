@@ -13,7 +13,7 @@ export const wilayahBogorTimur: KecamatanData[] = [
   },
   {
     kecamatan: 'Cileungsi',
-    desa: ['Cileungsi', 'Cileungsi Kidul', 'Cipenjo', 'Cipeucang', 'Dayeuh', 'Gandoang', 'Jatisari', 'Limus Nunggal', 'Mampir', 'Mekarsari', 'Pasir Angin', 'Setu Sari'],
+    desa: ['Cileungsi', 'Cileungsi Kidul', 'Cipenjo', 'Cipeucang', 'Dayeuh', 'Gandoang', 'Jatisari', 'Limus Nunggal', 'Mampir', 'Mekarsari', 'Pasir Angin', 'Situsari'],
   },
   {
     kecamatan: 'Gunung Putri',
