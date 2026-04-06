@@ -131,9 +131,11 @@ export async function fetchBerkasPaginated(options?: {
   status?: string;
   page?: number;
   perPage?: number;
+  search?: string;
 }): Promise<PaginatedResponse<Berkas>> {
   const params = new URLSearchParams();
   if (options?.status && options.status !== 'all') params.set('status', options.status);
+  if (options?.search) params.set('search', options.search);
   params.set('per_page', String(options?.perPage ?? 10));
   params.set('page', String(options?.page ?? 1));
 
