@@ -13,6 +13,7 @@ export default function DashboardArsip() {
   const [paginated, setPaginated] = useState<PaginatedResponse<Berkas>>({ data: [], current_page: 1, last_page: 1, per_page: 10, total: 0 });
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({ proses: 0, selesaiDariArsip: 0, ditolak: 0 });
   const [myCount, setMyCount] = useState(0);
@@ -20,12 +21,12 @@ export default function DashboardArsip() {
   const loadBerkas = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await getBerkasByStatusPaginated('Proses', page, perPage);
+      const result = await getBerkasByStatusPaginated('Proses', page, perPage, search || undefined);
       setPaginated(result);
     } finally {
       setLoading(false);
     }
-  }, [page, perPage]);
+  }, [page, perPage, search]);
 
   useEffect(() => { loadBerkas(); }, [loadBerkas]);
 
