@@ -24,7 +24,6 @@ class Profile extends Model
      */
     public const PENGGUNA_TYPES = [
         'Perorangan',
-        'Staf PPAT',
         'Notaris/PPAT',
         'Bank',
         'PT/Badan Hukum',
