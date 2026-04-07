@@ -196,8 +196,8 @@ export default function DataTable<T extends Record<string, any>>({
               ))}
             </select>
 
-            {/* Per-column filter chips */}
-            {searchableColumns.map(col => (
+            {/* Per-column filter chips - only show for client-side pagination */}
+            {!isServerPaginated && searchableColumns.map(col => (
               <div key={col.key} className="flex items-center border border-border rounded bg-background">
                 <Input
                   placeholder={col.header}
