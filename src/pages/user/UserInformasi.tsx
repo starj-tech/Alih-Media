@@ -190,6 +190,7 @@ export default function UserInformasi() {
           { header: 'No', accessor: (_, i) => (i ?? 0) + 1 } as any,
           { header: 'Tgl Pengajuan', accessor: 'tanggalPengajuan' },
           { header: 'Nama Pemohon', accessor: 'namaPemegangHak' },
+          { header: 'Pengguna', accessor: (row) => <span className="text-xs">{row.profilePengguna || '-'}</span> },
           { header: 'No.SU/Tahun', accessor: 'noSuTahun' },
           { header: 'No Hak', accessor: 'noHak' },
           { header: 'Jenis Hak', accessor: 'jenisHak' },
