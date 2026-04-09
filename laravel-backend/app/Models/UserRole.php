@@ -23,6 +23,7 @@ class UserRole extends Model
         'admin_arsip',
         'admin_validasi_su',
         'admin_validasi_bt',
+        'admin_pengguna',
     ];
 
     /**
@@ -34,6 +35,7 @@ class UserRole extends Model
         'admin_arsip',
         'admin_validasi_su',
         'admin_validasi_bt',
+        'admin_pengguna',
     ];
 
     protected static function boot()

@@ -237,6 +237,7 @@ export type Database = {
         | "admin_arsip"
         | "admin_validasi_su"
         | "admin_validasi_bt"
+        | "admin_pengguna"
       berkas_status:
         | "Proses"
         | "Validasi SU & Bidang"
@@ -385,6 +386,7 @@ export const Constants = {
         "admin_arsip",
         "admin_validasi_su",
         "admin_validasi_bt",
+        "admin_pengguna",
       ],
       berkas_status: [
         "Proses",

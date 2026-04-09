@@ -91,6 +91,15 @@ function getMenu(role: UserRole): MenuItem[] {
         { label: 'Informasi Berkas', path: '/admin/informasi', icon: Info },
         { label: 'Bantuan', path: '/admin/bantuan', icon: HelpCircle },
       ];
+    case 'admin_pengguna':
+      return [
+        { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+        { label: 'Arsip Verifikasi BT/SU', path: '/admin/arsip-verifikasi', icon: Archive },
+        { label: 'Validasi SU & Bidang', path: '/admin/validasi-su', icon: FileSearch },
+        { label: 'Validasi Buku Tanah', path: '/admin/validasi-bt', icon: CheckSquare },
+        { label: 'Informasi Berkas', path: '/admin/informasi', icon: Info },
+        { label: 'Bantuan', path: '/admin/bantuan', icon: HelpCircle },
+      ];
     case 'user':
     case 'super_user':
     default:

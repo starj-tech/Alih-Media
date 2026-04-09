@@ -1,7 +1,7 @@
 // Auth utilities - Laravel backend
 import { apiFetch } from '@/lib/api-client';
 
-export type UserRole = 'admin' | 'user' | 'super_admin' | 'super_user' | 'admin_arsip' | 'admin_validasi_su' | 'admin_validasi_bt';
+export type UserRole = 'admin' | 'user' | 'super_admin' | 'super_user' | 'admin_arsip' | 'admin_validasi_su' | 'admin_validasi_bt' | 'admin_pengguna';
 
 export interface User {
   id: string;
@@ -29,7 +29,7 @@ export function isValidName(name: string): boolean {
 }
 
 export function isAdminRole(role: UserRole): boolean {
-  return ['admin', 'super_admin', 'admin_arsip', 'admin_validasi_su', 'admin_validasi_bt'].includes(role);
+  return ['admin', 'super_admin', 'admin_arsip', 'admin_validasi_su', 'admin_validasi_bt', 'admin_pengguna'].includes(role);
 }
 
 export function isSuperUser(role: UserRole): boolean {
@@ -43,6 +43,7 @@ export function getRoleLabel(role: UserRole): string {
     case 'admin_arsip': return 'Admin Arsip BT/SU';
     case 'admin_validasi_su': return 'Admin Validasi SU & Bidang';
     case 'admin_validasi_bt': return 'Admin Validasi BT';
+    case 'admin_pengguna': return 'Admin Pengguna';
     case 'super_user': return 'Super User';
     case 'user': return 'User';
   }

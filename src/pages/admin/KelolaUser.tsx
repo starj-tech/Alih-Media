@@ -17,6 +17,7 @@ const ROLES: { value: UserRole; label: string }[] = [
   { value: 'admin_arsip', label: 'Admin Arsip BT/SU' },
   { value: 'admin_validasi_su', label: 'Admin Validasi SU & Bidang' },
   { value: 'admin_validasi_bt', label: 'Admin Validasi BT' },
+  { value: 'admin_pengguna', label: 'Admin Pengguna' },
   { value: 'super_user', label: 'Super User' },
   { value: 'user', label: 'User' },
 ];
