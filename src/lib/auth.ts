@@ -43,6 +43,7 @@ export function getRoleLabel(role: UserRole): string {
     case 'admin_arsip': return 'Admin Arsip BT/SU';
     case 'admin_validasi_su': return 'Admin Validasi SU & Bidang';
     case 'admin_validasi_bt': return 'Admin Validasi BT';
+    case 'admin_pengguna': return 'Admin Pengguna';
     case 'super_user': return 'Super User';
     case 'user': return 'User';
   }

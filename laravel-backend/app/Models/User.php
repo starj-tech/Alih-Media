@@ -94,6 +94,7 @@ class User extends Authenticatable
             'admin_arsip' => 'Admin Arsip BT/SU',
             'admin_validasi_su' => 'Admin Validasi SU & Bidang',
             'admin_validasi_bt' => 'Admin Validasi BT',
+            'admin_pengguna' => 'Admin Pengguna',
             'super_user' => 'Super User',
             'user' => 'User',
         ];
