@@ -64,7 +64,7 @@ class User extends Authenticatable
     public function isAdmin()
     {
         return in_array($this->getRole(), [
-            'admin', 'super_admin', 'admin_arsip', 'admin_validasi_su', 'admin_validasi_bt'
+            'admin', 'super_admin', 'admin_arsip', 'admin_validasi_su', 'admin_validasi_bt', 'admin_pengguna'
         ]);
     }
 
