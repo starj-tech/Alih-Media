@@ -29,7 +29,7 @@ export function isValidName(name: string): boolean {
 }
 
 export function isAdminRole(role: UserRole): boolean {
-  return ['admin', 'super_admin', 'admin_arsip', 'admin_validasi_su', 'admin_validasi_bt'].includes(role);
+  return ['admin', 'super_admin', 'admin_arsip', 'admin_validasi_su', 'admin_validasi_bt', 'admin_pengguna'].includes(role);
 }
 
 export function isSuperUser(role: UserRole): boolean {
