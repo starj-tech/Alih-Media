@@ -119,6 +119,7 @@ function mapBerkasRow(row: any): Berkas {
     ipAddress: row.ip_address || row.ipAddress || undefined,
     deviceIpAddress: row.device_ip_address || row.deviceIpAddress || undefined,
     profileNoTelepon: row.profile_no_telepon || row.profileNoTelepon || undefined,
+    profilePengguna: row.profile_pengguna || row.profilePengguna || undefined,
   };
 }
 
