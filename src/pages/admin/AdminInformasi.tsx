@@ -117,6 +117,7 @@ export default function AdminInformasi() {
           { header: 'No', accessor: (_, i) => (i ?? 0) + 1 } as any,
           { header: 'Tgl Pengajuan', accessor: 'tanggalPengajuan' },
           { header: 'Nama', accessor: 'namaPemegangHak' },
+          { header: 'Pengguna', accessor: (row) => <span className="text-xs">{row.profilePengguna || '-'}</span> },
           { header: 'No.SU/Tahun', accessor: 'noSuTahun', searchKey: 'noSuTahun' },
           { header: 'No Hak', accessor: 'noHak', searchKey: 'noHak' },
           { header: 'Jenis Hak', accessor: 'jenisHak' },

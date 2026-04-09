@@ -58,6 +58,9 @@ class BerkasController extends Controller
             $berkas->profile_no_telepon = $berkas->user && $berkas->user->profile
                 ? $berkas->user->profile->no_telepon
                 : null;
+            $berkas->profile_pengguna = $berkas->user && $berkas->user->profile
+                ? $berkas->user->profile->pengguna
+                : null;
             unset($berkas->user); // Don't expose full user data
             return $berkas;
         });
@@ -77,6 +80,9 @@ class BerkasController extends Controller
         $berkas->load('user.profile');
         $berkas->profile_no_telepon = $berkas->user && $berkas->user->profile
             ? $berkas->user->profile->no_telepon
+            : null;
+        $berkas->profile_pengguna = $berkas->user && $berkas->user->profile
+            ? $berkas->user->profile->pengguna
             : null;
         unset($berkas->user);
 

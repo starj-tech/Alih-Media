@@ -29,6 +29,7 @@ export interface Berkas {
   ipAddress?: string;
   deviceIpAddress?: string;
   profileNoTelepon?: string;
+  profilePengguna?: string;
 }
 
 export interface PaginatedResponse<T> {
