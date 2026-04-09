@@ -1,7 +1,7 @@
 // Auth utilities - Laravel backend
 import { apiFetch } from '@/lib/api-client';
 
-export type UserRole = 'admin' | 'user' | 'super_admin' | 'super_user' | 'admin_arsip' | 'admin_validasi_su' | 'admin_validasi_bt';
+export type UserRole = 'admin' | 'user' | 'super_admin' | 'super_user' | 'admin_arsip' | 'admin_validasi_su' | 'admin_validasi_bt' | 'admin_pengguna';
 
 export interface User {
   id: string;
