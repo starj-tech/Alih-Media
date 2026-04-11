@@ -5,12 +5,24 @@ import FileDownloadCell from '@/components/FileDownloadCell';
 import ExternalLinkCell from '@/components/ExternalLinkCell';
 import ExportExcelButton from '@/components/ExportExcelButton';
 import TolakBerkasDialog from '@/components/TolakBerkasDialog';
-import { getBerkasByStatusPaginated, updateBerkasStatus, isDueDateOverdue, Berkas, getUsers, ManagedUser, PaginatedResponse } from '@/lib/data';
+import { getBerkasByStatusPaginated, updateBerkasStatus, isDueDateOverdue, Berkas, getUsers, ManagedUser, PaginatedResponse, BerkasStatus } from '@/lib/data';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Send, XCircle, Undo2 } from 'lucide-react';
+import { Send, XCircle, Undo2, CheckSquare, Square, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+
+const STATUS_FILTERS: { label: string; value: string }[] = [
+  { label: 'Semua Status', value: 'all' },
+  { label: 'Proses', value: 'Proses' },
+  { label: 'Validasi SU & Bidang', value: 'Validasi SU & Bidang' },
+  { label: 'Validasi BT', value: 'Validasi BT' },
+  { label: 'Selesai Belum Diinfokan', value: 'Selesai Belum Diinfokan' },
+  { label: 'Selesai', value: 'Selesai' },
+  { label: 'Ditolak', value: 'Ditolak' },
+];
 
 export default function ValidasiBukuTanah() {
   const { user } = useAuth();
@@ -19,17 +31,22 @@ export default function ValidasiBukuTanah() {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('Validasi BT');
   const [loading, setLoading] = useState(false);
   const [tolakId, setTolakId] = useState<string | null>(null);
   const [kembalikanId, setKembalikanId] = useState<string | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
   const [confirmKirimId, setConfirmKirimId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmBulkSelesai, setConfirmBulkSelesai] = useState(false);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
+      const statusParam = statusFilter === 'all' ? undefined : statusFilter;
       const [result, allUsers] = await Promise.all([
-        getBerkasByStatusPaginated('Validasi BT', page, perPage, search || undefined),
+        getBerkasByStatusPaginated(statusParam || 'Validasi BT', page, perPage, search || undefined),
         getUsers(),
       ]);
       setPaginated(result);
@@ -37,40 +54,81 @@ export default function ValidasiBukuTanah() {
     } finally {
       setLoading(false);
     }
-  }, [page, perPage, search]);
+  }, [page, perPage, search, statusFilter]);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  // Clear selections when data/filter changes
+  useEffect(() => { setSelectedIds(new Set()); }, [statusFilter, page, perPage, search]);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === paginated.data.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(paginated.data.map(b => b.id)));
+    }
+  };
 
   const handleKirim = async (id: string) => {
     if (processing) return;
     setProcessing(id);
     try {
       const item = paginated.data.find(b => b.id === id);
-      await updateBerkasStatus(id, 'Selesai', undefined, user?.id);
-      toast.success('Berkas selesai divalidasi');
-
-      let waNumber = '';
-      let namaPenerima = '';
-      if (item?.noWaPemohon) {
-        waNumber = item.noWaPemohon;
-        namaPenerima = item.namaPemilikSertifikat || item.namaPemegangHak;
-      } else if (item) {
-        const submitter = users.find(u => u.id === item.userId);
-        waNumber = submitter?.noTelepon || '';
-        namaPenerima = item.namaPemegangHak;
-      }
-
-      if (waNumber) {
-        const message = `Yth Bapak/Ibu ${namaPenerima.toUpperCase()},\n\nBerkas Pengajuan Validasi Alihmedia dengan nomor hak ${item?.noHak || ''} jenis hak ${item?.jenisHak || ''} desa ${item?.desa || ''} kecamatan ${item?.kecamatan || ''} sudah selesai, silahkan untuk melakukan pendaftaran Pelayanan di Kantor Pertanahan Kabupaten Bogor II,\n\nPertanyaan, saran dan keluhan dapat menghubungi Kantor Pertanahan Kabupaten Bogor II\n\nAlamat : Jl. Alternatif Cibubur no. 6 Cileungsi, Kecamatan Cileungsi, Kabupaten Bogor , Jawa Barat 16820\n\nTerima Kasih`;
-        let cleaned = waNumber.replace(/\D/g, '');
-        if (cleaned.startsWith('0')) cleaned = '62' + cleaned.slice(1);
-        if (!cleaned.startsWith('62')) cleaned = '62' + cleaned;
-        window.open(`https://wa.me/${cleaned}?text=${encodeURIComponent(message)}`, '_blank');
-      }
-
+      await updateBerkasStatus(id, 'Selesai Belum Diinfokan', undefined, user?.id);
+      toast.success('Berkas selesai divalidasi, status: Selesai Belum Diinfokan');
       loadData();
     } finally {
       setProcessing(null);
+    }
+  };
+
+  const handleSelesaikanDanInfokan = async (id: string) => {
+    const item = paginated.data.find(b => b.id === id);
+    await updateBerkasStatus(id, 'Selesai', undefined, user?.id);
+
+    let waNumber = '';
+    let namaPenerima = '';
+    if (item?.noWaPemohon) {
+      waNumber = item.noWaPemohon;
+      namaPenerima = item.namaPemilikSertifikat || item.namaPemegangHak;
+    } else if (item) {
+      const submitter = users.find(u => u.id === item.userId);
+      waNumber = submitter?.noTelepon || '';
+      namaPenerima = item.namaPemegangHak;
+    }
+
+    if (waNumber) {
+      const message = `Yth Bapak/Ibu ${namaPenerima.toUpperCase()},\n\nBerkas Pengajuan Validasi Alihmedia dengan nomor hak ${item?.noHak || ''} jenis hak ${item?.jenisHak || ''} desa ${item?.desa || ''} kecamatan ${item?.kecamatan || ''} sudah selesai, silahkan untuk melakukan pendaftaran Pelayanan di Kantor Pertanahan Kabupaten Bogor II,\n\nPertanyaan, saran dan keluhan dapat menghubungi Kantor Pertanahan Kabupaten Bogor II\n\nAlamat : Jl. Alternatif Cibubur no. 6 Cileungsi, Kecamatan Cileungsi, Kabupaten Bogor , Jawa Barat 16820\n\nTerima Kasih`;
+      let cleaned = waNumber.replace(/\D/g, '');
+      if (cleaned.startsWith('0')) cleaned = '62' + cleaned.slice(1);
+      if (!cleaned.startsWith('62')) cleaned = '62' + cleaned;
+      window.open(`https://wa.me/${cleaned}?text=${encodeURIComponent(message)}`, '_blank');
+    }
+  };
+
+  const handleBulkSelesai = async () => {
+    if (selectedIds.size === 0) return;
+    setBulkProcessing(true);
+    try {
+      const selectedBerkas = paginated.data.filter(b => selectedIds.has(b.id));
+      for (const item of selectedBerkas) {
+        await handleSelesaikanDanInfokan(item.id);
+      }
+      toast.success(`${selectedIds.size} berkas telah diselesaikan dan diinfokan`);
+      setSelectedIds(new Set());
+      setConfirmBulkSelesai(false);
+      loadData();
+    } finally {
+      setBulkProcessing(false);
     }
   };
 
@@ -107,12 +165,39 @@ export default function ValidasiBukuTanah() {
   };
 
   const tolakBerkas = tolakId ? paginated.data.find(b => b.id === tolakId) : null;
+  const isAllSelected = paginated.data.length > 0 && selectedIds.size === paginated.data.length;
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Validasi Buku Tanah</h1>
         <p className="text-muted-foreground">Validasi berkas buku tanah yang masuk</p>
+      </div>
+
+      {/* Status Filter */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
+          <SelectTrigger className="w-56">
+            <SelectValue placeholder="Semua Status" />
+          </SelectTrigger>
+          <SelectContent>
+            {STATUS_FILTERS.map(sf => (
+              <SelectItem key={sf.value} value={sf.value}>{sf.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {selectedIds.size > 0 && (
+          <Button
+            size="sm"
+            className="gap-1"
+            onClick={() => setConfirmBulkSelesai(true)}
+            disabled={bulkProcessing}
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            Selesaikan & Infokan ({selectedIds.size})
+          </Button>
+        )}
       </div>
 
       <DataTable<Berkas>
@@ -130,6 +215,16 @@ export default function ValidasiBukuTanah() {
         }}
         headerActions={<ExportExcelButton data={paginated.data} fileName="validasi-buku-tanah" sheetName="Validasi BT" />}
         columns={[
+          {
+            header: '✓',
+            accessor: (row) => (
+              <Checkbox
+                checked={selectedIds.has(row.id)}
+                onCheckedChange={() => toggleSelect(row.id)}
+              />
+            ),
+            className: 'w-10',
+          } as any,
           { header: 'No', accessor: (_, i) => (i ?? 0) + 1 } as any,
           { header: 'Tgl Pengajuan', accessor: (row) => (
             <span className={isDueDateOverdue(row.tanggalPengajuan) ? 'text-destructive font-semibold' : ''}>{row.tanggalPengajuan}</span>
@@ -146,13 +241,23 @@ export default function ValidasiBukuTanah() {
           { header: 'Link', accessor: (row) => <ExternalLinkCell url={row.linkShareloc} /> },
           { header: 'Status', accessor: (row) => <StatusBadge status={row.status} /> },
           { header: 'Catatan', accessor: (row) => <span className="text-xs text-muted-foreground">{row.catatanPenolakan || '-'}</span> },
-          { header: 'Aksi', accessor: (row) => (
-            <div className="flex gap-1">
-              <Button size="sm" className="gap-1" disabled={processing === row.id} onClick={() => setConfirmKirimId(row.id)}><Send className="w-3 h-3" /> Kirim</Button>
-              <Button size="sm" variant="destructive" className="gap-1" onClick={() => setTolakId(row.id)}><XCircle className="w-3 h-3" /> Tolak</Button>
-              <Button size="sm" variant="outline" className="gap-1" onClick={() => setKembalikanId(row.id)}><Undo2 className="w-3 h-3" /></Button>
-            </div>
-          )},
+          { header: 'Aksi', accessor: (row) => {
+            if (row.status === 'Selesai Belum Diinfokan') {
+              return (
+                <Button size="sm" className="gap-1" onClick={() => handleSelesaikanDanInfokan(row.id).then(() => loadData())}>
+                  <Send className="w-3 h-3" /> Infokan
+                </Button>
+              );
+            }
+            if (row.status !== 'Validasi BT') return null;
+            return (
+              <div className="flex gap-1">
+                <Button size="sm" className="gap-1" disabled={processing === row.id} onClick={() => setConfirmKirimId(row.id)}><Send className="w-3 h-3" /> Kirim</Button>
+                <Button size="sm" variant="destructive" className="gap-1" onClick={() => setTolakId(row.id)}><XCircle className="w-3 h-3" /> Tolak</Button>
+                <Button size="sm" variant="outline" className="gap-1" onClick={() => setKembalikanId(row.id)}><Undo2 className="w-3 h-3" /></Button>
+              </div>
+            );
+          }},
         ]}
         data={paginated.data}
       />
@@ -182,6 +287,22 @@ export default function ValidasiBukuTanah() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmKirimId(null)}>Batal</Button>
             <Button onClick={() => { if (confirmKirimId) { handleKirim(confirmKirimId); setConfirmKirimId(null); } }}>Ya, Kirim</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Selesai Confirmation */}
+      <Dialog open={confirmBulkSelesai} onOpenChange={setConfirmBulkSelesai}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Selesaikan & Infokan Berkas</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Anda akan menyelesaikan dan menginfokan <strong>{selectedIds.size}</strong> berkas sekaligus. Setiap berkas akan dikirim notifikasi WhatsApp. Lanjutkan?
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmBulkSelesai(false)}>Batal</Button>
+            <Button onClick={handleBulkSelesai} disabled={bulkProcessing}>
+              {bulkProcessing ? 'Memproses...' : `Ya, Selesaikan (${selectedIds.size})`}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
