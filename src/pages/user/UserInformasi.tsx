@@ -21,6 +21,7 @@ const statusOptions: { value: string; label: string }[] = [
   { value: 'Proses', label: 'Proses' },
   { value: 'Validasi SU & Bidang', label: 'Validasi SU & Bidang' },
   { value: 'Validasi BT', label: 'Validasi BT' },
+  { value: 'Selesai Belum Diinfokan', label: 'Selesai Belum Diinfokan' },
   { value: 'Selesai', label: 'Selesai' },
   { value: 'Ditolak', label: 'Ditolak' },
 ];
