@@ -68,7 +68,7 @@ export default function ValidasiBukuTanah() {
   useEffect(() => { loadData(); }, [loadData]);
 
   // Clear selections when data/filter changes
-  useEffect(() => { setSelectedIds(new Set()); }, [statusFilter, page, perPage, search]);
+  useEffect(() => { setSelectedIds(new Set()); localStorage.removeItem('validasi_bt_selected'); }, [statusFilter]);
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
