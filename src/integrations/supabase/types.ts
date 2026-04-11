@@ -242,6 +242,7 @@ export type Database = {
         | "Proses"
         | "Validasi SU & Bidang"
         | "Validasi BT"
+        | "Selesai Belum Diinfokan"
         | "Selesai"
         | "Ditolak"
       jenis_hak: "HM" | "HGB" | "HP" | "HGU" | "HMSRS" | "HPL" | "HW"
@@ -392,6 +393,7 @@ export const Constants = {
         "Proses",
         "Validasi SU & Bidang",
         "Validasi BT",
+        "Selesai Belum Diinfokan",
         "Selesai",
         "Ditolak",
       ],
