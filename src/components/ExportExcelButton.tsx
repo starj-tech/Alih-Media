@@ -76,6 +76,7 @@ export default function ExportExcelButton({ data, fileName, sheetName = 'Data' }
       'No HP Pemohon': b.noWaPemohon || b.noTelepon || '-',
       'No HP Pemilik Sertifikat': b.namaPemilikSertifikat ? (b.noTelepon || '-') : '-',
       'Link Shareloc': b.linkShareloc || '-',
+      'Pengguna': b.profilePengguna || '-',
       'Status': b.status,
       'Catatan Penolakan': b.catatanPenolakan || '-',
     })));

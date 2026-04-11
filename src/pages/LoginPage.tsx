@@ -49,7 +49,7 @@ export default function LoginPage() {
       toast.error(result.error);
     } else {
       toast.success('Login berhasil!');
-      const isAdmin = ['admin', 'super_admin', 'admin_arsip', 'admin_validasi_su', 'admin_validasi_bt'].includes(result.role);
+      const isAdmin = ['admin', 'super_admin', 'admin_arsip', 'admin_validasi_su', 'admin_validasi_bt', 'admin_pengguna'].includes(result.role);
       navigate(isAdmin ? '/admin/dashboard' : '/user/dashboard');
     }
     setLoading(false);
