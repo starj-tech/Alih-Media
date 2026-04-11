@@ -37,7 +37,16 @@ export default function ValidasiBukuTanah() {
   const [kembalikanId, setKembalikanId] = useState<string | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
   const [confirmKirimId, setConfirmKirimId] = useState<string | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('validasi_bt_selected');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch { return new Set(); }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('validasi_bt_selected', JSON.stringify([...selectedIds]));
+  }, [selectedIds]);
   const [confirmBulkSelesai, setConfirmBulkSelesai] = useState(false);
   const [bulkProcessing, setBulkProcessing] = useState(false);
 
