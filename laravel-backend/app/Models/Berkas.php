@@ -68,6 +68,7 @@ class Berkas extends Model
         'Proses',
         'Validasi SU & Bidang',
         'Validasi BT',
+        'Selesai Belum Diinfokan',
         'Selesai',
         'Ditolak',
     ];

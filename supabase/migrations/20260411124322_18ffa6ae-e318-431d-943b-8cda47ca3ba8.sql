@@ -1,0 +1,1 @@
+ALTER TYPE public.berkas_status ADD VALUE IF NOT EXISTS 'Selesai Belum Diinfokan' BEFORE 'Selesai';

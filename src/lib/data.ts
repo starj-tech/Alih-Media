@@ -1,7 +1,7 @@
 // Data layer using Laravel REST API
 import { apiFetch, apiUpload, apiUploadBase64, apiUploadBinary, apiUploadChunked, LARAVEL_API_URL, getToken } from '@/lib/api-client';
 
-export type BerkasStatus = 'Proses' | 'Validasi SU & Bidang' | 'Validasi BT' | 'Selesai' | 'Ditolak';
+export type BerkasStatus = 'Proses' | 'Validasi SU & Bidang' | 'Validasi BT' | 'Selesai Belum Diinfokan' | 'Selesai' | 'Ditolak';
 export type JenisHak = 'HM' | 'HGB' | 'HP' | 'HGU' | 'HMSRS' | 'HPL' | 'HW';
 
 export interface Berkas {
