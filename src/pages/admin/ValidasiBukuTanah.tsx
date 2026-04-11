@@ -128,9 +128,9 @@ export default function ValidasiBukuTanah() {
     if (selectedIds.size === 0) return;
     setBulkProcessing(true);
     try {
-      const selectedBerkas = paginated.data.filter(b => selectedIds.has(b.id));
-      for (const item of selectedBerkas) {
-        await handleSelesaikanDanInfokan(item.id);
+      const idsToProcess = [...selectedIds];
+      for (const id of idsToProcess) {
+        await handleSelesaikanDanInfokan(id);
       }
       toast.success(`${selectedIds.size} berkas telah diselesaikan dan diinfokan`);
       setSelectedIds(new Set());
