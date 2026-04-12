@@ -222,7 +222,7 @@ export default function ValidasiBukuTanah() {
           onSearchChange: (val) => { setSearch(val); setPage(1); },
           loading,
         }}
-        headerActions={<ExportExcelButton data={paginated.data} fileName="validasi-buku-tanah" sheetName="Validasi BT" />}
+        headerActions={<ExportExcelButton data={paginated.data} fileName="validasi-buku-tanah" sheetName="Validasi BT" statusFilter={statusFilter} searchFilter={search} />}
         columns={[
           {
             header: '✓',

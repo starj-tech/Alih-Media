@@ -85,7 +85,7 @@ export default function UserDashboard() {
                 ))}
               </SelectContent>
             </Select>
-            <ExportExcelButton data={paginated.data} fileName="dashboard-user" sheetName="Dashboard" />
+            <ExportExcelButton data={paginated.data} fileName="dashboard-user" sheetName="Dashboard" statusFilter={statusFilter} searchFilter={search} />
           </div>
         }
         columns={[

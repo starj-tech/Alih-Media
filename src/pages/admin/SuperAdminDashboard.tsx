@@ -172,7 +172,7 @@ export default function SuperAdminDashboard() {
                 ))}
               </SelectContent>
             </Select>
-            <ExportExcelButton data={paginated.data} fileName="super-admin-dashboard" sheetName="Dashboard" />
+            <ExportExcelButton data={paginated.data} fileName="super-admin-dashboard" sheetName="Dashboard" statusFilter={statusFilter} searchFilter={search} />
           </div>
         }
         columns={[
