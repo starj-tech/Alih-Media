@@ -184,7 +184,7 @@ export default function UserInformasi() {
                 ))}
               </SelectContent>
             </Select>
-            <ExportExcelButton data={paginated.data} fileName="informasi-user" sheetName="Informasi" />
+            <ExportExcelButton data={paginated.data} fileName="informasi-user" sheetName="Informasi" statusFilter={statusFilter} searchFilter={search} />
           </div>
         }
         columns={[
