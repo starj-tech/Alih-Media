@@ -68,7 +68,7 @@ export default function DashboardArsip() {
           onSearchChange: (val) => { setSearch(val); setPage(1); },
           loading,
         }}
-        headerActions={<ExportExcelButton data={paginated.data} fileName="dashboard-arsip" sheetName="Arsip" />}
+        headerActions={<ExportExcelButton data={paginated.data} fileName="dashboard-arsip" sheetName="Arsip" searchFilter={search} />}
         columns={[
           { header: 'No', accessor: (_, i) => (i ?? 0) + 1 } as any,
           { header: 'Tgl Pengajuan', accessor: 'tanggalPengajuan' },

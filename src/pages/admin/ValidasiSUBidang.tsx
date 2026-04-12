@@ -102,7 +102,7 @@ export default function ValidasiSUBidang() {
           onSearchChange: (val) => { setSearch(val); setPage(1); },
           loading,
         }}
-        headerActions={<ExportExcelButton data={paginated.data} fileName="validasi-su-bidang" sheetName="Validasi SU" />}
+        headerActions={<ExportExcelButton data={paginated.data} fileName="validasi-su-bidang" sheetName="Validasi SU" searchFilter={search} />}
         columns={[
           { header: 'No', accessor: (_, i) => (i ?? 0) + 1 } as any,
           { header: 'Tgl Pengajuan', accessor: (row) => (

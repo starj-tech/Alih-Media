@@ -94,7 +94,7 @@ export default function ArsipVerifikasi() {
           onSearchChange: (val) => { setSearch(val); setPage(1); },
           loading,
         }}
-        headerActions={<ExportExcelButton data={paginated.data} fileName="arsip-verifikasi" sheetName="Arsip Verifikasi" />}
+        headerActions={<ExportExcelButton data={paginated.data} fileName="arsip-verifikasi" sheetName="Arsip Verifikasi" searchFilter={search} />}
         columns={[
           { header: 'No', accessor: (_, i) => (i ?? 0) + 1 } as any,
           { header: 'Tgl Pengajuan', accessor: (row) => (
